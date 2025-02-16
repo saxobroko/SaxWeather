@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PreferenceSpecifiers</key>
+    <array>
+        <dict>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+            <key>Title</key>
+            <string>Weather Underground API Settings</string>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>WU API Key</string>
+            <key>Key</key>
+            <string>wuApiKey</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>IsSecure</key>
+            <false/>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>Station ID</string>
+            <key>Key</key>
+            <string>stationID</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>IsSecure</key>
+            <false/>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+            <key>Title</key>
+            <string>OpenWeatherMap API Settings</string>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>OWM API Key</string>
+            <key>Key</key>
+            <string>owmApiKey</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>IsSecure</key>
+            <false/>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+            <key>Title</key>
+            <string>Location Coordinates</string>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>Latitude</string>
+            <key>Key</key>
+            <string>latitude</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>KeyboardType</key>
+            <string>DecimalPad</string>
+            <key>IsSecure</key>
+            <false/>
+        </dict>
+        <dict>
+            <key>Type</key>
+            <string>PSTextFieldSpecifier</string>
+            <key>Title</key>
+            <string>Longitude</string>
+            <key>Key</key>
+            <string>longitude</string>
+            <key>AutocapitalizationType</key>
+            <string>None</string>
+            <key>KeyboardType</key>
+            <string>DecimalPad</string>
+            <key>IsSecure</key>
+            <false/>
+        </dict>
+    </array>
+    <key>StringsTable</key>
+    <string>Root</string>
+</dict>
+</plist>
