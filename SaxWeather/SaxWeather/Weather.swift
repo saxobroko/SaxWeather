@@ -65,8 +65,8 @@ struct Weather: Codable {
         
         // Calculate feels like temperature in Celsius
         let feelsLikeCelsius = calculateFeelsLike(temperature: tempInCelsius,
-                                                humidity: humidity,
-                                                windSpeed: windInMetersPerSecond)
+                                                 humidity: humidity,
+                                                 windSpeed: windInMetersPerSecond)
         
         // Convert back to Fahrenheit if needed
         if currentUnit == "Imperial" {
@@ -87,7 +87,7 @@ struct Weather: Codable {
         self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
         self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure
         self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust
-        self.uvIndex = wuObservation?.uv ?? owmCurrent?.uvi
+        self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
         self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds
         
         let temp = self.temperature ?? 0
@@ -172,19 +172,35 @@ struct WUResponse: Codable {
 }
 
 struct WUObservation: Codable {
-    let humidity: Double
-    let uv: Int
+    let stationID: String
+    let obsTimeUtc: String
+    let obsTimeLocal: String
+    let neighborhood: String?
+    let softwareType: String?
+    let country: String?
     let solarRadiation: Double
+    let lon: Double
+    let realtimeFrequency: Double?
+    let epoch: Int
+    let lat: Double
+    let uv: Double
+    let winddir: Int
+    let humidity: Double
+    let qcStatus: Int
     let metric: WUMetric
+}
 
-    struct WUMetric: Codable {
-        let temp: Double
-        let heatIndex: Double
-        let dewpt: Double
-        let pressure: Double
-        let windSpeed: Double
-        let windGust: Double
-    }
+struct WUMetric: Codable {
+    let temp: Double
+    let heatIndex: Double
+    let dewpt: Double
+    let windChill: Double
+    let windSpeed: Double
+    let windGust: Double
+    let pressure: Double
+    let precipRate: Double
+    let precipTotal: Double
+    let elev: Double
 }
 
 struct OWMResponse: Codable {
@@ -211,11 +227,4 @@ struct OWMDaily: Codable {
         let min: Double
         let max: Double
     }
-}
-
-// MARK: - Errors
-enum WeatherError: Error {
-    case invalidURL
-    case noData
-    case networkError(String)
 }

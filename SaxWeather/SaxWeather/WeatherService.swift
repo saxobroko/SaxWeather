@@ -107,22 +107,52 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func fetchWUWeather(apiKey: String, stationID: String) async throws -> WUObservation? {
-        guard !apiKey.isEmpty, !stationID.isEmpty else { return nil }
+        guard !apiKey.isEmpty, !stationID.isEmpty else {
+            print("❌ Weather Underground Error: Empty API key or station ID")
+            throw WeatherError.invalidAPIKey
+        }
         
-        let urlString = "https://api.weather.com/v2/pws/observations/current?stationId=\(stationID)&format=json&units=m&apiKey=\(apiKey)"
+        // Add numericPrecision=decimal to the URL parameters
+        let urlString = "https://api.weather.com/v2/pws/observations/current?stationId=\(stationID)&format=json&units=m&numericPrecision=decimal&apiKey=\(apiKey)"
+        print("🌐 Weather Underground URL: \(urlString)")
+        
         guard let url = URL(string: urlString) else {
+            print("❌ Weather Underground Error: Invalid URL")
             throw WeatherError.invalidURL
         }
         
-        let request = createURLRequest(from: url)
+        var request = createURLRequest(from: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(WUResponse.self, from: data)
-            return response.observations.first
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📡 Weather Underground Response Status: \(httpResponse.statusCode)")
+            }
+            
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📡 Weather Underground Response Body:")
+                print(responseString)
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let wuResponse = try decoder.decode(WUResponse.self, from: data)
+            
+            if let observation = wuResponse.observations.first {
+                print("✅ Weather Underground Data Parsed Successfully:")
+                print("- Temperature: \(observation.metric.temp)°C")
+                print("- Humidity: \(observation.humidity)%")  // humidity is at root level
+                print("- Wind Speed: \(observation.metric.windSpeed) m/s")
+                print("- Pressure: \(observation.metric.pressure) hPa")
+            }
+            
+            return wuResponse.observations.first
         } catch {
-            print("❌ Weather Underground Error:", error.localizedDescription)
-            return nil
+            print("❌ Weather Underground Error:", error)
+            print("❌ Error Details:", error.localizedDescription)
+            throw WeatherError.apiError(error.localizedDescription)
         }
     }
     
@@ -133,11 +163,12 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         unitSystem: String
     ) async throws -> (OWMCurrent?, OWMDaily?) {
         guard !apiKey.isEmpty, !latitude.isEmpty, !longitude.isEmpty else {
-            return (nil, nil)
+            throw WeatherError.invalidAPIKey
         }
         
         let units = unitSystem == "Metric" ? "metric" : "imperial"
-        let urlString = "https://api.openweathermap.org/data/2.5/onecall?lat=\(latitude)&lon=\(longitude)&exclude=minutely,hourly,alerts&units=\(units)&appid=\(apiKey)"
+        // Updated to use the free Current Weather API
+        let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&units=\(units)&appid=\(apiKey)"
         
         guard let url = URL(string: urlString) else {
             throw WeatherError.invalidURL
@@ -146,13 +177,91 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let request = createURLRequest(from: url)
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(OWMResponse.self, from: data)
-            return (response.current, response.daily.first)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Add response status code logging
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📡 OpenWeatherMap API Response Status: \(httpResponse.statusCode)")
+                
+                // Log response body for debugging
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📡 OpenWeatherMap API Response Body:")
+                    print(responseString)
+                }
+                
+                // Check for specific error status codes
+                if httpResponse.statusCode == 401 {
+                    print("❌ OpenWeatherMap Error: Invalid API key")
+                    throw WeatherError.invalidAPIKey
+                } else if httpResponse.statusCode != 200 {
+                    print("❌ OpenWeatherMap Error: Unexpected status code \(httpResponse.statusCode)")
+                    throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
+                }
+            }
+            
+            // Decode the new response format
+            let currentWeather = try JSONDecoder().decode(CurrentWeatherResponse.self, from: data)
+            
+            // Convert the current weather response to our existing format
+            let owmCurrent = OWMCurrent(
+                temp: currentWeather.main.temp,
+                feels_like: currentWeather.main.feels_like,
+                humidity: Double(currentWeather.main.humidity),
+                dew_point: calculateDewPoint(temp: currentWeather.main.temp, humidity: Double(currentWeather.main.humidity)),
+                pressure: Double(currentWeather.main.pressure),
+                wind_speed: currentWeather.wind.speed,
+                wind_gust: currentWeather.wind.gust ?? 0,
+                uvi: 0, // Current weather API doesn't provide UV index
+                clouds: Double(currentWeather.clouds.all)
+            )
+            
+            // Create a simple daily forecast using current temperature as both min and max
+            let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
+                min: currentWeather.main.temp_min,
+                max: currentWeather.main.temp_max
+            ))
+            
+            return (owmCurrent, owmDaily)
         } catch {
             print("❌ OpenWeatherMap Error:", error.localizedDescription)
-            return (nil, nil)
+            print("❌ Error Details:", error)
+            throw WeatherError.apiError(error.localizedDescription)
         }
+    }
+
+    // Helper function to calculate dew point since it's not provided in the current weather API
+    private func calculateDewPoint(temp: Double, humidity: Double) -> Double {
+        let a = 17.27
+        let b = 237.7
+        
+        let alpha = ((a * temp) / (b + temp)) + log(humidity/100.0)
+        let dewPoint = (b * alpha) / (a - alpha)
+        return dewPoint
+    }
+
+    // New struct to match the Current Weather API response
+    struct CurrentWeatherResponse: Codable {
+        struct Main: Codable {
+            let temp: Double
+            let feels_like: Double
+            let temp_min: Double
+            let temp_max: Double
+            let pressure: Int
+            let humidity: Int
+        }
+        
+        struct Wind: Codable {
+            let speed: Double
+            let gust: Double?
+        }
+        
+        struct Clouds: Codable {
+            let all: Int
+        }
+        
+        let main: Main
+        let wind: Wind
+        let clouds: Clouds
     }
     
     private func createURLRequest(from url: URL) -> URLRequest {

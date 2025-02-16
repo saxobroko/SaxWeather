@@ -158,9 +158,12 @@ struct SettingsView: View {
     }
     
     private func validateInputs() -> Bool {
+        print("🔍 Validating inputs...")
+        
         // First check if at least one service is enabled
         if !useWunderground && !useOpenWeather {
             validationMessage = "Please enable at least one weather service"
+            print("❌ Validation failed: No weather service enabled")
             return false
         }
         
@@ -168,6 +171,7 @@ struct SettingsView: View {
         if useWunderground {
             if wuApiKey.isEmpty || stationID.isEmpty {
                 validationMessage = "Please provide both API Key and Station ID for Weather Underground"
+                print("❌ Validation failed: Missing Weather Underground credentials")
                 return false
             }
         }
@@ -176,6 +180,7 @@ struct SettingsView: View {
         if useOpenWeather {
             if owmApiKey.isEmpty {
                 validationMessage = "Please provide an API Key for OpenWeatherMap"
+                print("❌ Validation failed: Missing OpenWeatherMap API key")
                 return false
             }
             
@@ -183,14 +188,27 @@ struct SettingsView: View {
             let hasValidLocation = weatherService.useGPS || (!latitude.isEmpty && !longitude.isEmpty)
             if !hasValidLocation {
                 validationMessage = "Please enable GPS or enter manual coordinates for OpenWeatherMap"
+                print("❌ Validation failed: No location data available")
                 return false
+            }
+            
+            // Print current location data for debugging
+            if weatherService.useGPS {
+                print("📍 Using GPS Location")
+            } else {
+                print("📍 Using Manual Location:")
+                print("   - Latitude: \(latitude)")
+                print("   - Longitude: \(longitude)")
             }
         }
         
+        print("✅ Validation passed")
         return true
     }
-    
+
     private func saveSettings() {
+        print("\n📝 Saving Settings...")
+        
         guard validateInputs() else {
             showingValidationAlert = true
             return
@@ -203,22 +221,45 @@ struct SettingsView: View {
         if !useWunderground {
             wuApiKey = ""
             stationID = ""
+            print("🧹 Cleared Weather Underground settings")
         }
+        
         if !useOpenWeather {
             owmApiKey = ""
             if !useWunderground {  // Only clear location if Weather Underground isn't being used
                 latitude = ""
                 longitude = ""
                 weatherService.useGPS = false
+                print("🧹 Cleared OpenWeatherMap settings and location data")
             }
         }
         
-        print("✅ Settings saved:")
+        print("\n📊 Current Settings:")
         print("- Unit System: \(unitSystem)")
         print("- Weather Underground: \(useWunderground ? "Enabled" : "Disabled")")
         print("- OpenWeatherMap: \(useOpenWeather ? "Enabled" : "Disabled")")
+        
         if useOpenWeather {
+            print("\n🌍 OpenWeatherMap Configuration:")
             print("- Use GPS: \(weatherService.useGPS)")
+            
+            // Print the complete API URL for debugging
+            let units = unitSystem == "Metric" ? "metric" : "imperial"
+            let lat = latitude
+            let lon = longitude
+            
+            print("\n🔗 API Information:")
+            print("- Base URL: https://api.openweathermap.org/data/3.0/onecall")
+            print("- Parameters:")
+            print("  • lat: \(lat)")
+            print("  • lon: \(lon)")
+            print("  • units: \(units)")
+            print("  • exclude: minutely,hourly,alerts")
+            print("  • appid: \(String(owmApiKey.prefix(6)))...")
+            
+            let apiUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=\(lat)&lon=\(lon)&exclude=minutely,hourly,alerts&units=\(units)&appid=\(owmApiKey)"
+            print("\n📡 Complete API URL:")
+            print(apiUrl)
         }
         
         // Dismiss view immediately
@@ -235,6 +276,8 @@ struct SettingsView: View {
                 showingSaveConfirmation = false
             }
         }
+        
+        print("\n🔄 Refreshing weather data...")
         
         // Refresh weather with new settings
         Task { @MainActor in
