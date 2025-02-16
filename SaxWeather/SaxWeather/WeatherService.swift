@@ -266,7 +266,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private func createURLRequest(from url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        request.cachePolicy = .returnCacheDataElseLoad
+        request.cachePolicy = .reloadIgnoringLocalCacheData // Change cache policy
         request.timeoutInterval = 15
         return request
     }
