@@ -1,8 +1,16 @@
+//
+//  SettingsView.swift
+//  SaxWeather
+//
+//  Created by Saxo_Broko on 2025-02-16 02:25:56
+//
+
 import SwiftUI
 import CoreLocation
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.colorScheme) var systemColorScheme
     @ObservedObject var weatherService: WeatherService
     
     @AppStorage("wuApiKey") private var wuApiKey = ""
@@ -11,6 +19,9 @@ struct SettingsView: View {
     @AppStorage("latitude") private var latitude = ""
     @AppStorage("longitude") private var longitude = ""
     @AppStorage("unitSystem") private var unitSystem = "Metric"
+    @AppStorage("colorScheme") private var colorScheme = "system"
+    @AppStorage("useWunderground") private var useWunderground = false
+    @AppStorage("useOpenWeather") private var useOpenWeather = false
     
     @State private var showingSaveConfirmation = false
     @State private var showingValidationAlert = false
@@ -21,26 +32,33 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Weather Underground Settings")) {
-                    TextField("API Key", text: $wuApiKey)
-                    TextField("Station ID", text: $stationID)
+                Section(header: Text("Weather Services")) {
+                    Toggle("Weather Underground", isOn: $useWunderground)
+                    Toggle("OpenWeatherMap", isOn: $useOpenWeather)
                 }
-                .textCase(nil)
                 
-                Section(header: Text("OpenWeatherMap Settings")) {
-                    TextField("API Key", text: $owmApiKey)
-                }
-                .textCase(nil)
-                
-                Section(header: Text("Location Settings")) {
-                    Toggle("Use GPS", isOn: $weatherService.useGPS)
-                    
-                    if !weatherService.useGPS {
-                        TextField("Latitude", text: $latitude)
-                            .keyboardType(.decimalPad)
-                        TextField("Longitude", text: $longitude)
-                            .keyboardType(.decimalPad)
+                if useWunderground {
+                    Section(header: Text("Weather Underground Settings")) {
+                        TextField("API Key", text: $wuApiKey)
+                        TextField("Station ID", text: $stationID)
                     }
+                    .textCase(nil)
+                }
+                
+                if useOpenWeather {
+                    Section(header: Text("OpenWeatherMap Settings")) {
+                        TextField("API Key", text: $owmApiKey)
+                        
+                        Toggle("Use GPS", isOn: $weatherService.useGPS)
+                        
+                        if !weatherService.useGPS {
+                            TextField("Latitude", text: $latitude)
+                                .keyboardType(.decimalPad)
+                            TextField("Longitude", text: $longitude)
+                                .keyboardType(.decimalPad)
+                        }
+                    }
+                    .textCase(nil)
                 }
                 
                 Section(header: Text("Unit System")) {
@@ -50,6 +68,39 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                }
+                
+                Section(header: Text("Appearance")) {
+                    Picker("Theme", selection: $colorScheme) {
+                        Text("System").tag("system")
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: colorScheme) { newValue in
+                        updateColorScheme(to: newValue)
+                    }
+                }
+                
+                Section(header: Text("About")) {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Link(destination: URL(string: "https://github.com/saxobroko/SaxWeather")!) {
+                        HStack {
+                            Text("GitHub Repository")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Text("Made by Saxo_Broko")
+                        .foregroundColor(.gray)
                 }
             }
             .navigationTitle("Settings")
@@ -72,35 +123,68 @@ struct SettingsView: View {
                 SaveConfirmationView(isShowing: $showingSaveConfirmation)
             )
         }
+        .preferredColorScheme(getPreferredColorScheme())
+    }
+    
+    private func getPreferredColorScheme() -> ColorScheme? {
+        switch colorScheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        case "system":
+            return systemColorScheme
+        default:
+            return nil
+        }
+    }
+    
+    private func updateColorScheme(to newValue: String) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else { return }
+        
+        window.overrideUserInterfaceStyle = {
+            switch newValue {
+            case "light":
+                return .light
+            case "dark":
+                return .dark
+            case "system":
+                return .unspecified
+            default:
+                return .unspecified
+            }
+        }()
     }
     
     private func validateInputs() -> Bool {
-        // Check if at least one service is configured
-        let hasWUConfig = !wuApiKey.isEmpty && !stationID.isEmpty
-        let hasOWMConfig = !owmApiKey.isEmpty
-        
-        // Location validation
-        let hasValidLocation = weatherService.useGPS || (!latitude.isEmpty && !longitude.isEmpty)
-        
-        if !hasWUConfig && !hasOWMConfig {
-            validationMessage = "Please configure at least one weather service (Weather Underground or OpenWeatherMap)"
+        // First check if at least one service is enabled
+        if !useWunderground && !useOpenWeather {
+            validationMessage = "Please enable at least one weather service"
             return false
         }
         
-        if !hasValidLocation {
-            validationMessage = "Please enable GPS or enter manual coordinates"
-            return false
+        // Validate Weather Underground settings if enabled
+        if useWunderground {
+            if wuApiKey.isEmpty || stationID.isEmpty {
+                validationMessage = "Please provide both API Key and Station ID for Weather Underground"
+                return false
+            }
         }
         
-        // Validate individual service configurations
-        if !wuApiKey.isEmpty && stationID.isEmpty {
-            validationMessage = "Station ID is required when using Weather Underground"
-            return false
-        }
-        
-        if !stationID.isEmpty && wuApiKey.isEmpty {
-            validationMessage = "Weather Underground API key is required when using a Station ID"
-            return false
+        // Validate OpenWeatherMap settings if enabled
+        if useOpenWeather {
+            if owmApiKey.isEmpty {
+                validationMessage = "Please provide an API Key for OpenWeatherMap"
+                return false
+            }
+            
+            // Only validate location if OpenWeatherMap is enabled
+            let hasValidLocation = weatherService.useGPS || (!latitude.isEmpty && !longitude.isEmpty)
+            if !hasValidLocation {
+                validationMessage = "Please enable GPS or enter manual coordinates for OpenWeatherMap"
+                return false
+            }
         }
         
         return true
@@ -115,9 +199,27 @@ struct SettingsView: View {
         // Save settings
         weatherService.unitSystem = unitSystem
         
-        print("✅ Settings saved: Unit System = \(unitSystem), Use GPS = \(weatherService.useGPS)")
-        print("✅ Weather Underground: \(wuApiKey.isEmpty ? "Disabled" : "Enabled")")
-        print("✅ OpenWeatherMap: \(owmApiKey.isEmpty ? "Disabled" : "Enabled")")
+        // Clear unused service settings
+        if !useWunderground {
+            wuApiKey = ""
+            stationID = ""
+        }
+        if !useOpenWeather {
+            owmApiKey = ""
+            if !useWunderground {  // Only clear location if Weather Underground isn't being used
+                latitude = ""
+                longitude = ""
+                weatherService.useGPS = false
+            }
+        }
+        
+        print("✅ Settings saved:")
+        print("- Unit System: \(unitSystem)")
+        print("- Weather Underground: \(useWunderground ? "Enabled" : "Disabled")")
+        print("- OpenWeatherMap: \(useOpenWeather ? "Enabled" : "Disabled")")
+        if useOpenWeather {
+            print("- Use GPS: \(weatherService.useGPS)")
+        }
         
         // Dismiss view immediately
         presentationMode.wrappedValue.dismiss()

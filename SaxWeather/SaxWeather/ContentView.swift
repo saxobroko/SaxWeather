@@ -1,3 +1,10 @@
+//
+//  ContentView.swift
+//  SaxWeather
+//
+//  Created by Saxo_Broko on 2025-02-16 03:00:41
+//
+
 import SwiftUI
 import CoreLocation
 
@@ -6,61 +13,35 @@ struct ContentView: View {
     @StateObject private var weatherService = WeatherService()
     @State private var showSettings = false
     @State private var isRefreshing = false
+    @AppStorage("colorScheme") private var colorScheme: String = "system"
+    @AppStorage("isFirstLaunch") private var isFirstLaunch = true
+    @Environment(\.colorScheme) private var systemColorScheme
     
     var body: some View {
+        if isFirstLaunch {
+            OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
+                .preferredColorScheme(selectedColorScheme)
+        } else {
+            weatherView
+                .preferredColorScheme(selectedColorScheme)
+        }
+    }
+    
+    private var weatherView: some View {
         NavigationView {
             ZStack {
-                BackgroundView(condition: weatherService.weather?.condition ?? "default")
-                
-                ScrollView {
-                    VStack {
-                        if let weather = weatherService.weather, weather.hasData {
-                            WeatherMainView(weather: weather)
-                            WeatherDetailsView(weather: weather)
-                        } else {
-                            Text("Loading weather data...")
-                                .foregroundColor(.white)
-                                .padding()
-                        }
-                        
-                        Button {
-                            Task {
-                                isRefreshing = true
-                                await weatherService.fetchWeather()
-                                isRefreshing = false
-                            }
-                        } label: {
-                            HStack {
-                                if isRefreshing {
-                                    ProgressView()
-                                        .tint(.white)
-                                }
-                                Text("Refresh")
-                            }
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                        }
-                        .padding()
-                        .disabled(isRefreshing)
-                    }
+                backgroundLayer
+                contentLayer
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    settingsButton
                 }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showSettings = true
-                        } label: {
-                            Image(systemName: "gear")
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-                .sheet(isPresented: $showSettings) {
-                    SettingsView(weatherService: weatherService)
-                }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(weatherService: weatherService)
             }
             .onAppear {
                 Task {
@@ -69,10 +50,122 @@ struct ContentView: View {
             }
         }
     }
+    
+    private var backgroundLayer: some View {
+        BackgroundView(condition: weatherService.weather?.condition ?? "default")
+    }
+    
+    private var contentLayer: some View {
+        VStack {
+            ScrollView {
+                VStack {
+                    weatherContent
+                    refreshButton
+                }
+            }
+            footerView
+        }
+    }
+    
+    private var weatherContent: some View {
+        Group {
+            if let weather = weatherService.weather, weather.hasData {
+                VStack(spacing: 8) {
+                    if let temperature = weather.temperature {
+                        Text(String(format: "%.1f%@", temperature, temperatureUnit))
+                            .font(.system(size: 80, weight: .bold))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    if let feelsLike = weather.feelsLike {
+                        Text(String(format: "Feels like %.1f%@", feelsLike, temperatureUnit))
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    HStack {
+                        if let high = weather.high {
+                            Text(String(format: "H: %.1f%@", high, temperatureUnit))
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.primary)
+                        }
+                        if let low = weather.low {
+                            Text(String(format: "L: %.1f%@", low, temperatureUnit))
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+                .padding(.vertical, 50)
+                
+                WeatherDetailsView(weather: weather)
+            } else {
+                Text("Loading weather data...")
+                    .foregroundColor(.primary)
+                    .padding()
+            }
+        }
+    }
+    
+    private var refreshButton: some View {
+        Button {
+            Task {
+                isRefreshing = true
+                await weatherService.fetchWeather()
+                isRefreshing = false
+            }
+        } label: {
+            HStack {
+                if isRefreshing {
+                    ProgressView()
+                        .tint(systemColorScheme == .dark ? .white : .blue)
+                }
+                Text("Refresh")
+            }
+            .padding()
+            .background(systemColorScheme == .dark ? Color.blue.opacity(0.6) : Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+        }
+        .padding()
+        .disabled(isRefreshing)
+    }
+    
+    private var settingsButton: some View {
+        Button {
+            showSettings = true
+        } label: {
+            Image(systemName: "gear")
+                .foregroundColor(.primary)
+        }
+    }
+    
+    private var footerView: some View {
+        Text("Made by Saxo_Broko")
+            .font(.caption)
+            .foregroundColor(.primary)
+            .padding(.bottom, 10)
+    }
+    
+    private var temperatureUnit: String {
+        UserDefaults.standard.string(forKey: "unitSystem") == "Metric" ? "°C" : "°F"
+    }
+    
+    private var selectedColorScheme: ColorScheme? {
+        switch colorScheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Background View
 struct BackgroundView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let condition: String
     
     var body: some View {
@@ -83,7 +176,7 @@ struct BackgroundView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .clipped()
                 .overlay(
-                    Color.black.opacity(0.3)
+                    Color.black.opacity(colorScheme == .dark ? 0.5 : 0.3)
                         .edgesIgnoringSafeArea(.all)
                 )
         }
@@ -108,48 +201,9 @@ struct BackgroundView: View {
     }
 }
 
-// MARK: - Weather Main View
-struct WeatherMainView: View {
-    let weather: Weather
-    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
-    
-    private var temperatureUnit: String {
-        unitSystem == "Metric" ? "°C" : "°F"
-    }
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            if let temperature = weather.temperature {
-                Text("\(temperature, specifier: "%.1f")\(temperatureUnit)")
-                    .font(.system(size: 80, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            
-            if let feelsLike = weather.feelsLike {
-                Text("Feels like \(feelsLike, specifier: "%.1f")\(temperatureUnit)")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.white)
-            }
-            
-            HStack {
-                if let high = weather.high {
-                    Text("H: \(high, specifier: "%.1f")\(temperatureUnit)")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white)
-                }
-                if let low = weather.low {
-                    Text("L: \(low, specifier: "%.1f")\(temperatureUnit)")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white)
-                }
-            }
-        }
-        .padding(.vertical, 50)
-    }
-}
-
 // MARK: - Weather Details View
 struct WeatherDetailsView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let weather: Weather
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     
@@ -176,7 +230,7 @@ struct WeatherDetailsView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white.opacity(0.8))
+                .fill(colorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.8))
                 .shadow(radius: 5)
         )
         .padding(.horizontal)
@@ -197,6 +251,7 @@ struct WeatherDetailsView: View {
 
 // MARK: - Weather Row View
 struct WeatherRowView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let value: String
     
@@ -208,7 +263,7 @@ struct WeatherRowView: View {
             Spacer()
             Text(value)
                 .font(.body)
-                .foregroundColor(.black)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
         }
         .padding(.horizontal)
     }
