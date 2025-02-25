@@ -29,22 +29,27 @@ struct OnboardingView: View {
         ),
         OnboardingStep(
             title: "Choose Your Weather Service",
-            description: "SaxWeather supports both Weather Underground and OpenWeatherMap. You can use either one or both services.",
+            description: "SaxWeather supports Weather Underground and OpenWeatherMap, with OpenMeteo as a fallback option when no API keys are provided.",
             systemImage: "server.rack"
         ),
         OnboardingStep(
             title: "Weather Underground",
-            description: "If you have a personal weather station, you can connect it using Weather Underground. You'll need your API key and Station ID.",
+            description: "If you have a personal weather station, you can optionally connect it using Weather Underground. You'll need your API key and Station ID.",
             systemImage: "thermometer.sun.fill"
         ),
         OnboardingStep(
             title: "OpenWeatherMap",
-            description: "Get weather data for any location using OpenWeatherMap. You'll need an API key and can use GPS or manual coordinates.",
+            description: "Get weather data using OpenWeatherMap (optional). You'll need an API key if you choose to use this service.",
             systemImage: "location.fill"
         ),
         OnboardingStep(
+            title: "Location Services",
+            description: "Enable GPS or set your location manually. This is required if you aren't using Weather Underground.",
+            systemImage: "location.circle.fill"
+        ),
+        OnboardingStep(
             title: "Let's Get Started",
-            description: "Open settings to configure your weather services and start receiving weather data.",
+            description: "Open settings to configure your preferred weather services and location.",
             systemImage: "gear"
         )
     ]
@@ -138,12 +143,17 @@ struct OnboardingView: View {
         let hasWUConfig = !UserDefaults.standard.string(forKey: "wuApiKey")!.isEmpty &&
                          !UserDefaults.standard.string(forKey: "stationID")!.isEmpty
         
-        let hasOWMConfig = !UserDefaults.standard.string(forKey: "owmApiKey")!.isEmpty &&
-                          (UserDefaults.standard.bool(forKey: "useGPS") ||
-                           (!UserDefaults.standard.string(forKey: "latitude")!.isEmpty &&
-                            !UserDefaults.standard.string(forKey: "longitude")!.isEmpty))
+        let hasOWMConfig = !UserDefaults.standard.string(forKey: "owmApiKey")!.isEmpty
         
-        return hasWUConfig || hasOWMConfig
+        let hasLocation = UserDefaults.standard.bool(forKey: "useGPS") ||
+                         (!UserDefaults.standard.string(forKey: "latitude")!.isEmpty &&
+                          !UserDefaults.standard.string(forKey: "longitude")!.isEmpty)
+        
+        // Return true if either:
+        // 1. We have proper WU config, or
+        // 2. We have proper OWM config with location, or
+        // 3. We have just location (for OpenMeteo fallback)
+        return hasWUConfig || (hasOWMConfig && hasLocation) || hasLocation
     }
 }
 

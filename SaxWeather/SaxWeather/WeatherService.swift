@@ -2,7 +2,7 @@
 //  WeatherService.swift
 //  SaxWeather
 //
-//  Created by saxobroko on 2025-02-16 03:07:17
+//  Created by saxobroko on 2025-02-24 08:27:52
 //
 
 import Foundation
@@ -69,9 +69,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
         let owmApiKey = UserDefaults.standard.string(forKey: "owmApiKey") ?? ""
         let latitude = useGPS ? "\(locationManager.location?.coordinate.latitude ?? 0)" :
-                              UserDefaults.standard.string(forKey: "latitude") ?? ""
+                               UserDefaults.standard.string(forKey: "latitude") ?? ""
         let longitude = useGPS ? "\(locationManager.location?.coordinate.longitude ?? 0)" :
-                               UserDefaults.standard.string(forKey: "longitude") ?? ""
+                                UserDefaults.standard.string(forKey: "longitude") ?? ""
         
         async let wuObservation = (!wuApiKey.isEmpty && !stationID.isEmpty) ?
             fetchWUWeather(apiKey: wuApiKey, stationID: stationID) :
@@ -85,13 +85,20 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 unitSystem: unitSystem
             ) :
             (nil, nil)
+            
+        async let openMeteoWeather = (wuApiKey.isEmpty || stationID.isEmpty) && owmApiKey.isEmpty ?
+            fetchOpenMeteoWeather(
+                latitude: latitude,
+                longitude: longitude
+            ) :
+            (nil, nil)
         
-        let (wuData, (owmCurrent, owmDaily)) = try await (wuObservation, owmWeather)
+        let (wuData, (owmCurrent, owmDaily), (openMeteoCurrent, openMeteoDaily)) = try await (wuObservation, owmWeather, openMeteoWeather)
         
         var weather = Weather(
             wuObservation: wuData,
-            owmCurrent: owmCurrent,
-            owmDaily: owmDaily,
+            owmCurrent: owmCurrent ?? openMeteoCurrent,
+            owmDaily: owmDaily ?? openMeteoDaily,
             unitSystem: unitSystem
         )
         
@@ -112,7 +119,6 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             throw WeatherError.invalidAPIKey
         }
         
-        // Add numericPrecision=decimal to the URL parameters
         let urlString = "https://api.weather.com/v2/pws/observations/current?stationId=\(stationID)&format=json&units=m&numericPrecision=decimal&apiKey=\(apiKey)"
         print("🌐 Weather Underground URL: \(urlString)")
         
@@ -143,7 +149,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             if let observation = wuResponse.observations.first {
                 print("✅ Weather Underground Data Parsed Successfully:")
                 print("- Temperature: \(observation.metric.temp)°C")
-                print("- Humidity: \(observation.humidity)%")  // humidity is at root level
+                print("- Humidity: \(observation.humidity)%")
                 print("- Wind Speed: \(observation.metric.windSpeed) m/s")
                 print("- Pressure: \(observation.metric.pressure) hPa")
             }
@@ -167,7 +173,6 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         
         let units = unitSystem == "Metric" ? "metric" : "imperial"
-        // Updated to use the free Current Weather API
         let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&units=\(units)&appid=\(apiKey)"
         
         guard let url = URL(string: urlString) else {
@@ -179,17 +184,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
-            // Add response status code logging
             if let httpResponse = response as? HTTPURLResponse {
                 print("📡 OpenWeatherMap API Response Status: \(httpResponse.statusCode)")
                 
-                // Log response body for debugging
                 if let responseString = String(data: data, encoding: .utf8) {
                     print("📡 OpenWeatherMap API Response Body:")
                     print(responseString)
                 }
                 
-                // Check for specific error status codes
                 if httpResponse.statusCode == 401 {
                     print("❌ OpenWeatherMap Error: Invalid API key")
                     throw WeatherError.invalidAPIKey
@@ -199,10 +201,8 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 }
             }
             
-            // Decode the new response format
             let currentWeather = try JSONDecoder().decode(CurrentWeatherResponse.self, from: data)
             
-            // Convert the current weather response to our existing format
             let owmCurrent = OWMCurrent(
                 temp: currentWeather.main.temp,
                 feels_like: currentWeather.main.feels_like,
@@ -211,11 +211,10 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 pressure: Double(currentWeather.main.pressure),
                 wind_speed: currentWeather.wind.speed,
                 wind_gust: currentWeather.wind.gust ?? 0,
-                uvi: 0, // Current weather API doesn't provide UV index
+                uvi: 0,
                 clouds: Double(currentWeather.clouds.all)
             )
             
-            // Create a simple daily forecast using current temperature as both min and max
             let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
                 min: currentWeather.main.temp_min,
                 max: currentWeather.main.temp_max
@@ -228,8 +227,76 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             throw WeatherError.apiError(error.localizedDescription)
         }
     }
-
-    // Helper function to calculate dew point since it's not provided in the current weather API
+    
+    private func fetchOpenMeteoWeather(
+        latitude: String,
+        longitude: String
+    ) async throws -> (OWMCurrent?, OWMDaily?) {
+        guard !latitude.isEmpty, !longitude.isEmpty else {
+            throw WeatherError.noData
+        }
+        
+        let urlString = "https://api.open-meteo.com/v1/forecast?" +
+            "latitude=\(latitude)" +
+            "&longitude=\(longitude)" +
+            "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
+            "precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
+            "&daily=temperature_2m_max,temperature_2m_min" +
+            "&timezone=auto"
+        
+        guard let url = URL(string: urlString) else {
+            throw WeatherError.invalidURL
+        }
+        
+        let request = createURLRequest(from: url)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📡 OpenMeteo API Response Status: \(httpResponse.statusCode)")
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📡 OpenMeteo API Response Body:")
+                    print(responseString)
+                }
+                
+                if httpResponse.statusCode != 200 {
+                    print("❌ OpenMeteo Error: Unexpected status code \(httpResponse.statusCode)")
+                    throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
+                }
+            }
+            
+            let openMeteoResponse = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+            
+            let owmCurrent = OWMCurrent(
+                temp: openMeteoResponse.current.temperature,
+                feels_like: openMeteoResponse.current.apparentTemperature,
+                humidity: Double(openMeteoResponse.current.relativeHumidity),
+                dew_point: calculateDewPoint(
+                    temp: openMeteoResponse.current.temperature,
+                    humidity: Double(openMeteoResponse.current.relativeHumidity)
+                ),
+                pressure: openMeteoResponse.current.pressure,
+                wind_speed: openMeteoResponse.current.windSpeed,
+                wind_gust: openMeteoResponse.current.windGusts,
+                uvi: openMeteoResponse.current.uvIndex,
+                clouds: Double(openMeteoResponse.current.cloudCover)
+            )
+            
+            let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
+                min: openMeteoResponse.daily.temperatureMin.first ?? owmCurrent.temp,
+                max: openMeteoResponse.daily.temperatureMax.first ?? owmCurrent.temp
+            ))
+            
+            return (owmCurrent, owmDaily)
+        } catch {
+            print("❌ OpenMeteo Error:", error.localizedDescription)
+            print("❌ Error Details:", error)
+            throw WeatherError.apiError(error.localizedDescription)
+        }
+    }
+    
     private func calculateDewPoint(temp: Double, humidity: Double) -> Double {
         let a = 17.27
         let b = 237.7
@@ -238,16 +305,15 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let dewPoint = (b * alpha) / (a - alpha)
         return dewPoint
     }
-
-    // New struct to match the Current Weather API response
+    
     struct CurrentWeatherResponse: Codable {
         struct Main: Codable {
             let temp: Double
             let feels_like: Double
             let temp_min: Double
             let temp_max: Double
-            let pressure: Int
-            let humidity: Int
+            let pressure: Double  // Changed from Int to Double
+            let humidity: Int     // Keep as Int since humidity is always a whole number
         }
         
         struct Wind: Codable {
@@ -264,9 +330,48 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let clouds: Clouds
     }
     
+    struct OpenMeteoResponse: Codable {
+        let current: OpenMeteoCurrent
+        let daily: OpenMeteoDaily
+        
+        struct OpenMeteoCurrent: Codable {
+            let temperature: Double
+            let relativeHumidity: Int
+            let apparentTemperature: Double
+            let precipitation: Double
+            let windSpeed: Double
+            let windGusts: Double
+            let pressure: Double
+            let cloudCover: Int
+            let uvIndex: Int
+            
+            enum CodingKeys: String, CodingKey {
+                case temperature = "temperature_2m"
+                case relativeHumidity = "relative_humidity_2m"
+                case apparentTemperature = "apparent_temperature"
+                case precipitation = "precipitation"
+                case windSpeed = "wind_speed_10m"
+                case windGusts = "wind_gusts_10m"
+                case pressure = "pressure_msl"
+                case cloudCover = "cloud_cover"
+                case uvIndex = "uv_index"
+            }
+        }
+        
+        struct OpenMeteoDaily: Codable {
+            let temperatureMax: [Double]
+            let temperatureMin: [Double]
+            
+            enum CodingKeys: String, CodingKey {
+                case temperatureMax = "temperature_2m_max"
+                case temperatureMin = "temperature_2m_min"
+            }
+        }
+    }
+    
     private func createURLRequest(from url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData // Change cache policy
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
         return request
     }
