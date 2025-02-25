@@ -229,165 +229,167 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func fetchOpenMeteoWeather(
-        latitude: String,
-        longitude: String
-    ) async throws -> (OWMCurrent?, OWMDaily?) {
-        guard !latitude.isEmpty, !longitude.isEmpty else {
-            throw WeatherError.noData
-        }
-        
-        let urlString = "https://api.open-meteo.com/v1/forecast?" +
-            "latitude=\(latitude)" +
-            "&longitude=\(longitude)" +
-            "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
-            "precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
-            "&daily=temperature_2m_max,temperature_2m_min" +
-            "&timezone=UTC"  // Force UTC timezone for consistency with other services
-        
-        guard let url = URL(string: urlString) else {
-            throw WeatherError.invalidURL
-        }
-        
-        let request = createURLRequest(from: url)
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                print("📡 OpenMeteo API Response Status: \(httpResponse.statusCode)")
-                
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("📡 OpenMeteo API Response Body:")
-                    print(responseString)
-                }
-                
-                if httpResponse.statusCode != 200 {
-                    print("❌ OpenMeteo Error: Unexpected status code \(httpResponse.statusCode)")
-                    throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
-                }
+            latitude: String,
+            longitude: String
+        ) async throws -> (OWMCurrent?, OWMDaily?) {
+            guard !latitude.isEmpty, !longitude.isEmpty else {
+                throw WeatherError.noData
             }
             
-            let openMeteoResponse = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+            let urlString = "https://api.open-meteo.com/v1/forecast?" +
+                "latitude=\(latitude)" +
+                "&longitude=\(longitude)" +
+                "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
+                "precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
+                "&daily=temperature_2m_max,temperature_2m_min" +
+                "&timezone=UTC"  // Force UTC timezone for consistency with other services
             
-            let owmCurrent = OWMCurrent(
-                temp: openMeteoResponse.current.temperature,
-                feels_like: openMeteoResponse.current.apparentTemperature,
-                humidity: Double(openMeteoResponse.current.relativeHumidity),
-                dew_point: calculateDewPoint(
+            print("🌐 OpenMeteo URL: \(urlString)")
+            
+            guard let url = URL(string: urlString) else {
+                throw WeatherError.invalidURL
+            }
+            
+            let request = createURLRequest(from: url)
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("📡 OpenMeteo API Response Status: \(httpResponse.statusCode)")
+                    
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("📡 OpenMeteo API Response Body:")
+                        print(responseString)
+                    }
+                    
+                    if httpResponse.statusCode != 200 {
+                        print("❌ OpenMeteo Error: Unexpected status code \(httpResponse.statusCode)")
+                        throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
+                    }
+                }
+                
+                let openMeteoResponse = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+                
+                let owmCurrent = OWMCurrent(
                     temp: openMeteoResponse.current.temperature,
-                    humidity: Double(openMeteoResponse.current.relativeHumidity)
-                ),
-                pressure: openMeteoResponse.current.pressure,
-                wind_speed: openMeteoResponse.current.windSpeed,
-                wind_gust: openMeteoResponse.current.windGusts,
-                uvi: Int(round(openMeteoResponse.current.uvIndex)),  // Round UV index to nearest integer
-                clouds: Double(openMeteoResponse.current.cloudCover)
-            )
-            
-            let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
-                min: openMeteoResponse.daily.temperatureMin.first ?? owmCurrent.temp,
-                max: openMeteoResponse.daily.temperatureMax.first ?? owmCurrent.temp
-            ))
-            
-            return (owmCurrent, owmDaily)
-        } catch {
-            print("❌ OpenMeteo Error:", error.localizedDescription)
-            print("❌ Error Details:", error)
-            throw WeatherError.apiError(error.localizedDescription)
-        }
-    }
-    
-    private func calculateDewPoint(temp: Double, humidity: Double) -> Double {
-        let a = 17.27
-        let b = 237.7
-        
-        let alpha = ((a * temp) / (b + temp)) + log(humidity/100.0)
-        let dewPoint = (b * alpha) / (a - alpha)
-        return dewPoint
-    }
-    
-    struct CurrentWeatherResponse: Codable {
-        struct Main: Codable {
-            let temp: Double
-            let feels_like: Double
-            let temp_min: Double
-            let temp_max: Double
-            let pressure: Double
-            let humidity: Int
-        }
-        
-        struct Wind: Codable {
-            let speed: Double
-            let gust: Double?
-        }
-        
-        struct Clouds: Codable {
-            let all: Int
-        }
-        
-        let main: Main
-        let wind: Wind
-        let clouds: Clouds
-    }
-    
-    struct OpenMeteoResponse: Codable {
-        let current: OpenMeteoCurrent
-        let daily: OpenMeteoDaily
-        
-        struct OpenMeteoCurrent: Codable {
-            let temperature: Double
-            let relativeHumidity: Int
-            let apparentTemperature: Double
-            let precipitation: Double
-            let windSpeed: Double
-            let windGusts: Double
-            let pressure: Double
-            let cloudCover: Int
-            let uvIndex: Double  // Changed to Double to handle decimal values
-            
-            enum CodingKeys: String, CodingKey {
-                case temperature = "temperature_2m"
-                case relativeHumidity = "relative_humidity_2m"
-                case apparentTemperature = "apparent_temperature"
-                case precipitation = "precipitation"
-                case windSpeed = "wind_speed_10m"
-                case windGusts = "wind_gusts_10m"
-                case pressure = "pressure_msl"
-                case cloudCover = "cloud_cover"
-                case uvIndex = "uv_index"
+                    feels_like: openMeteoResponse.current.apparentTemperature,
+                    humidity: Double(openMeteoResponse.current.relativeHumidity),
+                    dew_point: calculateDewPoint(
+                        temp: openMeteoResponse.current.temperature,
+                        humidity: Double(openMeteoResponse.current.relativeHumidity)
+                    ),
+                    pressure: openMeteoResponse.current.pressure,
+                    wind_speed: openMeteoResponse.current.windSpeed,
+                    wind_gust: openMeteoResponse.current.windGusts,
+                    uvi: Int(round(openMeteoResponse.current.uvIndex)),
+                    clouds: Double(openMeteoResponse.current.cloudCover)
+                )
+                
+                let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
+                    min: openMeteoResponse.daily.temperatureMin.first ?? owmCurrent.temp,
+                    max: openMeteoResponse.daily.temperatureMax.first ?? owmCurrent.temp
+                ))
+                
+                return (owmCurrent, owmDaily)
+            } catch {
+                print("❌ OpenMeteo Error:", error.localizedDescription)
+                print("❌ Error Details:", error)
+                throw WeatherError.apiError(error.localizedDescription)
             }
         }
         
-        struct OpenMeteoDaily: Codable {
-            let temperatureMax: [Double]
-            let temperatureMin: [Double]
+        private func calculateDewPoint(temp: Double, humidity: Double) -> Double {
+            let a = 17.27
+            let b = 237.7
             
-            enum CodingKeys: String, CodingKey {
-                case temperatureMax = "temperature_2m_max"
-                case temperatureMin = "temperature_2m_min"
+            let alpha = ((a * temp) / (b + temp)) + log(humidity/100.0)
+            let dewPoint = (b * alpha) / (a - alpha)
+            return dewPoint
+        }
+        
+        struct CurrentWeatherResponse: Codable {
+            struct Main: Codable {
+                let temp: Double
+                let feels_like: Double
+                let temp_min: Double
+                let temp_max: Double
+                let pressure: Double
+                let humidity: Int
+            }
+            
+            struct Wind: Codable {
+                let speed: Double
+                let gust: Double?
+            }
+            
+            struct Clouds: Codable {
+                let all: Int
+            }
+            
+            let main: Main
+            let wind: Wind
+            let clouds: Clouds
+        }
+        
+        struct OpenMeteoResponse: Codable {
+            let current: OpenMeteoCurrent
+            let daily: OpenMeteoDaily
+            
+            struct OpenMeteoCurrent: Codable {
+                let temperature: Double
+                let relativeHumidity: Int
+                let apparentTemperature: Double
+                let precipitation: Double
+                let windSpeed: Double
+                let windGusts: Double
+                let pressure: Double
+                let cloudCover: Int
+                let uvIndex: Double
+                
+                enum CodingKeys: String, CodingKey {
+                    case temperature = "temperature_2m"
+                    case relativeHumidity = "relative_humidity_2m"
+                    case apparentTemperature = "apparent_temperature"
+                    case precipitation = "precipitation"
+                    case windSpeed = "wind_speed_10m"
+                    case windGusts = "wind_gusts_10m"
+                    case pressure = "pressure_msl"
+                    case cloudCover = "cloud_cover"
+                    case uvIndex = "uv_index"
+                }
+            }
+            
+            struct OpenMeteoDaily: Codable {
+                let temperatureMax: [Double]
+                let temperatureMin: [Double]
+                
+                enum CodingKeys: String, CodingKey {
+                    case temperatureMax = "temperature_2m_max"
+                    case temperatureMin = "temperature_2m_min"
+                }
             }
         }
-    }
-    
-    private func createURLRequest(from url: URL) -> URLRequest {
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 15
-        return request
-    }
-    
-    // MARK: - Location Methods
-    func requestLocation() {
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-    }
-    
-    func stopUpdatingLocation() {
-        locationManager.stopUpdatingLocation()
-    }
-    
-    // MARK: - CLLocationManagerDelegate
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        
+        private func createURLRequest(from url: URL) -> URLRequest {
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.timeoutInterval = 15
+            return request
+        }
+        
+        // MARK: - Location Methods
+        func requestLocation() {
+            locationManager.requestWhenInUseAuthorization()
+            locationManager.startUpdatingLocation()
+        }
+        
+        func stopUpdatingLocation() {
+            locationManager.stopUpdatingLocation()
+        }
+        
+        // MARK: - CLLocationManagerDelegate
+        func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
             guard let location = locations.last else { return }
             
             if let lastUpdate = lastLocationUpdate,
