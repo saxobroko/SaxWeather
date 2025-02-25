@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  SaxWeather
 //
-//  Created by Saxo_Broko on 2025-02-16 02:25:56
+//  Created by saxobroko on 2025-02-25 03:01:58
 //
 
 import SwiftUI
@@ -35,6 +35,9 @@ struct SettingsView: View {
                 Section(header: Text("Weather Services")) {
                     Toggle("Weather Underground", isOn: $useWunderground)
                     Toggle("OpenWeatherMap", isOn: $useOpenWeather)
+                    Text("Note: Open-Meteo will be used as fallback if no services are enabled")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
                 
                 if useWunderground {
@@ -59,6 +62,20 @@ struct SettingsView: View {
                         }
                     }
                     .textCase(nil)
+                }
+                
+                // Location section when no paid services are enabled
+                if !useWunderground && !useOpenWeather {
+                    Section(header: Text("Location (Open-Meteo)")) {
+                        Toggle("Use GPS", isOn: $weatherService.useGPS)
+                        
+                        if !weatherService.useGPS {
+                            TextField("Latitude", text: $latitude)
+                                .keyboardType(.decimalPad)
+                            TextField("Longitude", text: $longitude)
+                                .keyboardType(.decimalPad)
+                        }
+                    }
                 }
                 
                 Section(header: Text("Unit System")) {
@@ -160,13 +177,6 @@ struct SettingsView: View {
     private func validateInputs() -> Bool {
         print("🔍 Validating inputs...")
         
-        // First check if at least one service is enabled
-        if !useWunderground && !useOpenWeather {
-            validationMessage = "Please enable at least one weather service"
-            print("❌ Validation failed: No weather service enabled")
-            return false
-        }
-        
         // Validate Weather Underground settings if enabled
         if useWunderground {
             if wuApiKey.isEmpty || stationID.isEmpty {
@@ -183,11 +193,14 @@ struct SettingsView: View {
                 print("❌ Validation failed: Missing OpenWeatherMap API key")
                 return false
             }
-            
-            // Only validate location if OpenWeatherMap is enabled
+        }
+        
+        // Validate location settings for any service
+        let needsLocation = useOpenWeather || (!useWunderground && !useOpenWeather) // Need location for OpenWeather or Open-Meteo
+        if needsLocation {
             let hasValidLocation = weatherService.useGPS || (!latitude.isEmpty && !longitude.isEmpty)
             if !hasValidLocation {
-                validationMessage = "Please enable GPS or enter manual coordinates for OpenWeatherMap"
+                validationMessage = "Please enable GPS or enter manual coordinates"
                 print("❌ Validation failed: No location data available")
                 return false
             }
@@ -226,7 +239,7 @@ struct SettingsView: View {
         
         if !useOpenWeather {
             owmApiKey = ""
-            if !useWunderground {  // Only clear location if Weather Underground isn't being used
+            if useWunderground {  // Only clear location if Weather Underground is being used
                 latitude = ""
                 longitude = ""
                 weatherService.useGPS = false
@@ -238,29 +251,7 @@ struct SettingsView: View {
         print("- Unit System: \(unitSystem)")
         print("- Weather Underground: \(useWunderground ? "Enabled" : "Disabled")")
         print("- OpenWeatherMap: \(useOpenWeather ? "Enabled" : "Disabled")")
-        
-        if useOpenWeather {
-            print("\n🌍 OpenWeatherMap Configuration:")
-            print("- Use GPS: \(weatherService.useGPS)")
-            
-            // Print the complete API URL for debugging
-            let units = unitSystem == "Metric" ? "metric" : "imperial"
-            let lat = latitude
-            let lon = longitude
-            
-            print("\n🔗 API Information:")
-            print("- Base URL: https://api.openweathermap.org/data/3.0/onecall")
-            print("- Parameters:")
-            print("  • lat: \(lat)")
-            print("  • lon: \(lon)")
-            print("  • units: \(units)")
-            print("  • exclude: minutely,hourly,alerts")
-            print("  • appid: \(String(owmApiKey.prefix(6)))...")
-            
-            let apiUrl = "https://api.openweathermap.org/data/3.0/onecall?lat=\(lat)&lon=\(lon)&exclude=minutely,hourly,alerts&units=\(units)&appid=\(owmApiKey)"
-            print("\n📡 Complete API URL:")
-            print(apiUrl)
-        }
+        print("- Open-Meteo: \(!useWunderground && !useOpenWeather ? "Active (Fallback)" : "Inactive")")
         
         // Dismiss view immediately
         presentationMode.wrappedValue.dismiss()
