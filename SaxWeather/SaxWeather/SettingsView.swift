@@ -22,6 +22,7 @@ struct SettingsView: View {
     @AppStorage("colorScheme") private var colorScheme = "system"
     @AppStorage("useWunderground") private var useWunderground = false
     @AppStorage("useOpenWeather") private var useOpenWeather = false
+    @AppStorage("forecastDays") private var forecastDays = 7
     
     @State private var showingSaveConfirmation = false
     @State private var showingValidationAlert = false
@@ -85,6 +86,20 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
+                }
+                
+                Section(header: Text("Forecast")) {
+                    Stepper(value: $forecastDays, in: 1...16) {
+                        HStack {
+                            Text("Days to Display")
+                            Spacer()
+                            Text("\(forecastDays)")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    Text("Up to 16 days of forecast data available")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
                 
                 Section(header: Text("Appearance")) {
@@ -252,6 +267,7 @@ struct SettingsView: View {
         print("- Weather Underground: \(useWunderground ? "Enabled" : "Disabled")")
         print("- OpenWeatherMap: \(useOpenWeather ? "Enabled" : "Disabled")")
         print("- Open-Meteo: \(!useWunderground && !useOpenWeather ? "Active (Fallback)" : "Inactive")")
+        print("- Forecast Days: \(forecastDays)")
         
         // Dismiss view immediately
         presentationMode.wrappedValue.dismiss()

@@ -71,6 +71,7 @@ struct ContentView: View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
                 VStack(spacing: 8) {
+                    // Current Temperature Display
                     if let temperature = weather.temperature {
                         Text(String(format: "%.1f%@", temperature, temperatureUnit))
                             .font(.system(size: 80, weight: .bold))
@@ -99,6 +100,18 @@ struct ContentView: View {
                 .padding(.vertical, 50)
                 
                 WeatherDetailsView(weather: weather)
+
+                // Add Forecast View here
+                if let forecast = weatherService.forecast {
+                    ForecastView(forecast: forecast, unitSystem: weatherService.unitSystem)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(systemColorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.8))
+                                .shadow(radius: 5)
+                        )
+                        .padding(.horizontal)
+                }
+                
             } else {
                 Text("Loading weather data...")
                     .foregroundColor(.primary)
@@ -275,3 +288,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+

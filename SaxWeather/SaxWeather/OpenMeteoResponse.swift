@@ -2,127 +2,142 @@
 //  OpenMeteoResponse.swift
 //  SaxWeather
 //
-//  Created by Saxon on 24/2/2025.
-//
-
-
-//
-//  OpenMeteoService.swift
-//  SaxWeather
-//
-//  Created by Saxo_Broko on 2025-02-24 07:58:30
+//  Created by saxobroko on 2025-02-25 05:21:09
 //
 
 import Foundation
 
 struct OpenMeteoResponse: Codable {
-    let current: OpenMeteoCurrent
-    let daily: OpenMeteoDaily
+    let latitude: Double
+    let longitude: Double
+    let generationtime_ms: Double
+    let utc_offset_seconds: Int
+    let timezone: String
+    let timezone_abbreviation: String
+    let elevation: Double
+    let current_units: CurrentUnits
+    let current: Current
+    let daily_units: DailyUnits
+    let daily: Daily
     
-    struct OpenMeteoCurrent: Codable {
-        let temperature: Double
-        let relativeHumidity: Int
-        let apparentTemperature: Double
+    init(from decoder: Decoder) throws {
+        print("⚡️ Starting to decode OpenMeteoResponse")
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Debug print available keys
+        print("🔑 Available keys in JSON:", container.allKeys.map { $0.stringValue })
+        
+        do {
+            self.latitude = try container.decode(Double.self, forKey: .latitude)
+            print("✅ Decoded latitude:", self.latitude)
+            
+            self.longitude = try container.decode(Double.self, forKey: .longitude)
+            print("✅ Decoded longitude:", self.longitude)
+            
+            // Try decoding generationtime_ms with extra debug info
+            print("🔍 Attempting to decode generationtime_ms")
+            self.generationtime_ms = try container.decode(Double.self, forKey: .generationtime_ms)
+            print("✅ Successfully decoded generationtime_ms:", self.generationtime_ms)
+            
+            self.utc_offset_seconds = try container.decode(Int.self, forKey: .utc_offset_seconds)
+            self.timezone = try container.decode(String.self, forKey: .timezone)
+            self.timezone_abbreviation = try container.decode(String.self, forKey: .timezone_abbreviation)
+            self.elevation = try container.decode(Double.self, forKey: .elevation)
+            self.current_units = try container.decode(CurrentUnits.self, forKey: .current_units)
+            self.current = try container.decode(Current.self, forKey: .current)
+            self.daily_units = try container.decode(DailyUnits.self, forKey: .daily_units)
+            self.daily = try container.decode(Daily.self, forKey: .daily)
+        } catch {
+            print("❌ Decoding error:", error)
+            print("❌ Error location:", error.localizedDescription)
+            throw error
+        }
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+            case latitude
+            case longitude
+            case generationtime_ms
+            case utc_offset_seconds
+            case timezone
+            case timezone_abbreviation
+            case elevation
+            case current_units
+            case current
+            case daily_units
+            case daily
+        }
+    
+    struct CurrentUnits: Codable {
+        let time: String
+        let interval: String
+        let temperature_2m: String
+        let relative_humidity_2m: String
+        let apparent_temperature: String
+        let precipitation: String
+        let wind_speed_10m: String
+        let wind_gusts_10m: String
+        let pressure_msl: String
+        let cloud_cover: String
+        let uv_index: String
+    }
+    
+    struct Current: Codable {
+        let time: String
+        let interval: Int
+        let temperature_2m: Double
+        let relative_humidity_2m: Int
+        let apparent_temperature: Double
         let precipitation: Double
-        let windSpeed: Double
-        let windGusts: Double
-        let pressure: Double
-        let cloudCover: Int
-        let uvIndex: Int
-        
-        enum CodingKeys: String, CodingKey {
-            case temperature = "temperature_2m"
-            case relativeHumidity = "relative_humidity_2m"
-            case apparentTemperature = "apparent_temperature"
-            case precipitation = "precipitation"
-            case windSpeed = "wind_speed_10m"
-            case windGusts = "wind_gusts_10m"
-            case pressure = "pressure_msl"
-            case cloudCover = "cloud_cover"
-            case uvIndex = "uv_index"
-        }
+        let wind_speed_10m: Double
+        let wind_gusts_10m: Double
+        let pressure_msl: Double
+        let cloud_cover: Int
+        let uv_index: Double
     }
     
-    struct OpenMeteoDaily: Codable {
-        let temperatureMax: [Double]
-        let temperatureMin: [Double]
-        
-        enum CodingKeys: String, CodingKey {
-            case temperatureMax = "temperature_2m_max"
-            case temperatureMin = "temperature_2m_min"
-        }
-    }
-}
-
-func fetchOpenMeteoWeather(latitude: String, longitude: String) async throws -> (OWMCurrent?, OWMDaily?) {
-    let urlString = "https://api.open-meteo.com/v1/forecast?" +
-        "latitude=\(latitude)" +
-        "&longitude=\(longitude)" +
-        "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
-        "precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
-        "&daily=temperature_2m_max,temperature_2m_min" +
-        "&timezone=auto"
-    
-    guard let url = URL(string: urlString) else {
-        throw WeatherError.invalidURL
+    struct DailyUnits: Codable {
+        let time: String
+        let temperature_2m_max: String
+        let temperature_2m_min: String
+        let precipitation_sum: String
+        let precipitation_probability_max: String
+        let weather_code: String
+        let wind_speed_10m_max: String
+        let wind_direction_10m_dominant: String
+        let relative_humidity_2m_max: String
+        let pressure_msl_max: String
+        let uv_index_max: String
+        let sunrise: String
+        let sunset: String
     }
     
-    let request = URLRequest(url: url)
-    
-    do {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        if let httpResponse = response as? HTTPURLResponse {
-            print("📡 OpenMeteo API Response Status: \(httpResponse.statusCode)")
-            
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("📡 OpenMeteo API Response Body:")
-                print(responseString)
-            }
-            
-            if httpResponse.statusCode != 200 {
-                print("❌ OpenMeteo Error: Unexpected status code \(httpResponse.statusCode)")
-                throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
-            }
-        }
-        
-        let openMeteoResponse = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
-        
-        // Convert OpenMeteo response to our existing format
-        let owmCurrent = OWMCurrent(
-            temp: openMeteoResponse.current.temperature,
-            feels_like: openMeteoResponse.current.apparentTemperature,
-            humidity: Double(openMeteoResponse.current.relativeHumidity),
-            dew_point: calculateDewPoint(
-                temp: openMeteoResponse.current.temperature,
-                humidity: Double(openMeteoResponse.current.relativeHumidity)
-            ),
-            pressure: openMeteoResponse.current.pressure,
-            wind_speed: openMeteoResponse.current.windSpeed,
-            wind_gust: openMeteoResponse.current.windGusts,
-            uvi: openMeteoResponse.current.uvIndex,
-            clouds: Double(openMeteoResponse.current.cloudCover)
-        )
-        
-        // Get daily temperature data
-        let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
-            min: openMeteoResponse.daily.temperatureMin.first ?? owmCurrent.temp,
-            max: openMeteoResponse.daily.temperatureMax.first ?? owmCurrent.temp
-        ))
-        
-        return (owmCurrent, owmDaily)
-    } catch {
-        print("❌ OpenMeteo Error:", error.localizedDescription)
-        print("❌ Error Details:", error)
-        throw WeatherError.apiError(error.localizedDescription)
+    struct Daily: Codable {
+        let time: [String]
+        let temperature_2m_max: [Double]
+        let temperature_2m_min: [Double]
+        let precipitation_sum: [Double]
+        let precipitation_probability_max: [Int]
+        let weather_code: [Int]
+        let wind_speed_10m_max: [Double]
+        let wind_direction_10m_dominant: [Double]
+        let relative_humidity_2m_max: [Int]
+        let pressure_msl_max: [Double]
+        let uv_index_max: [Double]
+        let sunrise: [String]
+        let sunset: [String]
     }
 }
 
-private func calculateDewPoint(temp: Double, humidity: Double) -> Double {
-    let a = 17.27
-    let b = 237.7
+// MARK: - Helper Extensions
+extension OpenMeteoResponse {
+    func getDate(from dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate, .withTime, .withTimeZone]
+        return formatter.date(from: dateString)
+    }
     
-    let alpha = ((a * temp) / (b + temp)) + log(humidity/100.0)
-    let dewPoint = (b * alpha) / (a - alpha)
-    return dewPoint
+    var currentDate: Date? {
+        return getDate(from: current.time)
+    }
 }
