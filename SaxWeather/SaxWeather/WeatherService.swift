@@ -303,20 +303,36 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
                 
     private func createForecast(from response: OpenMeteoResponse) {
+        // Initialize date formatter for ISO8601 dates
         let dateFormatter = ISO8601DateFormatter()
-        dateFormatter.formatOptions = [.withFullDate, .withTime, .withTimeZone]
+        dateFormatter.formatOptions = [.withFullDate] // Remove .withTime and .withTimeZone since daily dates don't have time
         
-        // Process daily forecasts
-        let dailyForecasts = zip4(
-            response.daily.time,
-            response.daily.weather_code,
-            response.daily.temperature_2m_max,
-            response.daily.temperature_2m_min
-        ).enumerated().map { index, data in
-            let (timeString, code, maxTemp, minTemp) = data
+        // Debug print the daily humidity values
+        print("📊 Daily Humidity Values:")
+        for (index, time) in response.daily.time.enumerated() {
+            let humidity = response.daily.relative_humidity_2m_max[safe: index] ?? 0
+            print("Day \(time): Humidity \(humidity)%")
+        }
+        
+        // Create daily forecasts using indices
+        let dailyForecasts = response.daily.time.indices.map { index in
+            let timeString = response.daily.time[index]
+            let code = response.daily.weather_code[index]
+            let maxTemp = response.daily.temperature_2m_max[index]
+            let minTemp = response.daily.temperature_2m_min[index]
+            let humidity = response.daily.relative_humidity_2m_max[safe: index] ?? 0
+            
+            // Debug print each forecast creation
+            print("🔄 Creating forecast for day \(timeString):")
+            print("   Temperature: \(maxTemp)°/\(minTemp)°")
+            print("   Humidity: \(humidity)%")
+            print("   Weather Code: \(code)")
+            
+            // Parse the date string correctly
+            let date = dateFormatter.date(from: timeString) ?? Date()
             
             return WeatherForecast.DailyForecast(
-                date: dateFormatter.date(from: timeString) ?? Date(),
+                date: date,
                 tempMax: maxTemp,
                 tempMin: minTemp,
                 precipitation: response.daily.precipitation_sum[safe: index] ?? 0,
@@ -324,25 +340,28 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 weatherCode: code,
                 windSpeed: response.daily.wind_speed_10m_max[safe: index] ?? 0,
                 windDirection: response.daily.wind_direction_10m_dominant[safe: index] ?? 0,
-                humidity: Double(response.daily.relative_humidity_2m_max[safe: index] ?? 0),  // Use max humidity
+                humidity: Double(humidity),
                 pressure: response.daily.pressure_msl_max[safe: index] ?? 0,
                 uvIndex: response.daily.uv_index_max[safe: index] ?? 0,
-                sunrise: dateFormatter.date(from: response.daily.sunrise[safe: index] ?? ""),
-                sunset: dateFormatter.date(from: response.daily.sunset[safe: index] ?? "")
+                sunrise: ISO8601DateFormatter().date(from: response.daily.sunrise[safe: index] ?? ""),
+                sunset: ISO8601DateFormatter().date(from: response.daily.sunset[safe: index] ?? "")
             )
         }
         
-        DispatchQueue.main.async {
-            self.forecast = WeatherForecast(daily: dailyForecasts)        }
-    }
-
-    private func zip4<A, B, C, D>(_ a: [A], _ b: [B], _ c: [C], _ d: [D]) -> [(A, B, C, D)] {
-        var result: [(A, B, C, D)] = []
-        let count = min(a.count, b.count, c.count, d.count)
-        for i in 0..<count {
-            result.append((a[i], b[i], c[i], d[i]))
+        // Debug print created forecasts
+        print("📱 Created Forecasts:")
+        for forecast in dailyForecasts {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            print("Date: \(formatter.string(from: forecast.date))")
+            print("Humidity: \(forecast.humidity)%")
+            print("Temps: \(forecast.tempMax)°/\(forecast.tempMin)°")
+            print("---")
         }
-        return result
+        
+        DispatchQueue.main.async {
+            self.forecast = WeatherForecast(daily: dailyForecasts)
+        }
     }
                 
                 // MARK: - Helper Functions
