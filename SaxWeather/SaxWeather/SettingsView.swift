@@ -35,7 +35,7 @@ struct SettingsView: View {
                 Section(header: Text("Weather Services")) {
                     Toggle("Weather Underground", isOn: $useWunderground)
                     Toggle("OpenWeatherMap", isOn: $useOpenWeather)
-                    Text("Note: Open-Meteo will be used as fallback if no services are enabled")
+                    Text("Note: Open-Meteo models will be used as fallback if no services are enabled. This may be innacurate.")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
