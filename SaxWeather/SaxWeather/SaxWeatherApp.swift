@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct SaxWeatherApp: App {
+    @StateObject private var storeManager = StoreManager.shared
+    
     init() {
         // Register default values for UserDefaults
         let defaults: [String: Any] = [
@@ -13,6 +15,7 @@ struct SaxWeatherApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(storeManager)  // Add this line to inject StoreManager into the environment
         }
     }
 }

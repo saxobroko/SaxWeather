@@ -10,6 +10,7 @@ import CoreLocation
 
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
+    @EnvironmentObject var storeManager: StoreManager
     @AppStorage("wuApiKey") private var wuApiKey = ""
     @AppStorage("stationID") private var stationID = ""
     @AppStorage("owmApiKey") private var owmApiKey = ""
@@ -41,9 +42,15 @@ struct SettingsView: View {
                     unitsAndDisplaySection
                 }
                 
+                Section(header: Text("Appearance")) {
+                    BackgroundSettingsButton()
+                        .environmentObject(storeManager)
+                }
+                
                 Section(header: Text("About")) {
                     aboutSection
                 }
+                
             }
             .navigationTitle("Settings")
             .alert(isPresented: $showingAlert) {
@@ -228,5 +235,7 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(weatherService: WeatherService())
+            .environmentObject(StoreManager.shared)
     }
 }
+

@@ -7,9 +7,11 @@
 
 import SwiftUI
 import CoreLocation
+import StoreKit
 
 // MARK: - Content View
 struct ContentView: View {
+    @EnvironmentObject var storeManager: StoreManager
     @StateObject private var weatherService = WeatherService()
     @State private var showSettings = false
     @State private var isRefreshing = false
@@ -21,6 +23,7 @@ struct ContentView: View {
         if isFirstLaunch {
             OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
                 .preferredColorScheme(selectedColorScheme)
+                .environmentObject(storeManager)
         } else {
             TabView {
                 // Tab 1: Main Weather View
@@ -60,7 +63,18 @@ struct ContentView: View {
     }
     
     private var backgroundLayer: some View {
-        BackgroundView(condition: weatherService.weather?.condition ?? "default")
+        // Use the wrapper which properly passes the environment object
+        BackgroundViewWrapper(condition: weatherService.weather?.condition ?? "default")
+    }
+    
+    struct BackgroundViewWrapper: View {
+        let condition: String
+        @EnvironmentObject var storeManager: StoreManager
+        
+        var body: some View {
+            BackgroundView(condition: condition)
+                .environmentObject(storeManager)
+        }
     }
     
     private var contentLayer: some View {
@@ -155,16 +169,16 @@ struct ContentView: View {
     }
     
     private var selectedColorScheme: ColorScheme? {
-            switch colorScheme {
-            case "light":
-                return .light
-            case "dark":
-                return .dark
-            default:
-                return .dark
-            }
+        switch colorScheme {
+        case "light":
+            return .light
+        case "dark":
+            return .dark
+        default:
+            return .dark
         }
     }
+}
 
 // MARK: - Forecast Container View (renamed to avoid conflict)
 struct ForecastContainerView: View {
@@ -273,43 +287,6 @@ struct ForecastContainerView: View {
         Task {
             await weatherService.fetchForecasts()
             await MainActor.run { isLoading = false }
-        }
-    }
-}
-// MARK: - Background View
-struct BackgroundView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let condition: String
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Image(backgroundImage(for: condition))
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-                .overlay(
-                    Color.black.opacity(colorScheme == .dark ? 0.5 : 0.3)
-                        .edgesIgnoringSafeArea(.all)
-                )
-        }
-        .ignoresSafeArea()
-    }
-    
-    private func backgroundImage(for condition: String) -> String {
-        switch condition.lowercased() {
-        case "sunny":
-            return "weather_background_sunny"
-        case "rainy":
-            return "weather_background_rainy"
-        case "windy":
-            return "weather_background_windy"
-        case "snowy":
-            return "weather_background_snowy"
-        case "thunder":
-            return "weather_background_thunder"
-        default:
-            return "weather_background_default"
         }
     }
 }
