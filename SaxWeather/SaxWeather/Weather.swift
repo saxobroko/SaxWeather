@@ -2,7 +2,7 @@
 //  Weather.swift
 //  SaxWeather
 //
-//  Created by Saxo_Broko on 2025-02-16 03:05:32
+//  Created by saxobroko on 2025-02-26 14:33:23
 //
 
 import Foundation
@@ -22,6 +22,66 @@ struct Weather: Codable {
     var solarRadiation: Double?
     private let cachedCondition: String
     let lastUpdateTime: Date
+    var forecasts: [Forecast] = []
+    
+    // MARK: - Forecast Struct
+    struct Forecast: Codable {
+        var date: Date
+        var maxTemp: Double
+        var minTemp: Double
+        var precipitation: Double
+        var weatherCode: Int
+        var windSpeed: Double
+        var windDirection: Int
+        var humidity: Double
+        var pressure: Double
+        var uvIndex: Double
+        
+        // MARK: - Initializers
+        init(from daily: OpenMeteoResponse.Daily, index: Int) {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFullDate, .withTime, .withTimeZone]
+            self.date = formatter.date(from: daily.time[index]) ?? Date()
+            
+            self.maxTemp = daily.temperature_2m_max[index]
+            self.minTemp = daily.temperature_2m_min[index]
+            self.precipitation = daily.precipitation_sum[index] ?? 0.0
+            self.weatherCode = daily.weather_code[index]
+            self.windSpeed = daily.wind_speed_10m_max[index]
+            self.windDirection = Int(daily.wind_direction_10m_dominant[index] ?? 0.0)
+            self.humidity = Double(daily.relative_humidity_2m_max[index])
+            self.pressure = daily.pressure_msl_max[index]
+            self.uvIndex = daily.uv_index_max[index]
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            date = try container.decode(Date.self, forKey: .date)
+            maxTemp = try container.decode(Double.self, forKey: .maxTemp)
+            minTemp = try container.decode(Double.self, forKey: .minTemp)
+            precipitation = try container.decode(Double.self, forKey: .precipitation)
+            weatherCode = try container.decode(Int.self, forKey: .weatherCode)
+            windSpeed = try container.decode(Double.self, forKey: .windSpeed)
+            windDirection = try container.decode(Int.self, forKey: .windDirection)
+            humidity = try container.decode(Double.self, forKey: .humidity)
+            pressure = try container.decode(Double.self, forKey: .pressure)
+            uvIndex = try container.decode(Double.self, forKey: .uvIndex)
+        }
+        
+        // MARK: - Coding Keys
+        private enum CodingKeys: String, CodingKey {
+            case date
+            case maxTemp
+            case minTemp
+            case precipitation
+            case weatherCode
+            case windSpeed
+            case windDirection
+            case humidity
+            case pressure
+            case uvIndex
+        }
+    }
     
     var condition: String {
         return cachedCondition
@@ -34,7 +94,7 @@ struct Weather: Codable {
                uvIndex != nil || solarRadiation != nil
     }
     
-    // Calculate vapor pressure from temperature and relative humidity
+    // MARK: - Private Helper Methods
     private func calculateVaporPressure(temperature: Double, relativeHumidity: Double) -> Double {
         // Saturation vapor pressure using Magnus-Tetens formula
         let saturationVaporPressure = 6.11 * pow(10, (7.5 * temperature) / (237.3 + temperature))
@@ -44,7 +104,6 @@ struct Weather: Codable {
         return saturationVaporPressure * humidityDecimal
     }
     
-    // Calculate feels like temperature
     private func calculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double) -> Double {
         let vaporPressure = calculateVaporPressure(temperature: temperature, relativeHumidity: humidity)
         // AT = Ta + 0.33E - 0.70WS - 4.00
@@ -52,7 +111,6 @@ struct Weather: Codable {
         return apparentTemperature
     }
     
-    // Ensure metric units for calculation and convert back if needed
     private func ensureMetricAndCalculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double, currentUnit: String) -> Double {
         var tempInCelsius = temperature
         var windInMetersPerSecond = windSpeed
@@ -65,8 +123,8 @@ struct Weather: Codable {
         
         // Calculate feels like temperature in Celsius
         let feelsLikeCelsius = calculateFeelsLike(temperature: tempInCelsius,
-                                                 humidity: humidity,
-                                                 windSpeed: windInMetersPerSecond)
+                                              humidity: humidity,
+                                              windSpeed: windInMetersPerSecond)
         
         // Convert back to Fahrenheit if needed
         if currentUnit == "Imperial" {
@@ -76,19 +134,27 @@ struct Weather: Codable {
         return feelsLikeCelsius
     }
     
-    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, unitSystem: String = "Metric") {
+    // MARK: - Initializer
+    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, openMeteoResponse: OpenMeteoResponse? = nil, unitSystem: String = "Metric") {
         self.lastUpdateTime = Date()
         
-        self.temperature = wuObservation?.metric.temp ?? owmCurrent?.temp
-        self.humidity = wuObservation?.humidity ?? owmCurrent?.humidity
-        self.windSpeed = wuObservation?.metric.windSpeed ?? owmCurrent?.wind_speed
-        self.high = owmDaily?.temp.max
-        self.low = owmDaily?.temp.min
-        self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
-        self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure
-        self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust
-        self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
-        self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds
+        self.temperature = wuObservation?.metric.temp ?? owmCurrent?.temp ?? openMeteoResponse?.current?.temperature_2m
+            self.humidity = wuObservation?.humidity ?? owmCurrent?.humidity ?? Double(openMeteoResponse?.current?.relative_humidity_2m ?? 0)
+            self.windSpeed = wuObservation?.metric.windSpeed ?? owmCurrent?.wind_speed ?? openMeteoResponse?.current?.wind_speed_10m
+            self.high = owmDaily?.temp.max
+            self.low = owmDaily?.temp.min
+            self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
+            self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure ?? openMeteoResponse?.current?.pressure_msl
+            self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
+            self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0) ?? openMeteoResponse?.current?.uv_index ?? 0)
+            self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
+        
+        // Initialize forecasts if OpenMeteo data is available
+        if let openMeteoDaily = openMeteoResponse?.daily {
+            self.forecasts = zip(0..<openMeteoDaily.time.count, openMeteoDaily.time).map { index, _ in
+                Forecast(from: openMeteoDaily, index: index)
+            }
+        }
         
         let temp = self.temperature ?? 0
         let uv = self.uvIndex ?? 0
@@ -117,7 +183,7 @@ struct Weather: Codable {
                 currentUnit: unitSystem
             )
         } else {
-            self.feelsLike = wuObservation?.metric.heatIndex ?? owmCurrent?.feels_like
+            self.feelsLike = wuObservation?.metric.heatIndex ?? owmCurrent?.feels_like ?? openMeteoResponse?.current?.apparent_temperature
         }
     }
 }
@@ -139,6 +205,16 @@ extension Weather {
             if let gust = windGust { windGust = gust * 0.621371 }
             if let press = pressure { pressure = press * 0.02953 }
             
+            // Convert forecasts
+            for i in 0..<forecasts.count {
+                var forecast = forecasts[i]
+                forecast.maxTemp = forecast.maxTemp * 9/5 + 32
+                forecast.minTemp = forecast.minTemp * 9/5 + 32
+                forecast.windSpeed = forecast.windSpeed * 0.621371
+                forecast.pressure = forecast.pressure * 0.02953
+                forecasts[i] = forecast
+            }
+            
             print("Converted temperature: \(temperature ?? 0)°F")
         } else if from == "Imperial" && to == "Metric" {
             if let temp = temperature { temperature = (temp - 32) * 5/9 }
@@ -149,6 +225,16 @@ extension Weather {
             if let speed = windSpeed { windSpeed = speed * 1.60934 }
             if let gust = windGust { windGust = gust * 1.60934 }
             if let press = pressure { pressure = press * 33.8639 }
+            
+            // Convert forecasts
+            for i in 0..<forecasts.count {
+                var forecast = forecasts[i]
+                forecast.maxTemp = (forecast.maxTemp - 32) * 5/9
+                forecast.minTemp = (forecast.minTemp - 32) * 5/9
+                forecast.windSpeed = forecast.windSpeed * 1.60934
+                forecast.pressure = forecast.pressure * 33.8639
+                forecasts[i] = forecast
+            }
             
             print("Converted temperature: \(temperature ?? 0)°C")
         }

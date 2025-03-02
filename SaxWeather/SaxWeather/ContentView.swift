@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  SaxWeather
 //
-//  Created by Saxo_Broko on 2025-02-16 03:00:41
+//  Created by saxobroko on 2025-02-26 14:48:57
 //
 
 import SwiftUI
@@ -22,26 +22,34 @@ struct ContentView: View {
             OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
                 .preferredColorScheme(selectedColorScheme)
         } else {
-            weatherView
-                .preferredColorScheme(selectedColorScheme)
+            TabView {
+                // Tab 1: Main Weather View
+                mainWeatherView
+                    .tabItem {
+                        Label("Weather", systemImage: "cloud.sun.fill")
+                    }
+                
+                // Tab 2: Forecast - Updated to use ForecastContainerView
+                ForecastContainerView(weatherService: weatherService)
+                    .tabItem {
+                        Label("Forecast", systemImage: "calendar")
+                    }
+                
+                // Tab 3: Settings
+                SettingsView(weatherService: weatherService)
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+            }
+            .preferredColorScheme(selectedColorScheme)
         }
     }
     
-    private var weatherView: some View {
+    private var mainWeatherView: some View {
         NavigationView {
             ZStack {
                 backgroundLayer
                 contentLayer
-            }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    settingsButton
-                }
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView(weatherService: weatherService)
             }
             .onAppear {
                 Task {
@@ -100,17 +108,6 @@ struct ContentView: View {
                 .padding(.vertical, 50)
                 
                 WeatherDetailsView(weather: weather)
-
-                // Add Forecast View here
-                if let forecast = weatherService.forecast {
-                    ForecastView(forecast: forecast, unitSystem: weatherService.unitSystem)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(systemColorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.8))
-                                .shadow(radius: 5)
-                        )
-                        .padding(.horizontal)
-                }
                 
             } else {
                 Text("Loading weather data...")
@@ -144,15 +141,6 @@ struct ContentView: View {
         .disabled(isRefreshing)
     }
     
-    private var settingsButton: some View {
-        Button {
-            showSettings = true
-        } label: {
-            Image(systemName: "gear")
-                .foregroundColor(.primary)
-        }
-    }
-    
     private var footerView: some View {
         Text("Made by Saxo_Broko")
             .font(.caption)
@@ -165,17 +153,127 @@ struct ContentView: View {
     }
     
     private var selectedColorScheme: ColorScheme? {
-        switch colorScheme {
-        case "light":
-            return .light
-        case "dark":
-            return .dark
-        default:
-            return nil
+            switch colorScheme {
+            case "light":
+                return .light
+            case "dark":
+                return .dark
+            default:
+                return .dark
+            }
+        }
+    }
+
+// MARK: - Forecast Container View (renamed to avoid conflict)
+struct ForecastContainerView: View {
+    @ObservedObject var weatherService: WeatherService
+    @State private var isLoading = false
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if let forecast = weatherService.forecast {
+                    if forecast.daily.isEmpty {
+                        emptyForecastView
+                    } else {
+                        ForecastView(forecast: forecast, unitSystem: weatherService.unitSystem)
+                    }
+                } else if let error = weatherService.error {
+                    errorView(message: error)
+                } else {
+                    loadingView
+                }
+            }
+            .navigationTitle("Forecast")
+        }
+        .onAppear {
+            if weatherService.forecast == nil {
+                fetchForecast()
+            }
+        }
+    }
+    
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+            
+            Text("Loading forecast data...")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+    }
+    
+    private var emptyForecastView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+            
+            Text("No forecast data available")
+                .font(.headline)
+            
+            Text("Please check your location settings or try again later")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button("Refresh") {
+                fetchForecast()
+            }
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+        }
+        .padding()
+    }
+    
+    private func errorView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.red)
+            
+            Text("Error Loading Forecast")
+                .font(.headline)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button("Try Again") {
+                fetchForecast()
+            }
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            
+            if !weatherService.useGPS {
+                Button("Enable GPS Location") {
+                    weatherService.useGPS = true
+                    fetchForecast()
+                }
+                .padding()
+                .background(Color.green)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+            }
+        }
+        .padding()
+    }
+    
+    private func fetchForecast() {
+        isLoading = true
+        Task {
+            await weatherService.fetchForecasts()
+            await MainActor.run { isLoading = false }
         }
     }
 }
-
 // MARK: - Background View
 struct BackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -288,4 +386,3 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
-
