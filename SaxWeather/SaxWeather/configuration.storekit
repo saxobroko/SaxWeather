@@ -1,0 +1,35 @@
+{
+  "identifier" : "3369C8BD",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.50",
+      "familyShareable" : false,
+      "internalID" : "1234567890",
+      "localizations" : [
+        {
+          "description" : "Set a custom background for any weather",
+          "displayName" : "Custom Backgrounds",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "CustomBackground50c",
+      "referenceName" : "Custom Background",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6742138224",
+    "_developerTeamID" : "YOUR_TEAM_ID",
+    "_lastSynchronizedDate" : 705643921.72950995
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}

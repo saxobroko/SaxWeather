@@ -30,13 +30,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		78C666FD2D5F791F00A7281A /* Exceptions for "SaxWeather" folder in "SaxWeatherTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				WeatherService.swift,
-			);
-			target = 78C666D52D5F732F00A7281A /* SaxWeatherTests */;
-		};
 		78C667002D600B2E00A7281A /* Exceptions for "SaxWeather" folder in "SaxWeather" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -51,19 +44,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				78C667002D600B2E00A7281A /* Exceptions for "SaxWeather" folder in "SaxWeather" target */,
-				78C666FD2D5F791F00A7281A /* Exceptions for "SaxWeather" folder in "SaxWeatherTests" target */,
 			);
 			path = SaxWeather;
-			sourceTree = "<group>";
-		};
-		78C666D92D5F732F00A7281A /* SaxWeatherTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SaxWeatherTests;
-			sourceTree = "<group>";
-		};
-		78C666E32D5F732F00A7281A /* SaxWeatherUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SaxWeatherUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -97,8 +79,6 @@
 			isa = PBXGroup;
 			children = (
 				78C666C82D5F732E00A7281A /* SaxWeather */,
-				78C666D92D5F732F00A7281A /* SaxWeatherTests */,
-				78C666E32D5F732F00A7281A /* SaxWeatherUITests */,
 				78C666C72D5F732E00A7281A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -151,9 +131,6 @@
 			dependencies = (
 				78C666D82D5F732F00A7281A /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				78C666D92D5F732F00A7281A /* SaxWeatherTests */,
-			);
 			name = SaxWeatherTests;
 			packageProductDependencies = (
 			);
@@ -173,9 +150,6 @@
 			);
 			dependencies = (
 				78C666E22D5F732F00A7281A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				78C666E32D5F732F00A7281A /* SaxWeatherUITests */,
 			);
 			name = SaxWeatherUITests;
 			packageProductDependencies = (
@@ -426,12 +400,15 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UILaunchStoryboardName = weather_background_default;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -460,12 +437,15 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UILaunchStoryboardName = weather_background_default;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
