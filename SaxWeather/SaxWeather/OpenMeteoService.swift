@@ -6,7 +6,6 @@
 //
 
 import Foundation
-@testable import SaxWeather  // Add this to access internal types
 
 actor OpenMeteoService {
     private let jsonDecoder: JSONDecoder = {

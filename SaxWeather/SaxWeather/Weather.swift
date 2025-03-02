@@ -146,7 +146,7 @@ struct Weather: Codable {
             self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
             self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure ?? openMeteoResponse?.current?.pressure_msl
             self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
-            self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0) ?? openMeteoResponse?.current?.uv_index ?? 0)
+        self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
             self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
         
         // Initialize forecasts if OpenMeteo data is available

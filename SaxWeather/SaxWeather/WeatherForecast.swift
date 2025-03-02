@@ -11,7 +11,7 @@ import Foundation
 struct WeatherForecast: Codable {
     let daily: [DailyForecast]
     struct DailyForecast: Codable, Identifiable {
-        let id = UUID()
+        var id = UUID()
         let date: Date
         let tempMax: Double
         let tempMin: Double

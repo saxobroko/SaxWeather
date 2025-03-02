@@ -81,11 +81,13 @@ struct ContentView: View {
                 VStack(spacing: 8) {
                     // Current Temperature Display
                     if let temperature = weather.temperature {
-                        Text(String(format: "%.1f%@", temperature, temperatureUnit))
+                        // Get the unit directly from UserDefaults with a default to celsius
+                        let unitSymbol = UserDefaults.standard.string(forKey: "temperatureUnit") == "fahrenheit" ? "°F" : "°C"
+                        
+                        Text(String(format: "%.1f%@", temperature, unitSymbol))
                             .font(.system(size: 80, weight: .bold))
                             .foregroundColor(.primary)
                     }
-                    
                     if let feelsLike = weather.feelsLike {
                         Text(String(format: "Feels like %.1f%@", feelsLike, temperatureUnit))
                             .font(.system(size: 20, weight: .medium))
