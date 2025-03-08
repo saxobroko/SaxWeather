@@ -27,7 +27,9 @@ actor OpenMeteoService {
             throw WeatherError.invalidURL
         }
         
+        #if DEBUG
         print("📡 Fetching weather from OpenMeteo: \(url.absoluteString)")
+        #endif
         
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
@@ -36,12 +38,14 @@ actor OpenMeteoService {
                 throw WeatherError.apiError("Invalid response")
             }
             
+            #if DEBUG
             print("📡 OpenMeteo Response Status: \(httpResponse.statusCode)")
             
             if let responseString = String(data: data, encoding: .utf8) {
                 print("📡 OpenMeteo Response Body:")
                 print(responseString)
             }
+            #endif
             
             guard httpResponse.statusCode == 200 else {
                 throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
@@ -49,7 +53,9 @@ actor OpenMeteoService {
             
             return try jsonDecoder.decode(OpenMeteoResponse.self, from: data)
         } catch {
+            #if DEBUG
             print("❌ OpenMeteo Error:", error.localizedDescription)
+            #endif
             throw WeatherError.apiError(error.localizedDescription)
         }
     }

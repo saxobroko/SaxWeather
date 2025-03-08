@@ -44,11 +44,13 @@ struct ContentView: View {
                         Label("Settings", systemImage: "gear")
                     }
                 
-                // Tab 4: Lottie Debug View
+                // Tab 4: Debug Tab - Only shows in DEBUG builds
+                #if DEBUG
                 LottieDebugView()
                     .tabItem {
                         Label("Debug", systemImage: "ladybug.fill")
                     }
+                #endif
             }
             .preferredColorScheme(selectedColorScheme)
         }

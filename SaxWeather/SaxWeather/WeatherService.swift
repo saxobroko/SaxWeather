@@ -17,7 +17,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var _unitSystem: String
     
     let locationManager: CLLocationManager
-
+    
     var unitSystem: String {
         get { _unitSystem }
         set {
@@ -45,7 +45,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let savedLon = UserDefaults.standard.string(forKey: "longitude") ?? ""
                 
                 if savedLat.isEmpty || savedLon.isEmpty {
+#if DEBUG
                     print("⚠️ No saved coordinates found, reverting to GPS")
+#endif
                     _useGPS = true
                     UserDefaults.standard.set(true, forKey: "useGPS")
                     requestLocation()
@@ -60,7 +62,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             }
         }
     }
-        
+    
     override init() {
         // Default to using GPS, read from UserDefaults if available
         self._unitSystem = UserDefaults.standard.string(forKey: "unitSystem") ?? "Metric"
@@ -133,7 +135,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             // If GPS is enabled but location is nil, or if no saved coordinates, request location
             if (useGPS && locationManager.location == nil) || (latitude.isEmpty || longitude.isEmpty) {
+#if DEBUG
                 print("⚠️ No valid coordinates available for weather data, requesting location")
+#endif
                 requestLocation()
                 
                 // Wait a moment for location to update
@@ -155,23 +159,23 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let lon = longitude
         
         async let wuObservation = (!wuApiKey.isEmpty && !stationID.isEmpty) ?
-            fetchWUWeather(apiKey: wuApiKey, stationID: stationID) :
-            nil
-
+        fetchWUWeather(apiKey: wuApiKey, stationID: stationID) :
+        nil
+        
         async let owmWeather = !owmApiKey.isEmpty ?
-            fetchOWMWeather(
-                apiKey: owmApiKey,
-                latitude: lat,  // Using immutable copy
-                longitude: lon,  // Using immutable copy
-                unitSystem: unitSystem
-            ) :
-            (nil, nil)
-
+        fetchOWMWeather(
+            apiKey: owmApiKey,
+            latitude: lat,  // Using immutable copy
+            longitude: lon,  // Using immutable copy
+            unitSystem: unitSystem
+        ) :
+        (nil, nil)
+        
         async let openMeteoWeather = (wuApiKey.isEmpty || stationID.isEmpty) && owmApiKey.isEmpty ?
-            fetchOpenMeteoWeather(
-                latitude: lat,  // Using immutable copy
-                longitude: lon  // Using immutable copy
-            ) :
+        fetchOpenMeteoWeather(
+            latitude: lat,  // Using immutable copy
+            longitude: lon  // Using immutable copy
+        ) :
         (nil, nil)
         
         let (wuData, (owmCurrent, owmDaily), (openMeteoCurrent, openMeteoDaily)) = try await (wuObservation, owmWeather, openMeteoWeather)
@@ -196,15 +200,21 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private func fetchWUWeather(apiKey: String, stationID: String) async throws -> WUObservation? {
         guard !apiKey.isEmpty, !stationID.isEmpty else {
+#if DEBUG
             print("❌ Weather Underground Error: Empty API key or station ID")
+#endif
             throw WeatherError.invalidAPIKey
         }
         
         let urlString = "https://api.weather.com/v2/pws/observations/current?stationId=\(stationID)&format=json&units=m&numericPrecision=decimal&apiKey=\(apiKey)"
+#if DEBUG
         print("🌐 Weather Underground URL: \(urlString)")
+#endif
         
         guard let url = URL(string: urlString) else {
+#if DEBUG
             print("❌ Weather Underground Error: Invalid URL")
+#endif
             throw WeatherError.invalidURL
         }
         
@@ -214,6 +224,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
+#if DEBUG
             if let httpResponse = response as? HTTPURLResponse {
                 print("📡 Weather Underground Response Status: \(httpResponse.statusCode)")
             }
@@ -222,11 +233,13 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 print("📡 Weather Underground Response Body:")
                 print(responseString)
             }
+#endif
             
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let wuResponse = try decoder.decode(WUResponse.self, from: data)
             
+#if DEBUG
             if let observation = wuResponse.observations.first {
                 print("✅ Weather Underground Data Parsed Successfully:")
                 print("- Temperature: \(observation.metric.temp)°C")
@@ -234,11 +247,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 print("- Wind Speed: \(observation.metric.windSpeed) m/s")
                 print("- Pressure: \(observation.metric.pressure) hPa")
             }
+#endif
             
             return wuResponse.observations.first
         } catch {
+#if DEBUG
             print("❌ Weather Underground Error:", error)
             print("❌ Error Details:", error.localizedDescription)
+#endif
             throw WeatherError.apiError(error.localizedDescription)
         }
     }
@@ -265,6 +281,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
+#if DEBUG
             if let httpResponse = response as? HTTPURLResponse {
                 print("📡 OpenWeatherMap API Response Status: \(httpResponse.statusCode)")
                 
@@ -281,6 +298,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                     throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
                 }
             }
+#endif
             
             let currentWeather = try JSONDecoder().decode(CurrentWeatherResponse.self, from: data)
             
@@ -303,8 +321,10 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             return (owmCurrent, owmDaily)
         } catch {
+#if DEBUG
             print("❌ OpenWeatherMap Error:", error.localizedDescription)
             print("❌ Error Details:", error)
+#endif
             throw WeatherError.apiError(error.localizedDescription)
         }
     }
@@ -318,7 +338,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let dewPoint = (b * alpha) / (a - alpha)
         return dewPoint
     }
-
+    
     private func createURLRequest(from url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
@@ -329,7 +349,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - CLLocationManagerDelegate
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+#if DEBUG
         print("📍 Location updated: \(locations.first?.coordinate ?? CLLocationCoordinate2D())")
+#endif
         
         // Stop updating location after we get a reading - only need one update
         locationManager.stopUpdatingLocation()
@@ -343,7 +365,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+#if DEBUG
         print("❌ Location Error: \(error.localizedDescription)")
+#endif
         
         // Handle the error properly
         Task { [weak self] in
@@ -359,13 +383,17 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:
+#if DEBUG
             print("📍 Location authorization granted")
+#endif
             // Request a location update
             locationManager.startUpdatingLocation()
             
             // Add a timer to stop location updates after a short period
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+#if DEBUG
                 print("⏱️ Stopping location updates after timeout")
+#endif
                 self?.locationManager.stopUpdatingLocation()
             }
             
@@ -375,7 +403,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 await self.fetchWeather()
             }
         case .denied, .restricted:
+#if DEBUG
             print("⚠️ Location permission denied")
+#endif
             // Let the user know they need to enable location access
             Task { [weak self] in
                 guard let self = self else { return }
@@ -393,20 +423,28 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         switch status {
         case .notDetermined:
+#if DEBUG
             print("📍 Requesting location authorization")
+#endif
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
+#if DEBUG
             print("📍 Location authorization already granted, starting location updates")
+#endif
             // Use startUpdatingLocation with a timeout instead of requestLocation
             locationManager.startUpdatingLocation()
             
             // Add a timer to stop location updates after a short period
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+#if DEBUG
                 print("⏱️ Stopping location updates after timeout")
+#endif
                 self?.locationManager.stopUpdatingLocation()
             }
         case .denied, .restricted:
+#if DEBUG
             print("⚠️ Location access denied or restricted")
+#endif
             // Fall back to manual coordinates if available
             Task { [weak self] in
                 guard let self = self else { return }
@@ -415,7 +453,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 }
             }
         @unknown default:
+#if DEBUG
             print("⚠️ Unknown location authorization status")
+#endif
             locationManager.requestWhenInUseAuthorization()
         }
     }

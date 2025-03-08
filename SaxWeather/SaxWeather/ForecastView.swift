@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import Lottie
 
 struct ForecastView: View {
     let forecast: WeatherForecast
@@ -102,15 +103,32 @@ struct ForecastDayCard: View {
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
     @Environment(\.colorScheme) var colorScheme
+    @State private var animationFailed = false
     
     var body: some View {
         HStack(spacing: 20) {
-            // Left: Weather icon and temperatures - Fixed icon container
+            // Left: Weather icon and temperatures - Now using Lottie
             HStack(spacing: 12) {
-                Text(day.weatherSymbol)
-                    .font(.system(size: 32))  // Slightly smaller font
-                    .frame(width: 44, height: 44)  // Fixed frame to prevent cutoff
-                    .minimumScaleFactor(0.7)  // Allow scaling down if needed
+                // Weather animation with fallback
+                ZStack {
+                    if animationFailed {
+                        // Fallback to SF Symbol/emoji
+                        Text(day.weatherSymbol)
+                            .font(.system(size: 32))
+                    } else {
+                        // Lottie Animation
+                        WeatherLottieView(weatherCode: day.weatherCode)
+                            .onAppear {
+                                // Check if animation loads after a short delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    if !animationIsValid(for: lottieNameFromCode(day.weatherCode)) {
+                                        animationFailed = true
+                                    }
+                                }
+                            }
+                    }
+                }
+                .frame(width: 44, height: 44)
                 
                 VStack(alignment: .leading) {
                     Text("\(Int(round(day.tempMax)))°")
@@ -168,6 +186,24 @@ struct ForecastDayCard: View {
                         radius: 8, x: 0, y: 4)
         )
     }
+    
+    // Helper to check if animation is valid
+    private func animationIsValid(for name: String) -> Bool {
+        return Bundle.main.url(forResource: name, withExtension: "lottie") != nil
+    }
+    
+    // Convert weather code to lottie name
+    private func lottieNameFromCode(_ code: Int) -> String {
+        switch code {
+        case 0: return "clear-day"
+        case 1, 2, 3: return "partly-cloudy"
+        case 45, 48: return "foggy"
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
+        case 71, 73, 75, 77, 85, 86: return "snowy" // You may need to add this file
+        case 95, 96, 99: return "thunderstorm"
+        default: return "cloudy"
+        }
+    }
 }
 
 struct WeatherDataColumn: View {
@@ -194,6 +230,7 @@ struct WeatherDataColumn: View {
     }
 }
 
+// Adding back the missing DetailBox
 struct DetailBox: View {
     let icon: String
     let title: String
@@ -228,6 +265,7 @@ struct DetailBox: View {
     }
 }
 
+// Adding back the missing SunTimingView
 struct SunTimingView: View {
     let icon: String
     let title: String
@@ -257,6 +295,7 @@ struct DetailedForecastSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject private var storeManager: StoreManager
+    @State private var animationFailed = false
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -279,13 +318,30 @@ struct DetailedForecastSheet: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Header with weather overview
+                        // Header with weather overview - now using Lottie
                         VStack(spacing: 16) {
-                            Text(day.weatherSymbol)
-                                .font(.system(size: 72))
-                                .frame(height: 80)
-                                .foregroundColor(.white)
-                                .shadow(color: .black, radius: 2, x: 0, y: 1)
+                            ZStack {
+                                if animationFailed {
+                                    // Fallback to original symbol
+                                    Text(day.weatherSymbol)
+                                        .font(.system(size: 72))
+                                        .frame(height: 80)
+                                        .foregroundColor(.white)
+                                        .shadow(color: .black, radius: 2, x: 0, y: 1)
+                                } else {
+                                    // Lottie Animation - larger size for detail view
+                                    WeatherLottieView(weatherCode: day.weatherCode)
+                                        .frame(width: 120, height: 120)
+                                        .onAppear {
+                                            // Check if animation loads
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                if !animationIsValid(for: lottieNameFromCode(day.weatherCode)) {
+                                                    animationFailed = true
+                                                }
+                                            }
+                                        }
+                                }
+                            }
                             
                             VStack(spacing: 8) {
                                 Text(dateFormatter.string(from: day.date))
@@ -396,6 +452,24 @@ struct DetailedForecastSheet: View {
         }
     }
     
+    // Helper to check if animation is valid
+    private func animationIsValid(for name: String) -> Bool {
+        return Bundle.main.url(forResource: name, withExtension: "lottie") != nil
+    }
+    
+    // Convert weather code to lottie name
+    private func lottieNameFromCode(_ code: Int) -> String {
+        switch code {
+        case 0: return "clear-day"
+        case 1, 2, 3: return "partly-cloudy"
+        case 45, 48: return "foggy"
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
+        case 71, 73, 75, 77, 85, 86: return "snowy" // You may need to add this file
+        case 95, 96, 99: return "thunderstorm"
+        default: return "cloudy"
+        }
+    }
+    
     // Helper functions for weather descriptions
     private func weatherDescription(for code: Int) -> String {
         switch code {
@@ -445,6 +519,43 @@ struct DetailedForecastSheet: View {
         case 6...7: return "\(value) - High"
         case 8...10: return "\(value) - Very High"
         default: return "\(value) - Extreme"
+        }
+    }
+}
+
+// Weather Lottie animation view specially sized for the forecast
+struct WeatherLottieView: View {
+    let weatherCode: Int
+    @State private var loadingFailed = false
+    
+    var body: some View {
+        if loadingFailed {
+            // This should never display as we handle failure at a higher level
+            // But including as a safety measure
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundColor(.orange)
+        } else {
+            // Use your existing LottieView here - don't redefine it
+            LottieView(name: lottieNameFromCode(weatherCode))
+                .aspectRatio(contentMode: .fit)
+                .onAppear {
+                    // Check if animation exists
+                    if Bundle.main.url(forResource: lottieNameFromCode(weatherCode), withExtension: "lottie") == nil {
+                        loadingFailed = true
+                    }
+                }
+        }
+    }
+    
+    private func lottieNameFromCode(_ code: Int) -> String {
+        switch code {
+        case 0: return "clear-day"
+        case 1, 2, 3: return "partly-cloudy"
+        case 45, 48: return "foggy"
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
+        case 71, 73, 75, 77, 85, 86: return "snowy" // You may need to add this file
+        case 95, 96, 99: return "thunderstorm"
+        default: return "cloudy"
         }
     }
 }

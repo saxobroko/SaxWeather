@@ -95,7 +95,9 @@ extension WeatherService {
             self.forecast = WeatherForecast(daily: dailyForecasts)
             
         } catch {
+            #if DEBUG
             print("❌ Failed to fetch OpenMeteo weather:", error.localizedDescription)
+            #endif
         }
     }
     
@@ -154,7 +156,9 @@ extension WeatherService {
             "&forecast_days=\(UserDefaults.standard.integer(forKey: "forecastDays"))" +
             "&timezone=UTC"
         
+        #if DEBUG
         print("🌐 OpenMeteo URL: \(urlString)")
+        #endif
         
         guard let url = URL(string: urlString) else {
             throw handleWeatherError(.invalidURL)
@@ -165,6 +169,7 @@ extension WeatherService {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
+            #if DEBUG
             if let httpResponse = response as? HTTPURLResponse {
                 print("📡 OpenMeteo API Response Status: \(httpResponse.statusCode)")
                 
@@ -178,6 +183,7 @@ extension WeatherService {
                     throw handleWeatherError(.invalidResponse(httpResponse.statusCode))
                 }
             }
+            #endif
             
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .useDefaultKeys // Ensure we're using exact key names
@@ -211,12 +217,16 @@ extension WeatherService {
             
             return (owmCurrent, owmDaily)
         } catch let decodingError as DecodingError {
+            #if DEBUG
             print("❌ OpenMeteo Error:", decodingError.localizedDescription)
             print("❌ Error Details:", decodingError)
+            #endif
             throw handleWeatherError(.decodingError(decodingError))
         } catch {
+            #if DEBUG
             print("❌ OpenMeteo Error:", error.localizedDescription)
             print("❌ Error Details:", error)
+            #endif
             throw handleWeatherError(.decodingError(error))
         }
     }
@@ -291,12 +301,14 @@ extension WeatherService {
             let sunset = dateFormatter.date(from: sunsetStr)
             
             // Debug info
+            #if DEBUG
             print("🔄 Creating forecast for day \(timeString):")
             print("   Temperature: \(response.daily.temperature_2m_max[index])°/\(response.daily.temperature_2m_min[index])°")
             print("   Humidity: \(humidity)%")
             print("   Weather Code: \(response.daily.weather_code[index])")
             print("   Precipitation: \(precipitation)")
             print("   Wind Direction: \(windDir)")
+            #endif
             
             // Create forecast with guaranteed non-optional values
             let forecast = WeatherForecast.DailyForecast(
@@ -326,10 +338,10 @@ extension WeatherService {
     // MARK: - Forecast Methods
     @MainActor
     func fetchForecasts() async {
+        #if DEBUG
         print("🔄 Fetching forecast data...")
-        
-        // Log current location settings
         print("📱 GPS enabled: \(useGPS)")
+        #endif
         
         // Get location coordinates either from GPS or stored values
         var lat = ""
@@ -339,16 +351,22 @@ extension WeatherService {
             // Use current location if GPS is enabled and we have a location
             lat = String(locationManager.location!.coordinate.latitude)
             lon = String(locationManager.location!.coordinate.longitude)
+            #if DEBUG
             print("📍 Using current location: \(lat), \(lon)")
+            #endif
         } else {
             // Try to use saved location
             lat = UserDefaults.standard.string(forKey: "latitude") ?? ""
             lon = UserDefaults.standard.string(forKey: "longitude") ?? ""
+            #if DEBUG
             print("📍 Trying saved location: \(lat), \(lon)")
+            #endif
             
             // If GPS is enabled but location is nil, or if no saved coords, request location
             if (useGPS && locationManager.location == nil) || (lat.isEmpty || lon.isEmpty) {
+                #if DEBUG
                 print("⚠️ No valid coordinates available, requesting location")
+                #endif
                 requestLocation()
                 
                 // Wait a moment for location to update
@@ -358,7 +376,9 @@ extension WeatherService {
                 if let location = locationManager.location {
                     lat = String(location.coordinate.latitude)
                     lon = String(location.coordinate.longitude)
+                    #if DEBUG
                     print("📍 Got location after request: \(lat), \(lon)")
+                    #endif
                 }
             }
         }
@@ -366,12 +386,16 @@ extension WeatherService {
         // Final check for valid coordinates
         guard !lat.isEmpty && !lon.isEmpty,
               let latitude = Double(lat), let longitude = Double(lon) else {
+            #if DEBUG
             print("❌ Could not obtain valid coordinates")
+            #endif
             self.error = "Unable to determine location. Please check location permissions or enter coordinates manually."
             return
         }
         
+        #if DEBUG
         print("📍 Fetching forecast for coordinates: \(latitude), \(longitude)")
+        #endif
         
         do {
             // Use the forecast-only helper
@@ -379,9 +403,13 @@ extension WeatherService {
                 latitude: latitude,
                 longitude: longitude
             )
+            #if DEBUG
             print("✅ Forecast data processing complete")
+            #endif
         } catch {
+            #if DEBUG
             print("❌ Failed to fetch forecasts: \(error.localizedDescription)")
+            #endif
             self.error = "Failed to fetch forecast: \(error.localizedDescription)"
         }
     }
@@ -425,8 +453,10 @@ extension WeatherService {
                 "uv_index_max,sunrise,sunset" +
                 "&forecast_days=\(forecastDays)" +
                 "&timezone=auto"
-            
+        
+        #if DEBUG
         print("🌐 OpenMeteo Forecast URL: \(urlString) (Requesting \(forecastDays) days)")
+        #endif
             
         guard let url = URL(string: urlString) else {
             throw NSError(domain: "OpenMeteoService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
@@ -439,9 +469,11 @@ extension WeatherService {
         }
         
         // For debugging purposes
+        #if DEBUG
         if let responseString = String(data: data.prefix(500), encoding: .utf8) {
             print("📡 Forecast Response preview: \(responseString)...")
         }
+        #endif
         
         // Use a separate decoder for the forecast-only response
         let decoder = JSONDecoder()
@@ -513,7 +545,9 @@ extension WeatherService {
             )
             
             forecasts.append(forecast)
+            #if DEBUG
             print("✅ Added forecast for \(daily.time[index])")
+            #endif
         }
         
         return forecasts

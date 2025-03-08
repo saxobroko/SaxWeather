@@ -272,8 +272,9 @@ struct AnimationPreviewView: UIViewRepresentable {
             animationView.topAnchor.constraint(equalTo: loadingLabel.bottomAnchor, constant: 4),
             animationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
         ])
-        
+        #if DEBUG
         print("🔍 Attempting to load animation: \(animationName)")
+        #endif
         
         // Try multiple loading methods in sequence for maximum compatibility
         tryLoadAnimation(animationView, containerView)
@@ -284,30 +285,40 @@ struct AnimationPreviewView: UIViewRepresentable {
     private func tryLoadAnimation(_ animationView: LottieAnimationView, _ containerView: UIView) {
         // Method 1: Try direct named loading
         if let animation = LottieAnimation.named(animationName) {
+            #if DEBUG
             print("✅ Method 1: Successfully loaded \(animationName) using direct naming")
+            #endif
             setupAnimation(animationView, animation)
             return
         }
         
         // Method 2: Try with explicit bundle
         if let animation = LottieAnimation.named(animationName, bundle: Bundle.main) {
+            #if DEBUG
             print("✅ Method 2: Successfully loaded \(animationName) with explicit bundle")
+            #endif
             setupAnimation(animationView, animation)
             return
         }
         
         // Method 3: Try loading from .lottie file as data
         if let url = Bundle.main.url(forResource: animationName, withExtension: "lottie") {
+            #if DEBUG
             print("🔍 Found \(animationName).lottie, trying to load...")
+            #endif
             do {
                 let data = try Data(contentsOf: url)
                 if let animation = try? LottieAnimation.from(data: data) {
+                    #if DEBUG
                     print("✅ Method 3: Successfully loaded \(animationName).lottie as data")
+                    #endif
                     setupAnimation(animationView, animation)
                     return
                 }
             } catch {
+                #if DEBUG
                 print("❌ Error loading .lottie data: \(error.localizedDescription)")
+                #endif
             }
         }
         
@@ -317,17 +328,23 @@ struct AnimationPreviewView: UIViewRepresentable {
             do {
                 let data = try Data(contentsOf: url)
                 if let animation = try? LottieAnimation.from(data: data) {
+                    #if DEBUG
                     print("✅ Method 4: Successfully loaded \(animationName).json as data")
+                    #endif
                     setupAnimation(animationView, animation)
                     return
                 }
             } catch {
+                #if DEBUG
                 print("❌ Error loading .json data: \(error.localizedDescription)")
+                #endif
             }
         }
         
         // If we get here, all methods failed
+        #if DEBUG
         print("❌ All loading methods failed for: \(animationName)")
+        #endif
         showFailureIndicator(containerView)
         DispatchQueue.main.async {
             self.onFailure()
@@ -371,7 +388,9 @@ struct DocumentExporterView: UIViewControllerRepresentable {
         do {
             try data.write(to: tempURL)
         } catch {
+            #if DEBUG
             print("Error writing temp file: \(error)")
+            #endif
         }
         
         let controller = UIDocumentPickerViewController(forExporting: [tempURL])
