@@ -118,9 +118,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func fetchWeatherData() async throws -> Weather {
-        let wuApiKey = UserDefaults.standard.string(forKey: "wuApiKey") ?? ""
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
         let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
-        let owmApiKey = UserDefaults.standard.string(forKey: "owmApiKey") ?? ""
+        let owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
         
         // Get location coordinates
         var latitude = ""

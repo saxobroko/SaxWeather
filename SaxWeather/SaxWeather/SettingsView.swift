@@ -109,6 +109,9 @@ struct SettingsView: View {
             Button("Save API Keys") {
                 saveAPIKeys()
             }
+            .onAppear {
+                loadAPIKeys()
+            }
         }
     }
     
@@ -208,21 +211,46 @@ struct SettingsView: View {
     }
     
     private func saveAPIKeys() {
+        // Trim whitespace as in your original function
         let trimmedWUKey = wuApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedStationID = stationID.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOWMKey = owmApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        UserDefaults.standard.set(trimmedWUKey, forKey: "wuApiKey")
-        UserDefaults.standard.set(trimmedStationID, forKey: "stationID")
-        UserDefaults.standard.set(trimmedOWMKey, forKey: "owmApiKey")
+        // Save API keys securely in Keychain
+        if !trimmedWUKey.isEmpty {
+            KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")
+        } else {
+            // Remove key if empty
+            KeychainService.shared.deleteApiKey(forService: "wu")
+        }
         
-        alertMessage = "API keys saved successfully!"
+        if !trimmedOWMKey.isEmpty {
+            KeychainService.shared.saveApiKey(trimmedOWMKey, forService: "owm")
+        } else {
+            // Remove key if empty
+            KeychainService.shared.deleteApiKey(forService: "owm")
+        }
+        
+        // Station ID is not sensitive, so we can keep it in UserDefaults
+        UserDefaults.standard.set(trimmedStationID, forKey: "stationID")
+        
+        // Show alert as in your original function
+        alertMessage = "API keys saved securely!"
         showingAlert = true
         
         // Refresh weather data with new API keys
         Task {
             await weatherService.fetchWeather()
         }
+    }
+    
+    private func loadAPIKeys() {
+        // Load sensitive keys from Keychain
+        wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
+        
+        // Load non-sensitive data from UserDefaults
+        stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
     }
     
     private func saveCoordinates() {
