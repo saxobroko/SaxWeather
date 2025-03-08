@@ -43,6 +43,12 @@ struct ContentView: View {
                     .tabItem {
                         Label("Settings", systemImage: "gear")
                     }
+                
+                // Tab 4: Lottie Debug View
+                LottieDebugView()
+                    .tabItem {
+                        Label("Debug", systemImage: "ladybug.fill")
+                    }
             }
             .preferredColorScheme(selectedColorScheme)
         }
@@ -92,7 +98,13 @@ struct ContentView: View {
     private var weatherContent: some View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
+                // Use SF Symbols instead of Lottie
                 VStack(spacing: 8) {
+                    // Weather animation based on condition
+                    LottieView(name: getAnimationName(for: weather.condition))
+                        .frame(width: 150, height: 150)
+                        .padding(.top, 20)
+                    
                     // Current Temperature Display
                     if let temperature = weather.temperature {
                         // Get the unit directly from UserDefaults with a default to celsius
@@ -121,7 +133,7 @@ struct ContentView: View {
                         }
                     }
                 }
-                .padding(.vertical, 50)
+                .padding(.vertical, 30)  // Reduced from 50 to accommodate the animation
                 
                 WeatherDetailsView(weather: weather)
                 
@@ -131,6 +143,35 @@ struct ContentView: View {
                     .padding()
             }
         }
+    }
+    
+    // Helper to determine animation name
+    private func getAnimationName(for condition: String) -> String {
+        let lowercased = condition.lowercased()
+        let isNight = isNighttime()
+        
+        if lowercased.contains("clear") || lowercased.contains("sunny") {
+               return isNight ? "clear-night" : "clear-day"
+           } else if lowercased.contains("partly cloudy") {
+               return isNight ? "partly-cloudy-night" : "partly-cloudy"
+           } else if lowercased.contains("cloud") || lowercased.contains("overcast") {
+               return "cloudy"
+           } else if lowercased.contains("fog") || lowercased.contains("mist") {
+               return "foggy"
+           } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") {
+               return "rainy"
+           } else if lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
+               return "snow"  // Note: You might need to add this file
+           } else if lowercased.contains("thunder") || lowercased.contains("lightning") || lowercased.contains("storm") {
+               return "thunderstorm"
+           }
+        return isNight ? "clear_night" : "clear_day"
+    }
+    
+    // Helper function to determine if it's nighttime
+    private func isNighttime() -> Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour < 6 || hour > 18
     }
     
     private var refreshButton: some View {

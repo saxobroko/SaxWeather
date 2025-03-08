@@ -1,0 +1,76 @@
+//
+//  WeatherAnimationHelper.swift
+//  SaxWeather
+//
+//  Created by saxobroko on 2025-03-08
+//
+
+import Foundation
+
+struct WeatherAnimationHelper {
+    /// Maps weather condition strings to animation names
+    static func animationName(for condition: String, isNight: Bool = false) -> String {
+        let conditionLower = condition.lowercased()
+        
+        switch conditionLower {
+        case _ where conditionLower.contains("clear"):
+            return isNight ? "clear_night" : "clear_day"
+        case _ where conditionLower.contains("partly cloudy"):
+            return isNight ? "partly_cloudy_night" : "partly_cloudy_day"
+        case _ where conditionLower.contains("cloudy") || conditionLower.contains("overcast"):
+            return "cloudy"
+        case _ where conditionLower.contains("fog") || conditionLower.contains("mist"):
+            return "fog"
+        case _ where conditionLower.contains("drizzle") || conditionLower.contains("light rain"):
+            return "rain"
+        case _ where conditionLower.contains("rain") || conditionLower.contains("shower"):
+            return "rain"
+        case _ where conditionLower.contains("snow") || conditionLower.contains("sleet") || conditionLower.contains("ice"):
+            return "snow"
+        case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning"):
+            return "thunderstorm"
+        default:
+            return isNight ? "clear_night" : "clear_day"
+        }
+    }
+    
+    /// Maps OpenMeteo WMO weather codes to animation names
+    static func animationNameFromCode(for weatherCode: Int, isNight: Bool = false) -> String {
+        switch weatherCode {
+        // Clear
+        case 0:
+            return isNight ? "clear_night" : "clear_day"
+        // Mainly clear, partly cloudy
+        case 1, 2:
+            return isNight ? "partly_cloudy_night" : "partly_cloudy_day"
+        // Overcast
+        case 3:
+            return "cloudy"
+        // Fog
+        case 45, 48:
+            return "fog"
+        // All rain types
+        case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
+            return "rain"
+        // Snow
+        case 71, 73, 75, 77, 85, 86:
+            return "snow"
+        // Thunderstorm
+        case 95, 96, 99:
+            return "thunderstorm"
+        default:
+            return isNight ? "clear_night" : "clear_day"
+        }
+    }
+    
+    /// Determine if it's nighttime based on current time and sunrise/sunset
+    static func isNighttime(sunrise: Date?, sunset: Date?) -> Bool {
+        guard let sunrise = sunrise, let sunset = sunset else {
+            let hour = Calendar.current.component(.hour, from: Date())
+            return hour < 6 || hour > 18
+        }
+        
+        let now = Date()
+        return now < sunrise || now > sunset
+    }
+}

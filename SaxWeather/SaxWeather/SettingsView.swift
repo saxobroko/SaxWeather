@@ -22,7 +22,7 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
-    
+
     private let unitSystems = ["Metric", "Imperial", "UK"]
     private let colorSchemes = ["system", "light", "dark"]
     private let forecastDayOptions = [3, 5, 7, 10, 14]
@@ -57,6 +57,26 @@ struct SettingsView: View {
                 Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
         }
+    }
+    
+    // Safe accessor for weather values using Mirror
+    private func getWeatherValue(_ property: String) -> Any? {
+        guard let currentWeather = Mirror(reflecting: weatherService).descendant("currentWeather") else {
+            return nil
+        }
+        
+        return Mirror(reflecting: currentWeather).children.first { $0.label == property }?.value
+    }
+    
+    // Safe accessor for forecast values using Mirror
+    private func getForecastValue(_ property: String) -> Any? {
+        guard let forecast = Mirror(reflecting: weatherService).descendant("forecast"),
+              let dailyForecasts = Mirror(reflecting: forecast).descendant("daily"),
+              let firstForecast = (dailyForecasts as? [Any])?.first else {
+            return nil
+        }
+        
+        return Mirror(reflecting: firstForecast).children.first { $0.label == property }?.value
     }
     
     private var weatherSourcesSection: some View {
@@ -238,4 +258,3 @@ struct SettingsView_Previews: PreviewProvider {
             .environmentObject(StoreManager.shared)
     }
 }
-
