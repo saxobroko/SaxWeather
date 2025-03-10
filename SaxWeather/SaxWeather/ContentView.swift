@@ -8,6 +8,7 @@
 import SwiftUI
 import CoreLocation
 import StoreKit
+import MapKit
 
 // MARK: - Content View
 struct ContentView: View {
@@ -38,13 +39,13 @@ struct ContentView: View {
                         Label("Forecast", systemImage: "calendar")
                     }
                 
-                // Tab 3: Settings
+                // Tab 4: Settings
                 SettingsView(weatherService: weatherService)
                     .tabItem {
                         Label("Settings", systemImage: "gear")
                     }
                 
-                // Tab 4: Debug Tab - Only shows in DEBUG builds
+                // Tab 5: Debug Tab - Only shows in DEBUG builds
                 #if DEBUG
                 LottieDebugView()
                     .tabItem {
@@ -138,7 +139,6 @@ struct ContentView: View {
                 .padding(.vertical, 30)  // Reduced from 50 to accommodate the animation
                 
                 WeatherDetailsView(weather: weather)
-                
             } else {
                 Text("Loading weather data...")
                     .foregroundColor(.primary)

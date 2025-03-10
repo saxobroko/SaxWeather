@@ -215,7 +215,6 @@ struct SettingsView: View {
         let trimmedWUKey = wuApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedStationID = stationID.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOWMKey = owmApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         // Save API keys securely in Keychain
         if !trimmedWUKey.isEmpty {
             KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")

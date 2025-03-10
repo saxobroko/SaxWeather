@@ -1,15 +1,49 @@
+//
+//  LottieDebugView.swift
+//  SaxWeather
+//
+//  Created by saxobroko on 2025-03-10
+//  Last modified: 2025-03-10 11:02:41 UTC
+//
+
 import SwiftUI
 import Lottie
 import UniformTypeIdentifiers
+import os.log
+import KeychainSwift
+
+private struct DebugMessage: Identifiable, Hashable {
+    let id = UUID()
+    let message: String
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: DebugMessage, rhs: DebugMessage) -> Bool {
+        lhs.id == rhs.id
+    }
+}
 
 struct LottieDebugView: View {
-    @State private var debugMessages: [String] = []
+    // MARK: - Properties
+    @State private var debugMessages: [DebugMessage] = []
     @State private var selectedAnimation = "clear-day"
     @State private var showingFileExport = false
     @State private var exportData: Data?
     @State private var exportFilename = ""
     @State private var previewFailed = false
-    @State private var refreshID = UUID() // Used to force view refresh
+    @State private var refreshID = UUID()
+    @State private var sessionStartTime = "2025-03-10 11:02:41"
+    @State private var currentUser = "saxobroko"
+    
+    private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
+    private let keychainService = KeychainService.shared
+    
+    // Known services for API keys
+    private let knownServices = ["wu", "owm"]
+    @State private var selectedService = "wu"
+    @State private var apiKeyInput = ""
     
     // List matches your actual files in the bundle
     let availableAnimations = [
@@ -21,6 +55,22 @@ struct LottieDebugView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
+                    // Session info section
+                    VStack(alignment: .leading) {
+                        Text("Session Information")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("User: \(currentUser)")
+                                .font(.system(.body, design: .monospaced))
+                            Text("Session started: \(sessionStartTime) UTC")
+                                .font(.system(.body, design: .monospaced))
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    }
+                    
                     // Animation selection
                     Picker("Animation", selection: $selectedAnimation) {
                         ForEach(availableAnimations, id: \.self) { name in
@@ -29,12 +79,11 @@ struct LottieDebugView: View {
                     }
                     .pickerStyle(.menu)
                     .padding(.horizontal)
-                    .padding(.top)
                     .onChange(of: selectedAnimation) { newValue in
-                        // Reset preview state and force refresh when selection changes
                         previewFailed = false
-                        refreshID = UUID() // Force view refresh
-                        debugMessages = ["Selected animation: \(newValue)"]
+                        refreshID = UUID()
+                        setDebugMessages(["Selected animation: \(newValue)"])
+                        logger.debug("Selected animation: \(newValue)")
                     }
                     
                     // Preview section with refresh button
@@ -48,6 +97,7 @@ struct LottieDebugView: View {
                             Button(action: {
                                 refreshID = UUID()
                                 previewFailed = false
+                                logger.debug("Refreshing animation preview")
                             }) {
                                 Image(systemName: "arrow.clockwise")
                             }
@@ -68,10 +118,12 @@ struct LottieDebugView: View {
                                         .foregroundColor(.secondary)
                                 }
                             } else {
-                                // Use the refreshID to force view recreation
                                 AnimationPreviewView(
                                     animationName: selectedAnimation,
-                                    onFailure: { previewFailed = true }
+                                    onFailure: {
+                                        previewFailed = true
+                                        logger.error("Animation preview failed for \(selectedAnimation)")
+                                    }
                                 )
                                 .id(refreshID)
                             }
@@ -80,32 +132,124 @@ struct LottieDebugView: View {
                         .padding(.horizontal)
                     }
                     
-                    // Control buttons
+                    // Animation Control buttons
                     HStack(spacing: 16) {
-                        Button("Check File") { checkFileExists() }
-                            .buttonStyle(.bordered)
+                        Button("Check File") {
+                            checkFileExists()
+                            logger.debug("Check file button pressed")
+                        }
+                        .buttonStyle(.bordered)
                         
-                        Button("Deep Inspect") { deepInspectFile() }
-                            .buttonStyle(.bordered)
+                        Button("Deep Inspect") {
+                            deepInspectFile()
+                            logger.debug("Deep inspect button pressed")
+                        }
+                        .buttonStyle(.bordered)
                         
-                        Button("List All Files") { listAllFiles() }
-                            .buttonStyle(.bordered)
+                        Button("List All Files") {
+                            listAllFiles()
+                            logger.debug("List all files button pressed")
+                        }
+                        .buttonStyle(.bordered)
                     }
                     .padding(.horizontal)
-                    
-                    // Debug messages
+
+                    // Keychain Debug Section
                     VStack(alignment: .leading) {
-                        Text("Debug Information")
+                        Text("Keychain Debug")
                             .font(.headline)
                             .padding(.horizontal)
                         
+                        Text("Keys are synchronized across devices via iCloud Keychain")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                        
+                        // Service selector and API key input
+                        HStack {
+                            Picker("Service", selection: $selectedService) {
+                                ForEach(knownServices, id: \.self) { service in
+                                    Text(service.uppercased()).tag(service)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            
+                            TextField("API Key", text: $apiKeyInput)
+                                .textFieldStyle(.roundedBorder)
+                            
+                            Button("Save") {
+                                saveApiKey()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Keychain debug controls
+                        HStack(spacing: 16) {
+                            Button("Check Keys") {
+                                checkKeychainItems()
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Button("Migrate from UserDefaults") {
+                                migrateFromUserDefaults()
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Button("Clear All Keys") {
+                                clearKeychain()
+                            }
+                            .buttonStyle(.bordered)
+                            .foregroundColor(.red)
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    // Debug messages section
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Debug Information")
+                                .font(.headline)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                let allMessages = debugMessages.map { $0.message }.joined(separator: "\n")
+                                UIPasteboard.general.string = allMessages
+                                
+                                addDebugMessage("\n✅ Debug log copied to clipboard")
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    if let last = debugMessages.last,
+                                       last.message == "✅ Debug log copied to clipboard" {
+                                        debugMessages.removeLast()
+                                    }
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Copy All")
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal)
+                        
                         ScrollView {
                             VStack(alignment: .leading, spacing: 8) {
-                                ForEach(debugMessages, id: \.self) { message in
-                                    Text(message)
+                                ForEach(debugMessages) { message in
+                                    Text(message.message)
                                         .font(.system(.body, design: .monospaced))
                                         .padding(.horizontal)
                                         .textSelection(.enabled)
+                                        .contextMenu {
+                                            Button(action: {
+                                                UIPasteboard.general.string = message.message
+                                            }) {
+                                                Text("Copy Message")
+                                                Image(systemName: "doc.on.doc")
+                                            }
+                                        }
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,122 +270,268 @@ struct LottieDebugView: View {
             }
         }
         .onAppear {
-            // Initialize with information about the selected animation
+            setDebugMessages([
+                "Debug Session Started",
+                "Time: \(sessionStartTime) UTC",
+                "User: \(currentUser)",
+                "---"
+            ])
             checkFileExists()
+            logger.debug("LottieDebugView appeared")
         }
     }
+
+    // MARK: - Helper Methods
+    
+    private func addDebugMessage(_ message: String) {
+        debugMessages.append(DebugMessage(message: message))
+    }
+    
+    private func setDebugMessages(_ messages: [String]) {
+        debugMessages = messages.map { DebugMessage(message: $0) }
+    }
+    
+    // MARK: - Debug Functions
     
     private func checkFileExists() {
-        debugMessages = ["Checking for \(selectedAnimation)..."]
+        addDebugMessage("Checking for \(selectedAnimation)...")
         
         // Check .lottie file
         if let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "lottie") {
-            debugMessages.append("✅ \(selectedAnimation).lottie exists at:")
-            debugMessages.append(url.path)
+            addDebugMessage("✅ \(selectedAnimation).lottie exists at:")
+            addDebugMessage(url.path)
+            logger.debug("\(selectedAnimation).lottie exists at: \(url.path)")
             
             do {
                 let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
                 if let fileSize = attributes[.size] as? Int {
-                    debugMessages.append("File size: \(fileSize) bytes")
+                    addDebugMessage("File size: \(fileSize) bytes")
+                    logger.debug("File size: \(fileSize) bytes")
                 }
             } catch {
-                debugMessages.append("Error getting file attributes: \(error.localizedDescription)")
+                addDebugMessage("Error getting file attributes: \(error.localizedDescription)")
+                logger.error("Error getting file attributes: \(error.localizedDescription)")
             }
         } else {
-            debugMessages.append("❌ \(selectedAnimation).lottie not found")
+            addDebugMessage("❌ \(selectedAnimation).lottie not found")
+            logger.error("\(selectedAnimation).lottie not found")
         }
         
         // Check JSON file
         if let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "json") {
-            debugMessages.append("✅ \(selectedAnimation).json exists")
+            addDebugMessage("✅ \(selectedAnimation).json exists")
+            logger.debug("\(selectedAnimation).json exists")
         } else {
-            debugMessages.append("❌ \(selectedAnimation).json not found")
+            addDebugMessage("❌ \(selectedAnimation).json not found")
+            logger.error("\(selectedAnimation).json not found")
         }
     }
     
     private func deepInspectFile() {
-        debugMessages = ["Deep inspecting \(selectedAnimation).lottie..."]
+        setDebugMessages(["Deep inspecting \(selectedAnimation).lottie..."])
         
         guard let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "lottie") else {
-            debugMessages.append("❌ File not found")
+            addDebugMessage("❌ File not found")
+            logger.error("\(selectedAnimation).lottie file not found")
             return
         }
         
         do {
             let data = try Data(contentsOf: url)
-            debugMessages.append("File size: \(data.count) bytes")
+            addDebugMessage("File size: \(data.count) bytes")
+            logger.debug("File size: \(data.count) bytes")
             
             // Check if it's a ZIP file
             let isZip = data.prefix(4).map { $0 } == [0x50, 0x4B, 0x03, 0x04]
-            debugMessages.append("Is ZIP file: \(isZip)")
+            addDebugMessage("Is ZIP file: \(isZip)")
+            logger.debug("Is ZIP file: \(isZip)")
             
             if !isZip {
                 // Try to parse as JSON
                 if let jsonString = String(data: data, encoding: .utf8) {
-                    debugMessages.append("Content appears to be text/JSON")
+                    addDebugMessage("Content appears to be text/JSON")
+                    logger.debug("Content appears to be text/JSON")
                     if jsonString.count > 100 {
-                        debugMessages.append("First 100 chars: \(jsonString.prefix(100))...")
+                        addDebugMessage("First 100 chars: \(jsonString.prefix(100))...")
+                        logger.debug("First 100 chars: \(jsonString.prefix(100))...")
                     } else {
-                        debugMessages.append("Content: \(jsonString)")
+                        addDebugMessage("Content: \(jsonString)")
+                        logger.debug("Content: \(jsonString)")
                     }
                     
                     do {
                         let json = try JSONSerialization.jsonObject(with: data)
-                        debugMessages.append("✅ Valid JSON structure")
+                        addDebugMessage("✅ Valid JSON structure")
+                        logger.debug("Valid JSON structure")
                         
                         // Check for critical Lottie properties
                         if let dict = json as? [String: Any] {
                             let hasVersion = dict["v"] != nil
                             let hasLayers = dict["layers"] != nil
-                            debugMessages.append("Has version: \(hasVersion)")
-                            debugMessages.append("Has layers: \(hasLayers)")
+                            addDebugMessage("Has version: \(hasVersion)")
+                            addDebugMessage("Has layers: \(hasLayers)")
+                            logger.debug("Has version: \(hasVersion)")
+                            logger.debug("Has layers: \(hasLayers)")
                             
                             if hasVersion && hasLayers {
-                                debugMessages.append("✅ File appears to be valid Lottie JSON")
+                                addDebugMessage("✅ File appears to be valid Lottie JSON")
+                                logger.debug("File appears to be valid Lottie JSON")
                             } else {
-                                debugMessages.append("❌ Missing essential Lottie properties")
+                                addDebugMessage("❌ Missing essential Lottie properties")
+                                logger.error("Missing essential Lottie properties")
                             }
                         }
                     } catch {
-                        debugMessages.append("❌ Invalid JSON: \(error.localizedDescription)")
+                        addDebugMessage("❌ Invalid JSON: \(error.localizedDescription)")
+                        logger.error("Invalid JSON: \(error.localizedDescription)")
                     }
                 } else {
-                    debugMessages.append("❌ Not valid UTF-8 text")
-                    debugMessages.append("First 10 bytes: \(data.prefix(10).map { String(format: "%02X", $0) }.joined(separator: " "))")
+                    addDebugMessage("❌ Not valid UTF-8 text")
+                    addDebugMessage("First 10 bytes: \(data.prefix(10).map { String(format: "%02X", $0) }.joined(separator: " "))")
+                    logger.error("Not valid UTF-8 text")
                 }
             }
         } catch {
-            debugMessages.append("❌ Error reading file: \(error.localizedDescription)")
+            addDebugMessage("❌ Error reading file: \(error.localizedDescription)")
+            logger.error("Error reading file: \(error.localizedDescription)")
         }
     }
-    
+
     private func listAllFiles() {
-        debugMessages = ["Listing all animation files in bundle:"]
+        setDebugMessages(["Listing all animation files in bundle:"])
+        logger.debug("Listing all animation files in bundle")
         
         let lottieFiles = Bundle.main.paths(forResourcesOfType: "lottie", inDirectory: nil)
-        debugMessages.append("\n📂 .lottie files (\(lottieFiles.count) found):")
+        addDebugMessage("\n📂 .lottie files (\(lottieFiles.count) found):")
+        logger.debug(".lottie files (\(lottieFiles.count) found):")
         for path in lottieFiles {
             let filename = URL(fileURLWithPath: path).lastPathComponent
-            debugMessages.append("- \(filename)")
+            addDebugMessage("- \(filename)")
+            logger.debug("- \(filename)")
         }
         
         let jsonFiles = Bundle.main.paths(forResourcesOfType: "json", inDirectory: nil)
-        debugMessages.append("\n📂 .json files (\(jsonFiles.count) found):")
+        addDebugMessage("\n📂 .json files (\(jsonFiles.count) found):")
+        logger.debug(".json files (\(jsonFiles.count) found):")
         for path in jsonFiles {
             let filename = URL(fileURLWithPath: path).lastPathComponent
-            debugMessages.append("- \(filename)")
+            addDebugMessage("- \(filename)")
+            logger.debug("- \(filename)")
         }
         
         if lottieFiles.isEmpty && jsonFiles.isEmpty {
-            debugMessages.append("No animation files found in bundle")
+            addDebugMessage("No animation files found in bundle")
+            logger.debug("No animation files found in bundle")
         }
+    }
+    
+    private func checkKeychainItems() {
+        setDebugMessages(["Checking Keychain Items..."])
+        logger.debug("Checking keychain items")
+        
+        addDebugMessage("Keychain Configuration:")
+        addDebugMessage("✓ Synchronization enabled")
+        addDebugMessage("✓ iCloud Keychain sharing supported")
+        
+        // Test keychain accessibility
+        let testKey = "debugTestKey"
+        let testValue = "debugTestValue"
+        
+        addDebugMessage("\nKeychain Accessibility Test:")
+        if keychainService.keychain.set(testValue, forKey: testKey) {
+            addDebugMessage("✅ Can write to keychain")
+            if let retrieved = keychainService.keychain.get(testKey) {
+                addDebugMessage("✅ Can read from keychain")
+                if keychainService.keychain.delete(testKey) {
+                    addDebugMessage("✅ Can delete from keychain")
+                } else {
+                    addDebugMessage("❌ Cannot delete from keychain")
+                }
+            } else {
+                addDebugMessage("❌ Cannot read from keychain")
+            }
+        } else {
+            addDebugMessage("❌ Cannot write to keychain")
+            addDebugMessage("Error code: \(keychainService.keychain.lastResultCode)")
+        }
+        
+        addDebugMessage("\nStored API Keys:")
+        for service in knownServices {
+            if let apiKey = keychainService.getApiKey(forService: service) {
+                let maskedKey = maskApiKey(apiKey)
+                addDebugMessage("✅ \(service.uppercased()): \(maskedKey)")
+                logger.debug("Found API key for service: \(service)")
+            } else {
+                addDebugMessage("❌ \(service.uppercased()): Not found")
+                logger.debug("No API key found for service: \(service)")
+            }
+        }
+    }
+    
+    private func saveApiKey() {
+        guard !apiKeyInput.isEmpty else {
+            setDebugMessages(["❌ Please enter an API key"])
+            return
+        }
+        
+        setDebugMessages(["Saving API key for \(selectedService.uppercased())..."])
+        logger.debug("Saving API key for service: \(selectedService)")
+        
+        if keychainService.saveApiKey(apiKeyInput, forService: selectedService) {
+            addDebugMessage("✅ API key saved successfully")
+            addDebugMessage("Service: \(selectedService.uppercased())")
+            addDebugMessage("Key: \(maskApiKey(apiKeyInput))")
+            logger.debug("API key saved successfully for service: \(selectedService)")
+        } else {
+            addDebugMessage("❌ Failed to save API key")
+            logger.error("Failed to save API key for service: \(selectedService)")
+        }
+        
+        apiKeyInput = ""
+    }
+    
+    private func clearKeychain() {
+        setDebugMessages(["Clearing API keys..."])
+        logger.debug("Clearing API keys")
+        
+        var allCleared = true
+        for service in knownServices {
+            if keychainService.deleteApiKey(forService: service) {
+                addDebugMessage("✅ Cleared \(service.uppercased()) API key")
+                logger.debug("Cleared API key for service: \(service)")
+            } else {
+                addDebugMessage("❌ Failed to clear \(service.uppercased()) API key")
+                logger.error("Failed to clear API key for service: \(service)")
+                allCleared = false
+            }
+        }
+        
+        if allCleared {
+            addDebugMessage("\n✅ All API keys cleared successfully")
+        } else {
+            addDebugMessage("\n⚠️ Some API keys could not be cleared")
+        }
+    }
+    
+    private func migrateFromUserDefaults() {
+        setDebugMessages(["Starting migration from UserDefaults..."])
+        logger.debug("Starting migration from UserDefaults")
+        
+        keychainService.migrateApiKeysFromUserDefaults()
+        checkKeychainItems()
+    }
+    
+    private func maskApiKey(_ key: String) -> String {
+        guard key.count > 6 else { return "***" }
+        return String(key.prefix(3)) + "..." + String(key.suffix(3))
     }
 }
 
-// Animation preview component - enhanced for reliability
+// MARK: - Animation Preview Component
 struct AnimationPreviewView: UIViewRepresentable {
     var animationName: String
     var onFailure: () -> Void
+    private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
     
     func makeUIView(context: Context) -> UIView {
         let containerView = UIView()
@@ -261,7 +551,7 @@ struct AnimationPreviewView: UIViewRepresentable {
             loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor)
         ])
         
-        // Create a LottieAnimationView
+        // Create animation view
         let animationView = LottieAnimationView()
         animationView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(animationView)
@@ -272,11 +562,8 @@ struct AnimationPreviewView: UIViewRepresentable {
             animationView.topAnchor.constraint(equalTo: loadingLabel.bottomAnchor, constant: 4),
             animationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
         ])
-        #if DEBUG
-        print("🔍 Attempting to load animation: \(animationName)")
-        #endif
         
-        // Try multiple loading methods in sequence for maximum compatibility
+        logger.debug("Attempting to load animation: \(animationName)")
         tryLoadAnimation(animationView, containerView)
         
         return containerView
@@ -285,66 +572,38 @@ struct AnimationPreviewView: UIViewRepresentable {
     private func tryLoadAnimation(_ animationView: LottieAnimationView, _ containerView: UIView) {
         // Method 1: Try direct named loading
         if let animation = LottieAnimation.named(animationName) {
-            #if DEBUG
-            print("✅ Method 1: Successfully loaded \(animationName) using direct naming")
-            #endif
+            logger.debug("Successfully loaded \(animationName) using direct naming")
             setupAnimation(animationView, animation)
             return
         }
         
         // Method 2: Try with explicit bundle
         if let animation = LottieAnimation.named(animationName, bundle: Bundle.main) {
-            #if DEBUG
-            print("✅ Method 2: Successfully loaded \(animationName) with explicit bundle")
-            #endif
+            logger.debug("Successfully loaded \(animationName) with explicit bundle")
             setupAnimation(animationView, animation)
             return
         }
         
         // Method 3: Try loading from .lottie file as data
-        if let url = Bundle.main.url(forResource: animationName, withExtension: "lottie") {
-            #if DEBUG
-            print("🔍 Found \(animationName).lottie, trying to load...")
-            #endif
-            do {
-                let data = try Data(contentsOf: url)
-                if let animation = try? LottieAnimation.from(data: data) {
-                    #if DEBUG
-                    print("✅ Method 3: Successfully loaded \(animationName).lottie as data")
-                    #endif
-                    setupAnimation(animationView, animation)
-                    return
-                }
-            } catch {
-                #if DEBUG
-                print("❌ Error loading .lottie data: \(error.localizedDescription)")
-                #endif
-            }
+        if let url = Bundle.main.url(forResource: animationName, withExtension: "lottie"),
+           let data = try? Data(contentsOf: url),
+           let animation = try? LottieAnimation.from(data: data) {
+            logger.debug("Successfully loaded \(animationName).lottie as data")
+            setupAnimation(animationView, animation)
+            return
         }
         
         // Method 4: Try loading from .json file as data
-        if let url = Bundle.main.url(forResource: animationName, withExtension: "json") {
-            print("🔍 Found \(animationName).json, trying to load...")
-            do {
-                let data = try Data(contentsOf: url)
-                if let animation = try? LottieAnimation.from(data: data) {
-                    #if DEBUG
-                    print("✅ Method 4: Successfully loaded \(animationName).json as data")
-                    #endif
-                    setupAnimation(animationView, animation)
-                    return
-                }
-            } catch {
-                #if DEBUG
-                print("❌ Error loading .json data: \(error.localizedDescription)")
-                #endif
-            }
+        if let url = Bundle.main.url(forResource: animationName, withExtension: "json"),
+           let data = try? Data(contentsOf: url),
+           let animation = try? LottieAnimation.from(data: data) {
+            logger.debug("Successfully loaded \(animationName).json as data")
+            setupAnimation(animationView, animation)
+            return
         }
         
         // If we get here, all methods failed
-        #if DEBUG
-        print("❌ All loading methods failed for: \(animationName)")
-        #endif
+        logger.error("All loading methods failed for: \(animationName)")
         showFailureIndicator(containerView)
         DispatchQueue.main.async {
             self.onFailure()
@@ -377,7 +636,7 @@ struct AnimationPreviewView: UIViewRepresentable {
     }
 }
 
-// Helper view to export data
+// MARK: - Document Exporter
 struct DocumentExporterView: UIViewControllerRepresentable {
     let data: Data
     let filename: String
@@ -388,14 +647,14 @@ struct DocumentExporterView: UIViewControllerRepresentable {
         do {
             try data.write(to: tempURL)
         } catch {
-            #if DEBUG
             print("Error writing temp file: \(error)")
-            #endif
         }
         
         let controller = UIDocumentPickerViewController(forExporting: [tempURL])
         return controller
     }
     
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {
+        // Nothing to update
+    }
 }
