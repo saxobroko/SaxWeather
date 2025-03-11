@@ -80,7 +80,7 @@ struct LottieDebugView: View {
                     }
                     .pickerStyle(.menu)
                     .padding(.horizontal)
-                    .onChange(of: selectedAnimation) { newValue in
+                    .onChange(of: selectedAnimation) { newValue, _ in
                         previewFailed = false
                         refreshID = UUID()
                         setDebugMessages(["Selected animation: \(newValue)"])

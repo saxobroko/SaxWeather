@@ -171,7 +171,7 @@ class WeatherAlertManager: ObservableObject {
                 let triggerTime = max(1, minutesUntilStart - 5)
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(triggerTime * 60), repeats: false)
                 
-                let request =/ UNNotificationRequest(identifier: "rain_start", content: content, trigger: trigger)
+                let request = UNNotificationRequest(identifier: "rain_start", content: content, trigger: trigger)
                 notificationCenter.add(request) { error in
                     if let error = error {
                         print("❌ Error scheduling rain start notification: \(error.localizedDescription)")

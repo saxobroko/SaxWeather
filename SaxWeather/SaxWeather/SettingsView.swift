@@ -158,7 +158,7 @@ struct SettingsView: View {
                     Text(unit).tag(unit)
                 }
             }
-            .onChange(of: unitSystem) { newValue in
+            .onChange(of: unitSystem) { newValue, _ in
                 weatherService.unitSystem = newValue
             }
             
@@ -173,7 +173,7 @@ struct SettingsView: View {
                     Text("\(days) Days").tag(days)
                 }
             }
-            .onChange(of: forecastDays) { _ in
+            .onChange(of: forecastDays) { newValue, transaction in
                 Task {
                     await weatherService.fetchForecasts()
                 }
@@ -215,19 +215,20 @@ struct SettingsView: View {
         let trimmedWUKey = wuApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedStationID = stationID.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOWMKey = owmApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        
         // Save API keys securely in Keychain
         if !trimmedWUKey.isEmpty {
-            KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")
+            _ = KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")
         } else {
             // Remove key if empty
-            KeychainService.shared.deleteApiKey(forService: "wu")
+            _ = KeychainService.shared.deleteApiKey(forService: "wu")
         }
         
         if !trimmedOWMKey.isEmpty {
-            KeychainService.shared.saveApiKey(trimmedOWMKey, forService: "owm")
+            _ = KeychainService.shared.saveApiKey(trimmedOWMKey, forService: "owm")
         } else {
             // Remove key if empty
-            KeychainService.shared.deleteApiKey(forService: "owm")
+            _ = KeychainService.shared.deleteApiKey(forService: "owm")
         }
         
         // Station ID is not sensitive, so we can keep it in UserDefaults

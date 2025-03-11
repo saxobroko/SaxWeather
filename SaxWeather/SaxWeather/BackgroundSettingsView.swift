@@ -102,8 +102,8 @@ struct BackgroundSettingsView: View {
             } message: { error in
                 Text(error)
             }
-            .onChange(of: storeManager.purchaseError) { error in
-                showingAlert = error != nil
+            .onChange(of: storeManager.purchaseError) { newValue, _ in
+                showingAlert = newValue != nil
             }
         }
     }

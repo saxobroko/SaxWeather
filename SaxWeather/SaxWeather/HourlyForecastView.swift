@@ -341,9 +341,3 @@ struct HourlyForecastView: View {
         }
     }
 }
-
-#Preview {
-    HourlyForecastView(weatherService: WeatherService())
-        .previewLayout(.sizeThatFits)
-        .padding()
-}
