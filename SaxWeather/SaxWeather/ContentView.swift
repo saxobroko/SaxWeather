@@ -19,6 +19,7 @@ struct ContentView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     @Environment(\.colorScheme) private var systemColorScheme
+    @StateObject private var weatherAlertManager = WeatherAlertManager() // Add this line
     
     var body: some View {
         if isFirstLaunch {
@@ -34,9 +35,15 @@ struct ContentView: View {
                     }
                 
                 // Tab 2: Forecast - Updated to use ForecastContainerView
-                ForecastContainerView(weatherService: weatherService)
+                ForecastView(weatherService: weatherService)
                     .tabItem {
                         Label("Forecast", systemImage: "calendar")
+                    }
+                
+                // New Tab 3: Weather Alerts
+                AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                    .tabItem {
+                        Label("Alerts", systemImage: "exclamationmark.triangle")
                     }
                 
                 // Tab 4: Settings
@@ -230,12 +237,12 @@ struct ForecastContainerView: View {
     
     var body: some View {
         NavigationView {
-            Group {
+            ZStack {
                 if let forecast = weatherService.forecast {
                     if forecast.daily.isEmpty {
                         emptyForecastView
                     } else {
-                        ForecastView(forecast: forecast, unitSystem: weatherService.unitSystem)
+                        ForecastView(weatherService: weatherService)
                     }
                 } else if let error = weatherService.error {
                     errorView(message: error)

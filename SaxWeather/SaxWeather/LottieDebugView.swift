@@ -11,6 +11,7 @@ import Lottie
 import UniformTypeIdentifiers
 import os.log
 import KeychainSwift
+import UserNotifications // Import UserNotifications
 
 private struct DebugMessage: Identifiable, Hashable {
     let id = UUID()
@@ -153,7 +154,7 @@ struct LottieDebugView: View {
                         .buttonStyle(.bordered)
                     }
                     .padding(.horizontal)
-
+                    
                     // Keychain Debug Section
                     VStack(alignment: .leading) {
                         Text("Keychain Debug")
@@ -260,6 +261,28 @@ struct LottieDebugView: View {
                         .frame(height: 200)
                         .padding(.horizontal)
                     }
+                    
+                    // Notification Debug Section
+                    VStack(alignment: .leading) {
+                        Text("Notification Debug")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        HStack(spacing: 16) {
+                            Button("Schedule Rain Notification") {
+                                scheduleNotification(title: "Rain Alert", body: "Rain expected to start soon", inSeconds: 60)
+                                logger.debug("Scheduled rain notification in 1 minute")
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Button("Schedule Severe Weather Notification") {
+                                scheduleNotification(title: "Severe Weather Alert", body: "Severe weather expected soon", inSeconds: 60)
+                                logger.debug("Scheduled severe weather notification in 1 minute")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal)
+                    }
                 }
                 .navigationTitle("Lottie Debug")
                 .sheet(isPresented: $showingFileExport) {
@@ -280,7 +303,7 @@ struct LottieDebugView: View {
             logger.debug("LottieDebugView appeared")
         }
     }
-
+    
     // MARK: - Helper Methods
     
     private func addDebugMessage(_ message: String) {
@@ -396,7 +419,7 @@ struct LottieDebugView: View {
             logger.error("Error reading file: \(error.localizedDescription)")
         }
     }
-
+    
     private func listAllFiles() {
         setDebugMessages(["Listing all animation files in bundle:"])
         logger.debug("Listing all animation files in bundle")
@@ -525,136 +548,160 @@ struct LottieDebugView: View {
         guard key.count > 6 else { return "***" }
         return String(key.prefix(3)) + "..." + String(key.suffix(3))
     }
-}
-
-// MARK: - Animation Preview Component
-struct AnimationPreviewView: UIViewRepresentable {
-    var animationName: String
-    var onFailure: () -> Void
-    private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
     
-    func makeUIView(context: Context) -> UIView {
-        let containerView = UIView()
-        containerView.backgroundColor = .clear
-        
-        // Add a label to show what we're trying to load
-        let loadingLabel = UILabel()
-        loadingLabel.text = "Loading: \(animationName)"
-        loadingLabel.textAlignment = .center
-        loadingLabel.textColor = .darkGray
-        loadingLabel.font = UIFont.systemFont(ofSize: 12)
-        loadingLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(loadingLabel)
-        
-        NSLayoutConstraint.activate([
-            loadingLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
-            loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor)
-        ])
-        
-        // Create animation view
-        let animationView = LottieAnimationView()
-        animationView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(animationView)
-        
-        NSLayoutConstraint.activate([
-            animationView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            animationView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            animationView.topAnchor.constraint(equalTo: loadingLabel.bottomAnchor, constant: 4),
-            animationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
-        
-        logger.debug("Attempting to load animation: \(animationName)")
-        tryLoadAnimation(animationView, containerView)
-        
-        return containerView
-    }
+    // MARK: - Notification Scheduling
     
-    private func tryLoadAnimation(_ animationView: LottieAnimationView, _ containerView: UIView) {
-        // Method 1: Try direct named loading
-        if let animation = LottieAnimation.named(animationName) {
-            logger.debug("Successfully loaded \(animationName) using direct naming")
-            setupAnimation(animationView, animation)
-            return
-        }
+    private func scheduleNotification(title: String, body: String, inSeconds seconds: TimeInterval) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
         
-        // Method 2: Try with explicit bundle
-        if let animation = LottieAnimation.named(animationName, bundle: Bundle.main) {
-            logger.debug("Successfully loaded \(animationName) with explicit bundle")
-            setupAnimation(animationView, animation)
-            return
-        }
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         
-        // Method 3: Try loading from .lottie file as data
-        if let url = Bundle.main.url(forResource: animationName, withExtension: "lottie"),
-           let data = try? Data(contentsOf: url),
-           let animation = try? LottieAnimation.from(data: data) {
-            logger.debug("Successfully loaded \(animationName).lottie as data")
-            setupAnimation(animationView, animation)
-            return
-        }
-        
-        // Method 4: Try loading from .json file as data
-        if let url = Bundle.main.url(forResource: animationName, withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let animation = try? LottieAnimation.from(data: data) {
-            logger.debug("Successfully loaded \(animationName).json as data")
-            setupAnimation(animationView, animation)
-            return
-        }
-        
-        // If we get here, all methods failed
-        logger.error("All loading methods failed for: \(animationName)")
-        showFailureIndicator(containerView)
-        DispatchQueue.main.async {
-            self.onFailure()
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                addDebugMessage("❌ Error scheduling notification: \(error.localizedDescription)")
+                logger.error("Error scheduling notification: \(error.localizedDescription)")
+            } else {
+                addDebugMessage("✅ Notification scheduled: \(title) in \(Int(seconds)) seconds")
+                logger.debug("Notification scheduled: \(title) in \(Int(seconds)) seconds")
+            }
         }
     }
     
-    private func setupAnimation(_ animationView: LottieAnimationView, _ animation: LottieAnimation) {
-        animationView.animation = animation
-        animationView.loopMode = .loop
-        animationView.contentMode = .scaleAspectFit
-        animationView.play()
-    }
+    // MARK: - Animation Preview Component
     
-    private func showFailureIndicator(_ containerView: UIView) {
-        let errorLabel = UILabel()
-        errorLabel.text = "Failed to load animation"
-        errorLabel.textAlignment = .center
-        errorLabel.textColor = .red
-        errorLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(errorLabel)
+    struct AnimationPreviewView: UIViewRepresentable {
+        var animationName: String
+        var onFailure: () -> Void
+        private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
         
-        NSLayoutConstraint.activate([
-            errorLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
-        ])
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // Nothing to update - view is recreated with new ID when animation changes
-    }
-}
-
-// MARK: - Document Exporter
-struct DocumentExporterView: UIViewControllerRepresentable {
-    let data: Data
-    let filename: String
-    
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        
-        do {
-            try data.write(to: tempURL)
-        } catch {
-            print("Error writing temp file: \(error)")
+        func makeUIView(context: Context) -> UIView {
+            let containerView = UIView()
+            containerView.backgroundColor = .clear
+            
+            // Add a label to show what we're trying to load
+            let loadingLabel = UILabel()
+            loadingLabel.text = "Loading: \(animationName)"
+            loadingLabel.textAlignment = .center
+            loadingLabel.textColor = .darkGray
+            loadingLabel.font = UIFont.systemFont(ofSize: 12)
+            loadingLabel.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(loadingLabel)
+            
+            NSLayoutConstraint.activate([
+                loadingLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
+                loadingLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor)
+            ])
+            
+            // Create animation view
+            let animationView = LottieAnimationView()
+            animationView.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(animationView)
+            
+            NSLayoutConstraint.activate([
+                animationView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                animationView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                animationView.topAnchor.constraint(equalTo: loadingLabel.bottomAnchor, constant: 4),
+                animationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            ])
+            
+            logger.debug("Attempting to load animation: \(animationName)")
+            tryLoadAnimation(animationView, containerView)
+            
+            return containerView
         }
         
-        let controller = UIDocumentPickerViewController(forExporting: [tempURL])
-        return controller
+        private func tryLoadAnimation(_ animationView: LottieAnimationView, _ containerView: UIView) {
+            // Method 1: Try direct named loading
+            if let animation = LottieAnimation.named(animationName) {
+                logger.debug("Successfully loaded \(animationName) using direct naming")
+                setupAnimation(animationView, animation)
+                return
+            }
+            
+            // Method 2: Try with explicit bundle
+            if let animation = LottieAnimation.named(animationName, bundle: Bundle.main) {
+                logger.debug("Successfully loaded \(animationName) with explicit bundle")
+                setupAnimation(animationView, animation)
+                return
+            }
+            
+            // Method 3: Try loading from .lottie file as data
+            if let url = Bundle.main.url(forResource: animationName, withExtension: "lottie"),
+               let data = try? Data(contentsOf: url),
+               let animation = try? LottieAnimation.from(data: data) {
+                logger.debug("Successfully loaded \(animationName).lottie as data")
+                setupAnimation(animationView, animation)
+                return
+            }
+            
+            // Method 4: Try loading from .json file as data
+            if let url = Bundle.main.url(forResource: animationName, withExtension: "json"),
+               let data = try? Data(contentsOf: url),
+               let animation = try? LottieAnimation.from(data: data) {
+                logger.debug("Successfully loaded \(animationName).json as data")
+                setupAnimation(animationView, animation)
+                return
+            }
+            
+            // If we get here, all methods failed
+            logger.error("All loading methods failed for: \(animationName)")
+            showFailureIndicator(containerView)
+            DispatchQueue.main.async {
+                self.onFailure()
+            }
+        }
+        
+        private func setupAnimation(_ animationView: LottieAnimationView, _ animation: LottieAnimation) {
+            animationView.animation = animation
+            animationView.loopMode = .loop
+            animationView.contentMode = .scaleAspectFit
+            animationView.play()
+        }
+        
+        private func showFailureIndicator(_ containerView: UIView) {
+            let errorLabel = UILabel()
+            errorLabel.text = "Failed to load animation"
+            errorLabel.textAlignment = .center
+            errorLabel.textColor = .red
+            errorLabel.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(errorLabel)
+            
+            NSLayoutConstraint.activate([
+                errorLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                errorLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+            ])
+        }
+        
+        func updateUIView(_ uiView: UIView, context: Context) {
+            // Nothing to update - view is recreated with new ID when animation changes
+        }
     }
     
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {
-        // Nothing to update
+    // MARK: - Document Exporter
+    
+    struct DocumentExporterView: UIViewControllerRepresentable {
+        let data: Data
+        let filename: String
+        
+        func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            
+            do {
+                try data.write(to: tempURL)
+            } catch {
+                print("Error writing temp file: \(error)")
+            }
+            
+            let controller = UIDocumentPickerViewController(forExporting: [tempURL])
+            return controller
+        }
+        
+        func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {
+            // Nothing to update
+        }
     }
 }

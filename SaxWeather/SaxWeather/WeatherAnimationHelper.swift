@@ -14,9 +14,9 @@ struct WeatherAnimationHelper {
         
         switch conditionLower {
         case _ where conditionLower.contains("clear"):
-            return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
         case _ where conditionLower.contains("partly cloudy"):
-            return isNight ? "partly_cloudy_night" : "partly_cloudy_day"
+            return isNight ? "partly-cloudy-night" : "partly-cloudy-day"
         case _ where conditionLower.contains("cloudy") || conditionLower.contains("overcast"):
             return "cloudy"
         case _ where conditionLower.contains("fog") || conditionLower.contains("mist"):
@@ -30,7 +30,7 @@ struct WeatherAnimationHelper {
         case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning"):
             return "thunderstorm"
         default:
-            return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
         }
     }
     
@@ -39,10 +39,10 @@ struct WeatherAnimationHelper {
         switch weatherCode {
         // Clear
         case 0:
-            return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
         // Mainly clear, partly cloudy
         case 1, 2:
-            return isNight ? "partly_cloudy_night" : "partly_cloudy_day"
+            return isNight ? "partly-cloudy-night" : "partly-cloudy"
         // Overcast
         case 3:
             return "cloudy"
@@ -59,7 +59,7 @@ struct WeatherAnimationHelper {
         case 95, 96, 99:
             return "thunderstorm"
         default:
-            return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
         }
     }
     
