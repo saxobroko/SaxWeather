@@ -23,6 +23,10 @@ struct SettingsView: View {
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
 
+    // For onboarding dismiss button
+    var isOnboarding: Bool = false
+    @Environment(\.dismiss) private var dismiss
+
     private let unitSystems = ["Metric", "Imperial", "UK"]
     private let colorSchemes = ["system", "light", "dark"]
     private let forecastDayOptions = [3, 5, 7, 10, 14]
@@ -50,9 +54,28 @@ struct SettingsView: View {
                 Section(header: Text("About")) {
                     aboutSection
                 }
-                
             }
             .navigationTitle("Settings")
+            .toolbar {
+                // Save button always visible
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        alertMessage = "Saved!"
+                        showingAlert = true
+                        dismiss()
+                        // If you want to trigger saving everything, add logic here
+                        // For now, just shows the alert
+                    }
+                }
+                // Dismiss button only visible during onboarding
+                if isOnboarding {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                }
+            }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
@@ -211,7 +234,6 @@ struct SettingsView: View {
     }
     
     private func saveAPIKeys() {
-        // Trim whitespace as in your original function
         let trimmedWUKey = wuApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedStationID = stationID.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOWMKey = owmApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -220,36 +242,28 @@ struct SettingsView: View {
         if !trimmedWUKey.isEmpty {
             _ = KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")
         } else {
-            // Remove key if empty
             _ = KeychainService.shared.deleteApiKey(forService: "wu")
         }
         
         if !trimmedOWMKey.isEmpty {
             _ = KeychainService.shared.saveApiKey(trimmedOWMKey, forService: "owm")
         } else {
-            // Remove key if empty
             _ = KeychainService.shared.deleteApiKey(forService: "owm")
         }
         
-        // Station ID is not sensitive, so we can keep it in UserDefaults
         UserDefaults.standard.set(trimmedStationID, forKey: "stationID")
         
-        // Show alert as in your original function
         alertMessage = "API keys saved securely!"
         showingAlert = true
         
-        // Refresh weather data with new API keys
         Task {
             await weatherService.fetchWeather()
         }
     }
     
     private func loadAPIKeys() {
-        // Load sensitive keys from Keychain
         wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
         owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
-        
-        // Load non-sensitive data from UserDefaults
         stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
     }
     
@@ -273,7 +287,6 @@ struct SettingsView: View {
         alertMessage = "Coordinates saved successfully!"
         showingAlert = true
         
-        // Refresh weather data with new coordinates
         Task {
             await weatherService.fetchWeather()
         }
@@ -283,6 +296,8 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(weatherService: WeatherService())
+            .environmentObject(StoreManager.shared)
+        SettingsView(weatherService: WeatherService(), isOnboarding: true)
             .environmentObject(StoreManager.shared)
     }
 }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		781254722D7C0730003ACF0B /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 781254712D7C0730003ACF0B /* Lottie */; };
+		78147F792DB6738200839E00 /* XMLCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 78147F782DB6738200839E00 /* XMLCoder */; };
 		7859BEB32D7C217300FC7230 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7859BEB22D7C217300FC7230 /* KeychainSwift */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				78147F792DB6738200839E00 /* XMLCoder in Frameworks */,
 				7859BEB32D7C217300FC7230 /* KeychainSwift in Frameworks */,
 				781254722D7C0730003ACF0B /* Lottie in Frameworks */,
 			);
@@ -87,6 +89,7 @@
 			packageProductDependencies = (
 				781254712D7C0730003ACF0B /* Lottie */,
 				7859BEB22D7C217300FC7230 /* KeychainSwift */,
+				78147F782DB6738200839E00 /* XMLCoder */,
 			);
 			productName = SaxWeather;
 			productReference = 78C666C62D5F732E00A7281A /* SaxWeather.app */;
@@ -119,6 +122,7 @@
 			packageReferences = (
 				781254702D7C0730003ACF0B /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				7859BEB12D7C217300FC7230 /* XCRemoteSwiftPackageReference "keychain-swift" */,
+				78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 78C666C72D5F732E00A7281A /* Products */;
@@ -384,6 +388,14 @@
 				version = 4.3.3;
 			};
 		};
+		78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MaxDesiatov/XMLCoder";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.17.1;
+			};
+		};
 		7859BEB12D7C217300FC7230 /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/evgenyneu/keychain-swift.git";
@@ -399,6 +411,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 781254702D7C0730003ACF0B /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
+		};
+		78147F782DB6738200839E00 /* XMLCoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */;
+			productName = XMLCoder;
 		};
 		7859BEB22D7C217300FC7230 /* KeychainSwift */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -20,13 +20,13 @@ struct WeatherAnimationHelper {
         case _ where conditionLower.contains("cloudy") || conditionLower.contains("overcast"):
             return "cloudy"
         case _ where conditionLower.contains("fog") || conditionLower.contains("mist"):
-            return "fog"
+            return "foggy"
         case _ where conditionLower.contains("drizzle") || conditionLower.contains("light rain"):
-            return "rain"
+            return "rainy"
         case _ where conditionLower.contains("rain") || conditionLower.contains("shower"):
-            return "rain"
+            return "rainy"
         case _ where conditionLower.contains("snow") || conditionLower.contains("sleet") || conditionLower.contains("ice"):
-            return "snow"
+            return "rainy"
         case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning"):
             return "thunderstorm"
         default:
