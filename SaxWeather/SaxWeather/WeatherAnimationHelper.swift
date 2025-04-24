@@ -48,13 +48,13 @@ struct WeatherAnimationHelper {
             return "cloudy"
         // Fog
         case 45, 48:
-            return "fog"
+            return "foggy"
         // All rain types
         case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
-            return "rain"
+            return "rainy"
         // Snow
         case 71, 73, 75, 77, 85, 86:
-            return "snow"
+            return "rainy"
         // Thunderstorm
         case 95, 96, 99:
             return "thunderstorm"
