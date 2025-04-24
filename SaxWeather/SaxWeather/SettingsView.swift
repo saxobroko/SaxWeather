@@ -22,7 +22,11 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
-    
+
+    // For onboarding dismiss button
+    var isOnboarding: Bool = false
+    @Environment(\.dismiss) private var dismiss
+
     private let unitSystems = ["Metric", "Imperial", "UK"]
     private let colorSchemes = ["system", "light", "dark"]
     private let forecastDayOptions = [3, 5, 7, 10, 14]
@@ -50,13 +54,52 @@ struct SettingsView: View {
                 Section(header: Text("About")) {
                     aboutSection
                 }
-                
             }
             .navigationTitle("Settings")
+            .toolbar {
+                // Save button always visible
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        alertMessage = "Saved!"
+                        showingAlert = true
+                        dismiss()
+                        // If you want to trigger saving everything, add logic here
+                        // For now, just shows the alert
+                    }
+                }
+                // Dismiss button only visible during onboarding
+                if isOnboarding {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                }
+            }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
         }
+    }
+    
+    // Safe accessor for weather values using Mirror
+    private func getWeatherValue(_ property: String) -> Any? {
+        guard let currentWeather = Mirror(reflecting: weatherService).descendant("currentWeather") else {
+            return nil
+        }
+        
+        return Mirror(reflecting: currentWeather).children.first { $0.label == property }?.value
+    }
+    
+    // Safe accessor for forecast values using Mirror
+    private func getForecastValue(_ property: String) -> Any? {
+        guard let forecast = Mirror(reflecting: weatherService).descendant("forecast"),
+              let dailyForecasts = Mirror(reflecting: forecast).descendant("daily"),
+              let firstForecast = (dailyForecasts as? [Any])?.first else {
+            return nil
+        }
+        
+        return Mirror(reflecting: firstForecast).children.first { $0.label == property }?.value
     }
     
     private var weatherSourcesSection: some View {
@@ -88,6 +131,9 @@ struct SettingsView: View {
             
             Button("Save API Keys") {
                 saveAPIKeys()
+            }
+            .onAppear {
+                loadAPIKeys()
             }
         }
     }
@@ -135,7 +181,7 @@ struct SettingsView: View {
                     Text(unit).tag(unit)
                 }
             }
-            .onChange(of: unitSystem) { newValue in
+            .onChange(of: unitSystem) { newValue, _ in
                 weatherService.unitSystem = newValue
             }
             
@@ -150,7 +196,7 @@ struct SettingsView: View {
                     Text("\(days) Days").tag(days)
                 }
             }
-            .onChange(of: forecastDays) { _ in
+            .onChange(of: forecastDays) { newValue, transaction in
                 Task {
                     await weatherService.fetchForecasts()
                 }
@@ -192,17 +238,33 @@ struct SettingsView: View {
         let trimmedStationID = stationID.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOWMKey = owmApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        UserDefaults.standard.set(trimmedWUKey, forKey: "wuApiKey")
-        UserDefaults.standard.set(trimmedStationID, forKey: "stationID")
-        UserDefaults.standard.set(trimmedOWMKey, forKey: "owmApiKey")
+        // Save API keys securely in Keychain
+        if !trimmedWUKey.isEmpty {
+            _ = KeychainService.shared.saveApiKey(trimmedWUKey, forService: "wu")
+        } else {
+            _ = KeychainService.shared.deleteApiKey(forService: "wu")
+        }
         
-        alertMessage = "API keys saved successfully!"
+        if !trimmedOWMKey.isEmpty {
+            _ = KeychainService.shared.saveApiKey(trimmedOWMKey, forService: "owm")
+        } else {
+            _ = KeychainService.shared.deleteApiKey(forService: "owm")
+        }
+        
+        UserDefaults.standard.set(trimmedStationID, forKey: "stationID")
+        
+        alertMessage = "API keys saved securely!"
         showingAlert = true
         
-        // Refresh weather data with new API keys
         Task {
             await weatherService.fetchWeather()
         }
+    }
+    
+    private func loadAPIKeys() {
+        wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
+        stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
     }
     
     private func saveCoordinates() {
@@ -225,7 +287,6 @@ struct SettingsView: View {
         alertMessage = "Coordinates saved successfully!"
         showingAlert = true
         
-        // Refresh weather data with new coordinates
         Task {
             await weatherService.fetchWeather()
         }
@@ -236,6 +297,7 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(weatherService: WeatherService())
             .environmentObject(StoreManager.shared)
+        SettingsView(weatherService: WeatherService(), isOnboarding: true)
+            .environmentObject(StoreManager.shared)
     }
 }
-

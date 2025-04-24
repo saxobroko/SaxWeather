@@ -2,10 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
+    <!-- Allow loading weather map tiles from external services -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+    
+    <!-- Location permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SaxWeather needs your location to show weather for your current location and center the radar map.</string>
+
+    <!-- Map capabilities -->
+    <key>MKDirectionsApplicationSupportedModes</key>
+    <array>
+        <string>MKDirectionsModePedestrian</string>
+        <string>MKDirectionsModeCar</string>
+    </array>
 </dict>
 </plist>

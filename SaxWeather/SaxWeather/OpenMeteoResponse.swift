@@ -22,23 +22,35 @@ struct OpenMeteoResponse: Codable {
     let daily: Daily
     
     init(from decoder: Decoder) throws {
+        #if DEBUG
         print("⚡️ Starting to decode OpenMeteoResponse")
+        #endif
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Debug print available keys
+        #if DEBUG
         print("🔑 Available keys in JSON:", container.allKeys.map { $0.stringValue })
+        #endif
         
         do {
             self.latitude = try container.decode(Double.self, forKey: .latitude)
+            #if DEBUG
             print("✅ Decoded latitude:", self.latitude)
+            #endif
             
             self.longitude = try container.decode(Double.self, forKey: .longitude)
+            #if DEBUG
             print("✅ Decoded longitude:", self.longitude)
+            #endif
             
             // Try decoding generationtime_ms with extra debug info
+            #if DEBUG
             print("🔍 Attempting to decode generationtime_ms")
+            #endif
             self.generationtime_ms = try container.decode(Double.self, forKey: .generationtime_ms)
+            #if DEBUG
             print("✅ Successfully decoded generationtime_ms:", self.generationtime_ms)
+            #endif
             
             self.utc_offset_seconds = try container.decode(Int.self, forKey: .utc_offset_seconds)
             self.timezone = try container.decode(String.self, forKey: .timezone)
@@ -52,8 +64,10 @@ struct OpenMeteoResponse: Codable {
             self.daily_units = try container.decode(DailyUnits.self, forKey: .daily_units)
             self.daily = try container.decode(Daily.self, forKey: .daily)
         } catch {
+            #if DEBUG
             print("❌ Decoding error:", error)
             print("❌ Error location:", error.localizedDescription)
+            #endif
             throw error
         }
     }

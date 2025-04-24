@@ -193,7 +193,9 @@ extension Weather {
     mutating func convertUnits(from: String, to: String) {
         if from == to { return }
         
+        #if DEBUG
         print("Converting from \(from) to \(to)")
+        #endif
         
         if from == "Metric" && to == "Imperial" {
             if let temp = temperature { temperature = temp * 9/5 + 32 }
@@ -215,7 +217,9 @@ extension Weather {
                 forecasts[i] = forecast
             }
             
+            #if DEBUG
             print("Converted temperature: \(temperature ?? 0)°F")
+            #endif
         } else if from == "Imperial" && to == "Metric" {
             if let temp = temperature { temperature = (temp - 32) * 5/9 }
             if let feels = feelsLike { feelsLike = (feels - 32) * 5/9 }
@@ -236,7 +240,9 @@ extension Weather {
                 forecasts[i] = forecast
             }
             
+            #if DEBUG
             print("Converted temperature: \(temperature ?? 0)°C")
+            #endif
         }
         
         if let temp = temperature,
