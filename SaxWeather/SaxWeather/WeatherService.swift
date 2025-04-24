@@ -117,14 +117,29 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         
         do {
+            // Get location identifier for caching
+            let locationIdentifier = useGPS ? "gps" : "\(UserDefaults.standard.string(forKey: "latitude") ?? "")_\(UserDefaults.standard.string(forKey: "longitude") ?? "")"
+            
+            // Check cache first
+            if let cachedWeather = WeatherDataCache.shared.getWeather(for: locationIdentifier) {
+                await MainActor.run {
+                    self.weather = cachedWeather
+                    self.isLoading = false
+                }
+                return
+            }
+            
             let weatherData = try await fetchWeatherData()
             await MainActor.run {
                 self.weather = weatherData
                 self.isLoading = false
             }
             
+            // Cache the weather data
+            WeatherDataCache.shared.setWeather(weatherData, for: locationIdentifier)
+            
             // Always fetch forecast data after weather data is loaded
-            await fetchForecasts()
+            await fetchAndCacheForecasts()
         } catch {
             await MainActor.run {
                 self.error = error.localizedDescription
@@ -523,6 +538,34 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         // 2. Valid OWM config with location
         // 3. Valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
+    }
+    
+    private func fetchAndCacheForecasts() async {
+        // Get location identifier for caching
+        let locationIdentifier = useGPS ? "gps" : "\(UserDefaults.standard.string(forKey: "latitude") ?? "")_\(UserDefaults.standard.string(forKey: "longitude") ?? "")"
+        
+        // Check cache first
+        if let cachedForecast = WeatherDataCache.shared.getForecast(for: locationIdentifier) {
+            await MainActor.run {
+                self.forecast = cachedForecast
+            }
+            return
+        }
+        
+        // If not in cache, fetch from API
+        do {
+            // Call the OpenMeteo extension's fetchForecasts method
+            await fetchForecasts()
+            
+            // Cache the forecast data if we got it
+            if let forecast = self.forecast {
+                WeatherDataCache.shared.setForecast(forecast, for: locationIdentifier)
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+            }
+        }
     }
 }
 

@@ -12,11 +12,20 @@ import SwiftUI
 
 class LottieParser {
     static func loadAnimation(named: String) -> LottieAnimation? {
+        // First check the cache
+        if let cachedAnimation = AnimationCache.shared.getAnimation(named: named) {
+            #if DEBUG
+            print("✅ Loaded from cache: \(named)")
+            #endif
+            return cachedAnimation
+        }
+        
         // First try to load directly using Lottie's built-in methods
         if let animation = LottieAnimation.named(named) {
             #if DEBUG
             print("✅ Loaded via Lottie.named()")
             #endif
+            AnimationCache.shared.setAnimation(animation, for: named)
             return animation
         }
         
@@ -36,6 +45,7 @@ class LottieParser {
                         #if DEBUG
                         print("✅ Parsed \(named).lottie as JSON")
                         #endif
+                        AnimationCache.shared.setAnimation(animation, for: named)
                         return animation
                     }
                 }
@@ -57,6 +67,7 @@ class LottieParser {
                 #if DEBUG
                 print("✅ Loaded from \(named).json")
                 #endif
+                AnimationCache.shared.setAnimation(animation, for: named)
                 return animation
             } catch {
                 #if DEBUG
@@ -77,6 +88,7 @@ class LottieParser {
                 #if DEBUG
                 print("✅ Loaded from alternate name: \(alternateNamed).json")
                 #endif
+                AnimationCache.shared.setAnimation(animation, for: named)
                 return animation
             } catch {
                 #if DEBUG
