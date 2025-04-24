@@ -59,23 +59,22 @@ struct WeatherAnimationView: View {
         let lowercased = condition.lowercased()
         
         if lowercased.contains("clear") || lowercased.contains("sunny") {
-            return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
         } else if lowercased.contains("partly cloudy") {
-            return isNight ? "partly_cloudy_night" : "partly_cloudy_day"
+            return isNight ? "partly-cloudy-night" : "partly-cloudy"
         } else if lowercased.contains("cloud") || lowercased.contains("overcast") {
             return "cloudy"
         } else if lowercased.contains("fog") || lowercased.contains("mist") {
-            return "fog"
-        } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") {
-            return "rain"
-        } else if lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
-            return "snow"
+            return "foggy"
+        } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") || 
+                  lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
+            return "rainy"
         } else if lowercased.contains("thunder") || lowercased.contains("lightning") || lowercased.contains("storm") {
             return "thunderstorm"
         }
         
         // Default fallback
-        return isNight ? "clear_night" : "clear_day"
+        return isNight ? "clear-night" : "clear-day"
     }
     
     private func fallbackSymbolName() -> String {
