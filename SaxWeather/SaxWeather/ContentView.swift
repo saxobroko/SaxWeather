@@ -208,7 +208,7 @@ struct ContentView: View {
     }
     
     private var footerView: some View {
-        Text("Made by Saxo_Broko")
+        Text("Made by Saxon")
             .font(.caption)
             .foregroundColor(.primary)
             .padding(.bottom, 10)
