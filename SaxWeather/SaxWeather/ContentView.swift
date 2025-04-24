@@ -22,46 +22,55 @@ struct ContentView: View {
     @StateObject private var weatherAlertManager = WeatherAlertManager() // Add this line
     
     var body: some View {
-        if isFirstLaunch {
-            OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
+        Group {
+            if isFirstLaunch {
+                OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
+                    .preferredColorScheme(selectedColorScheme)
+                    .environmentObject(storeManager)
+            } else {
+                TabView {
+                    // Tab 1: Main Weather View
+                    mainWeatherView
+                        .tabItem {
+                            Label("Weather", systemImage: "cloud.sun.fill")
+                        }
+                    
+                    // Tab 2: Forecast - Updated to use ForecastContainerView
+                    ForecastView(weatherService: weatherService)
+                        .tabItem {
+                            Label("Forecast", systemImage: "calendar")
+                        }
+                    
+                    // New Tab 3: Weather Alerts
+                    AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                        .tabItem {
+                            Label("Alerts", systemImage: "exclamationmark.triangle")
+                        }
+                    
+                    // Tab 4: Settings
+                    SettingsView(weatherService: weatherService)
+                        .tabItem {
+                            Label("Settings", systemImage: "gear")
+                        }
+                    
+                    // Tab 5: Debug Tab - Only shows in DEBUG builds
+                    #if DEBUG
+                    LottieDebugView()
+                        .tabItem {
+                            Label("Debug", systemImage: "ladybug.fill")
+                        }
+                    #endif
+                }
                 .preferredColorScheme(selectedColorScheme)
-                .environmentObject(storeManager)
-        } else {
-            TabView {
-                // Tab 1: Main Weather View
-                mainWeatherView
-                    .tabItem {
-                        Label("Weather", systemImage: "cloud.sun.fill")
+                .onAppear {
+                    // Fetch weather data when transitioning to main view
+                    Task {
+                        await weatherService.fetchWeather()
                     }
-                
-                // Tab 2: Forecast - Updated to use ForecastContainerView
-                ForecastView(weatherService: weatherService)
-                    .tabItem {
-                        Label("Forecast", systemImage: "calendar")
-                    }
-                
-                // New Tab 3: Weather Alerts
-                AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
-                    .tabItem {
-                        Label("Alerts", systemImage: "exclamationmark.triangle")
-                    }
-                
-                // Tab 4: Settings
-                SettingsView(weatherService: weatherService)
-                    .tabItem {
-                        Label("Settings", systemImage: "gear")
-                    }
-                
-                // Tab 5: Debug Tab - Only shows in DEBUG builds
-                #if DEBUG
-                LottieDebugView()
-                    .tabItem {
-                        Label("Debug", systemImage: "ladybug.fill")
-                    }
-                #endif
+                }
             }
-            .preferredColorScheme(selectedColorScheme)
         }
+        .animation(.easeInOut, value: isFirstLaunch)
     }
     
     private var mainWeatherView: some View {
@@ -146,6 +155,74 @@ struct ContentView: View {
                 .padding(.vertical, 30)  // Reduced from 50 to accommodate the animation
                 
                 WeatherDetailsView(weather: weather)
+            } else if weatherService.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .padding()
+            } else if let error = weatherService.error {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 50))
+                        .foregroundColor(.red)
+                    
+                    Text("Error Loading Weather")
+                        .font(.headline)
+                    
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Button("Try Again") {
+                        Task {
+                            await weatherService.fetchWeather()
+                        }
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .padding()
+            } else if !weatherService.hasValidDataSources() {
+                VStack(spacing: 16) {
+                    Image(systemName: "location.slash")
+                        .font(.system(size: 50))
+                        .foregroundColor(.orange)
+                    
+                    Text("Location Required")
+                        .font(.headline)
+                    
+                    if !weatherService.useGPS {
+                        Text("Please enable GPS or enter valid coordinates in Settings")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button("Open Settings") {
+                            // Navigate to settings
+                            showSettings = true
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    } else {
+                        Text("Please enable location access in Settings")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button("Open Settings") {
+                            weatherService.openSettings()
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
             } else {
                 Text("Loading weather data...")
                     .foregroundColor(.primary)
@@ -160,21 +237,21 @@ struct ContentView: View {
         let isNight = isNighttime()
         
         if lowercased.contains("clear") || lowercased.contains("sunny") {
-               return isNight ? "clear-night" : "clear-day"
-           } else if lowercased.contains("partly cloudy") {
-               return isNight ? "partly-cloudy-night" : "partly-cloudy"
-           } else if lowercased.contains("cloud") || lowercased.contains("overcast") {
-               return "cloudy"
-           } else if lowercased.contains("fog") || lowercased.contains("mist") {
-               return "foggy"
-           } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") {
-               return "rainy"
-           } else if lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
-               return "snow"  // Note: You might need to add this file
-           } else if lowercased.contains("thunder") || lowercased.contains("lightning") || lowercased.contains("storm") {
-               return "thunderstorm"
-           }
-        return isNight ? "clear_night" : "clear_day"
+            return isNight ? "clear-night" : "clear-day"
+        } else if lowercased.contains("partly cloudy") {
+            return isNight ? "partly-cloudy-night" : "partly-cloudy"
+        } else if lowercased.contains("cloud") || lowercased.contains("overcast") {
+            return "cloudy"
+        } else if lowercased.contains("fog") || lowercased.contains("mist") {
+            return "foggy"
+        } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") {
+            return "rainy"
+        } else if lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
+            return "snowy"
+        } else if lowercased.contains("thunder") || lowercased.contains("lightning") || lowercased.contains("storm") {
+            return "thunderstorm"
+        }
+        return isNight ? "clear-night" : "clear-day"
     }
     
     // Helper function to determine if it's nighttime
