@@ -24,7 +24,7 @@ actor OpenMeteoService {
             "&timezone=UTC"
         
         guard let url = URL(string: urlString) else {
-            throw WeatherError.invalidURL
+            throw WeatherService.WeatherError.invalidURL
         }
         
         #if DEBUG
@@ -35,7 +35,7 @@ actor OpenMeteoService {
             let (data, response) = try await URLSession.shared.data(from: url)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw WeatherError.apiError("Invalid response")
+                throw WeatherService.WeatherError.apiError("Invalid response")
             }
             
             #if DEBUG
@@ -48,7 +48,7 @@ actor OpenMeteoService {
             #endif
             
             guard httpResponse.statusCode == 200 else {
-                throw WeatherError.apiError("Status code: \(httpResponse.statusCode)")
+                throw WeatherService.WeatherError.apiError("Status code: \(httpResponse.statusCode)")
             }
             
             return try jsonDecoder.decode(OpenMeteoResponse.self, from: data)
@@ -56,7 +56,7 @@ actor OpenMeteoService {
             #if DEBUG
             print("❌ OpenMeteo Error:", error.localizedDescription)
             #endif
-            throw WeatherError.apiError(error.localizedDescription)
+            throw WeatherService.WeatherError.apiError(error.localizedDescription)
         }
     }
 }

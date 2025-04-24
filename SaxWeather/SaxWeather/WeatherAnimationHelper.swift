@@ -13,21 +13,20 @@ struct WeatherAnimationHelper {
         let conditionLower = condition.lowercased()
         
         switch conditionLower {
-        case _ where conditionLower.contains("clear"):
+        case _ where conditionLower.contains("clear") || conditionLower.contains("sunny"):
             return isNight ? "clear-night" : "clear-day"
         case _ where conditionLower.contains("partly cloudy"):
-            return isNight ? "partly-cloudy-night" : "partly-cloudy-day"
-        case _ where conditionLower.contains("cloudy") || conditionLower.contains("overcast"):
+            return isNight ? "partly-cloudy-night" : "partly-cloudy"
+        case _ where conditionLower.contains("cloud") || conditionLower.contains("overcast"):
             return "cloudy"
         case _ where conditionLower.contains("fog") || conditionLower.contains("mist"):
             return "foggy"
-        case _ where conditionLower.contains("drizzle") || conditionLower.contains("light rain"):
+        case _ where conditionLower.contains("rain") || conditionLower.contains("shower") || 
+                  conditionLower.contains("drizzle") || conditionLower.contains("snow") || 
+                  conditionLower.contains("sleet") || conditionLower.contains("ice"):
             return "rainy"
-        case _ where conditionLower.contains("rain") || conditionLower.contains("shower"):
-            return "rainy"
-        case _ where conditionLower.contains("snow") || conditionLower.contains("sleet") || conditionLower.contains("ice"):
-            return "rainy"
-        case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning"):
+        case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning") || 
+                  conditionLower.contains("storm"):
             return "thunderstorm"
         default:
             return isNight ? "clear-night" : "clear-day"
@@ -37,26 +36,18 @@ struct WeatherAnimationHelper {
     /// Maps OpenMeteo WMO weather codes to animation names
     static func animationNameFromCode(for weatherCode: Int, isNight: Bool = false) -> String {
         switch weatherCode {
-        // Clear
-        case 0:
+        case 0: // Clear
             return isNight ? "clear-night" : "clear-day"
-        // Mainly clear, partly cloudy
-        case 1, 2:
+        case 1, 2: // Partly cloudy
             return isNight ? "partly-cloudy-night" : "partly-cloudy"
-        // Overcast
-        case 3:
+        case 3: // Overcast
             return "cloudy"
-        // Fog
-        case 45, 48:
+        case 45, 48: // Fog
             return "foggy"
-        // All rain types
-        case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
+        case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82, // Rain
+             71, 73, 75, 77, 85, 86: // Snow
             return "rainy"
-        // Snow
-        case 71, 73, 75, 77, 85, 86:
-            return "rainy"
-        // Thunderstorm
-        case 95, 96, 99:
+        case 95, 96, 99: // Thunderstorm
             return "thunderstorm"
         default:
             return isNight ? "clear-night" : "clear-day"
@@ -65,12 +56,12 @@ struct WeatherAnimationHelper {
     
     /// Determine if it's nighttime based on current time and sunrise/sunset
     static func isNighttime(sunrise: Date?, sunset: Date?) -> Bool {
-        guard let sunrise = sunrise, let sunset = sunset else {
-            let hour = Calendar.current.component(.hour, from: Date())
-            return hour < 6 || hour > 18
+        if let sunrise = sunrise, let sunset = sunset {
+            let now = Date()
+            return now < sunrise || now > sunset
         }
         
-        let now = Date()
-        return now < sunrise || now > sunset
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour < 6 || hour > 18
     }
 }

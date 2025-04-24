@@ -35,6 +35,11 @@ struct LottieView: UIViewRepresentable {
             animationView.contentMode = .scaleAspectFit
             animationView.loopMode = loopMode
             animationView.play()
+            
+            // Animation loaded successfully
+            DispatchQueue.main.async {
+                self.loadingFailed = false
+            }
         } else {
             // Animation failed to load
             DispatchQueue.main.async {

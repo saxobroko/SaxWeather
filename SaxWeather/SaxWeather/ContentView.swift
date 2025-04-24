@@ -83,8 +83,6 @@ struct ContentView: View {
                 Task {
                     await weatherService.fetchWeather()
                 }
-                // Preload animations
-                AnimationCache.shared.preloadAnimations()
             }
         }
     }

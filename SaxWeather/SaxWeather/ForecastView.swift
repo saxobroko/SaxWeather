@@ -17,10 +17,6 @@ struct ForecastView: View {
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
     
-    // Cache for hourly data
-    @State private var hourlyCache: [String: (data: [HourlyData], timestamp: Date)] = [:]
-    private let cacheExpiration: TimeInterval = 300 // 5 minutes
-    
     init(weatherService: WeatherService) {
         self.weatherService = weatherService
     }
@@ -287,19 +283,8 @@ struct ForecastView: View {
     }
     
     private func fetchHourlyForecast() {
-        // Get location identifier for caching
-        let locationIdentifier = weatherService.useGPS ? "gps" : "\(UserDefaults.standard.string(forKey: "latitude") ?? "")_\(UserDefaults.standard.string(forKey: "longitude") ?? "")"
-        
-        // Check cache first
-        if let cached = hourlyCache[locationIdentifier],
-           Date().timeIntervalSince(cached.timestamp) < cacheExpiration {
-            self.hourlyData = cached.data
-            self.isLoadingHourly = false
-            return
-        }
-        
-        // If not in cache, fetch new data
         isLoadingHourly = true
+        
         Task {
             do {
                 // Get location coordinates
@@ -322,9 +307,6 @@ struct ForecastView: View {
                 // Process the data
                 let forecast = processHourlyForecast(response)
                 let summary = generateConditionSummary(response)
-                
-                // Update cache
-                hourlyCache[locationIdentifier] = (forecast, Date())
                 
                 await MainActor.run {
                     self.hourlyData = forecast
