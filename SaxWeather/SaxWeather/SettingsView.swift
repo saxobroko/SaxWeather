@@ -60,11 +60,14 @@ struct SettingsView: View {
                 // Save button always visible
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        alertMessage = "Saved!"
-                        showingAlert = true
-                        dismiss()
-                        // If you want to trigger saving everything, add logic here
-                        // For now, just shows the alert
+                        if validateSettings() {
+                            alertMessage = "Settings saved successfully!"
+                            showingAlert = true
+                            dismiss()
+                        } else {
+                            alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
+                            showingAlert = true
+                        }
                     }
                 }
                 // Dismiss button only visible during onboarding
@@ -78,6 +81,16 @@ struct SettingsView: View {
             }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            }
+            .alert("Location Access Required", isPresented: $weatherService.showLocationAlert) {
+                Button("Cancel", role: .cancel) {
+                    // Just dismiss the alert
+                }
+                Button("Open Settings") {
+                    weatherService.openSettings()
+                }
+            } message: {
+                Text("Location access is required to use GPS. Please enable it in Settings > Privacy > Location Services > SaxWeather")
             }
         }
     }
@@ -290,6 +303,40 @@ struct SettingsView: View {
         Task {
             await weatherService.fetchWeather()
         }
+    }
+    
+    private func validateSettings() -> Bool {
+        let wuApiKey = UserDefaults.standard.string(forKey: "wuApiKey") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        let owmApiKey = UserDefaults.standard.string(forKey: "owmApiKey") ?? ""
+        let latitude = UserDefaults.standard.string(forKey: "latitude") ?? ""
+        let longitude = UserDefaults.standard.string(forKey: "longitude") ?? ""
+        let useGPS = UserDefaults.standard.bool(forKey: "useGPS")
+        
+        let hasWUConfig = !wuApiKey.isEmpty && !stationID.isEmpty
+        let hasOWMConfig = !owmApiKey.isEmpty
+        
+        // For location, we need to ensure either:
+        // 1. GPS is enabled and authorized, or
+        // 2. Valid manual coordinates are provided
+        var hasValidLocation = false
+        
+        if useGPS {
+            // Check if location services are authorized
+            let status = weatherService.locationManager.authorizationStatus
+            hasValidLocation = status == .authorizedWhenInUse || status == .authorizedAlways
+        } else {
+            // Check if manual coordinates are valid
+            if let lat = Double(latitude), let lon = Double(longitude) {
+                hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+            }
+        }
+        
+        // Return true if either:
+        // 1. We have proper WU config, or
+        // 2. We have proper OWM config with valid location, or
+        // 3. We have valid location (for OpenMeteo fallback)
+        return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
     }
 }
 

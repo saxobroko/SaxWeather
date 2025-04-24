@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import UIKit
 
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
@@ -15,6 +16,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isLoading = false
     @Published private(set) var _useGPS: Bool
     @Published private(set) var _unitSystem: String
+    @Published var showLocationAlert = false
     
     let locationManager: CLLocationManager
     
@@ -34,26 +36,40 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     var useGPS: Bool {
         get { _useGPS }
         set {
+            // Only check authorization status when enabling GPS
+            if newValue {
+                let status = locationManager.authorizationStatus
+                switch status {
+                case .denied, .restricted:
+                    // If permissions are denied, show alert
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self._useGPS = false
+                        UserDefaults.standard.set(false, forKey: "useGPS")
+                        self.showLocationAlert = true
+                    }
+                    return
+                case .notDetermined:
+                    // Request permission
+                    locationManager.requestWhenInUseAuthorization()
+                    return
+                case .authorizedWhenInUse, .authorizedAlways:
+                    // Permission already granted, proceed
+                    break
+                @unknown default:
+                    break
+                }
+            }
+            
+            // Update the value
             _useGPS = newValue
             UserDefaults.standard.set(newValue, forKey: "useGPS")
             
             if newValue {
                 requestLocation()
             } else {
-                // Validate saved coordinates - if they're empty, revert to GPS
-                let savedLat = UserDefaults.standard.string(forKey: "latitude") ?? ""
-                let savedLon = UserDefaults.standard.string(forKey: "longitude") ?? ""
-                
-                if savedLat.isEmpty || savedLon.isEmpty {
-#if DEBUG
-                    print("⚠️ No saved coordinates found, reverting to GPS")
-#endif
-                    _useGPS = true
-                    UserDefaults.standard.set(true, forKey: "useGPS")
-                    requestLocation()
-                } else {
-                    locationManager.stopUpdatingLocation()
-                }
+                // Stop location updates when disabling GPS
+                locationManager.stopUpdatingLocation()
             }
             
             // Refresh weather data when GPS setting changes
@@ -406,6 +422,13 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
 #if DEBUG
             print("⚠️ Location permission denied")
 #endif
+            // Update useGPS to false when permissions are denied
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self._useGPS = false
+                UserDefaults.standard.set(false, forKey: "useGPS")
+            }
+            
             // Let the user know they need to enable location access
             Task { [weak self] in
                 guard let self = self else { return }
@@ -445,6 +468,13 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
 #if DEBUG
             print("⚠️ Location access denied or restricted")
 #endif
+            // Update useGPS to false when permissions are denied
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self._useGPS = false
+                UserDefaults.standard.set(false, forKey: "useGPS")
+            }
+            
             // Fall back to manual coordinates if available
             Task { [weak self] in
                 guard let self = self else { return }
@@ -458,6 +488,41 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
 #endif
             locationManager.requestWhenInUseAuthorization()
         }
+    }
+    
+    func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    func hasValidDataSources() -> Bool {
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        let owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
+        let latitude = UserDefaults.standard.string(forKey: "latitude") ?? ""
+        let longitude = UserDefaults.standard.string(forKey: "longitude") ?? ""
+        
+        // Check if we have valid API configurations
+        let hasWUConfig = !wuApiKey.isEmpty && !stationID.isEmpty
+        let hasOWMConfig = !owmApiKey.isEmpty
+        
+        // Check if we have valid location
+        var hasValidLocation = false
+        if useGPS {
+            let status = locationManager.authorizationStatus
+            hasValidLocation = status == .authorizedWhenInUse || status == .authorizedAlways
+        } else {
+            if let lat = Double(latitude), let lon = Double(longitude) {
+                hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+            }
+        }
+        
+        // Return true if we have either:
+        // 1. Valid WU config
+        // 2. Valid OWM config with location
+        // 3. Valid location (for OpenMeteo fallback)
+        return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
     }
 }
 
