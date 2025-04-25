@@ -194,7 +194,7 @@ struct SettingsView: View {
                     Text(unit).tag(unit)
                 }
             }
-            .onChange(of: unitSystem) { newValue, _ in
+            .onChange(of: unitSystem) { newValue in
                 weatherService.unitSystem = newValue
             }
             
@@ -209,7 +209,7 @@ struct SettingsView: View {
                     Text("\(days) Days").tag(days)
                 }
             }
-            .onChange(of: forecastDays) { newValue, transaction in
+            .onChange(of: forecastDays) { newValue in
                 Task {
                     await weatherService.fetchForecasts()
                 }

@@ -27,11 +27,9 @@ struct ForecastView: View {
         
         NavigationView {
             ZStack {
-                // BackgroundView implementation
-                if let forecast = weatherService.forecast {
-                    BackgroundView(condition: getCondition(for: forecast))
-                        .ignoresSafeArea()
-                }
+                // Use the centralized background condition
+                BackgroundView(condition: weatherService.currentBackgroundCondition)
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 28) {
@@ -158,30 +156,6 @@ struct ForecastView: View {
             .onAppear {
                 fetchHourlyForecast()
             }
-        }
-    }
-    
-    // Get condition for background view
-    private func getCondition(for forecast: WeatherForecast) -> String {
-        if let firstHourData = hourlyData.first {
-            return weatherTypeFor(code: firstHourData.weatherCode)
-        } else if let firstDay = forecast.daily.first {
-            return weatherTypeFor(code: firstDay.weatherCode)
-        } else {
-            return "clear"
-        }
-    }
-    
-    // Map weather code to weather type for background images
-    private func weatherTypeFor(code: Int) -> String {
-        switch code {
-        case 0, 1: return "sunny"
-        case 2, 3: return "cloudy"
-        case 45, 48: return "foggy"
-        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
-        case 71, 73, 75, 77, 85, 86: return "snowy"
-        case 95, 96, 99: return "thunder"
-        default: return "clear"
         }
     }
     

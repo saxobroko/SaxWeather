@@ -89,7 +89,7 @@ struct ContentView: View {
     
     private var backgroundLayer: some View {
         // Use the wrapper which properly passes the environment object
-        BackgroundViewWrapper(condition: weatherService.weather?.condition ?? "default")
+        BackgroundViewWrapper(condition: weatherService.currentBackgroundCondition)
     }
     
     struct BackgroundViewWrapper: View {

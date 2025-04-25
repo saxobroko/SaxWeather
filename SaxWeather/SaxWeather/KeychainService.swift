@@ -26,7 +26,7 @@ class KeychainService {
         
         if keychain.set(testValue, forKey: testKey) {
             logger.debug("✅ Successfully accessed keychain")
-            if let retrieved = keychain.get(testKey) {
+            if keychain.get(testKey) != nil {
                 keychain.delete(testKey)
                 logger.debug("✅ Keychain read/write test successful")
             } else {

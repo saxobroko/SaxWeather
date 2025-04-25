@@ -17,6 +17,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var _useGPS: Bool
     @Published private(set) var _unitSystem: String
     @Published var showLocationAlert = false
+    @Published var currentBackgroundCondition: String = "default"
     
     let locationManager: CLLocationManager
     
@@ -121,6 +122,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             await MainActor.run {
                 self.weather = weatherData
                 self.isLoading = false
+                self.updateBackgroundCondition()
             }
             
             // Always fetch forecast data after weather data is loaded
@@ -524,6 +526,36 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         // 3. Valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
     }
+    
+    private func weatherTypeFor(code: Int) -> String {
+        switch code {
+        case 0, 1: return "sunny"
+        case 2, 3: return "cloudy"
+        case 45, 48: return "foggy"
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
+        case 71, 73, 75, 77, 85, 86: return "snowy"
+        case 95, 96, 99: return "thunder"
+        default: return "default"
+        }
+    }
+    
+    private func updateBackgroundCondition() {
+        // First try to use the forecast if available
+        if let forecast = forecast, let firstDay = forecast.daily.first {
+            currentBackgroundCondition = weatherTypeFor(code: firstDay.weatherCode)
+        }
+        // If no forecast or if the weather condition suggests different weather, use that
+        else if let weather = weather, weather.condition != "default" {
+            currentBackgroundCondition = weather.condition
+        }
+        // Fallback to default
+        else {
+            currentBackgroundCondition = "default"
+        }
+    }
+    
+    // MARK: - Forecast Methods
+    // Note: fetchForecasts() is implemented in WeatherService+OpenMeteo.swift extension
 }
 
 // MARK: - Array Extension

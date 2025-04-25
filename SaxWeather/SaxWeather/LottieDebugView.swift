@@ -80,7 +80,7 @@ struct LottieDebugView: View {
                     }
                     .pickerStyle(.menu)
                     .padding(.horizontal)
-                    .onChange(of: selectedAnimation) { newValue, _ in
+                    .onChange(of: selectedAnimation) { newValue in
                         previewFailed = false
                         refreshID = UUID()
                         setDebugMessages(["Selected animation: \(newValue)"])
@@ -341,7 +341,7 @@ struct LottieDebugView: View {
         }
         
         // Check JSON file
-        if let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "json") {
+        if Bundle.main.url(forResource: selectedAnimation, withExtension: "json") != nil {
             addDebugMessage("✅ \(selectedAnimation).json exists")
             logger.debug("\(selectedAnimation).json exists")
         } else {
@@ -463,7 +463,7 @@ struct LottieDebugView: View {
         addDebugMessage("\nKeychain Accessibility Test:")
         if keychainService.keychain.set(testValue, forKey: testKey) {
             addDebugMessage("✅ Can write to keychain")
-            if let retrieved = keychainService.keychain.get(testKey) {
+            if keychainService.keychain.get(testKey) != nil {
                 addDebugMessage("✅ Can read from keychain")
                 if keychainService.keychain.delete(testKey) {
                     addDebugMessage("✅ Can delete from keychain")

@@ -16,79 +16,15 @@ struct BackgroundSettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
-                Group {
-                    if storeManager.customBackgroundUnlocked {
-                        VStack(spacing: 16) {
-                            Text("Custom Background Settings")
-                                .font(.headline)
-                            
-                            if let selectedImage = selectedImage {
-                                Image(uiImage: selectedImage)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 200)
-                                    .cornerRadius(12)
-                                    .shadow(radius: 4)
-                            } else if let savedData = savedImageData, let image = UIImage(data: savedData) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 200)
-                                    .cornerRadius(12)
-                                    .shadow(radius: 4)
-                            } else {
-                                Image(systemName: "photo.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 100)
-                                    .foregroundColor(.gray)
-                                    .padding()
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                    )
-                            }
-                            
-                            Button("Select Custom Background") {
-                                showingImagePicker = true
-                            }
-                            .buttonStyle(.borderedProminent)
-                            
-                            if savedImageData != nil {
-                                Toggle("Use custom background", isOn: $useCustomBackground)
-                                    .padding(.vertical)
-                                
-                                Button("Reset to Default Background") {
-                                    withAnimation {
-                                        savedImageData = nil
-                                        selectedImage = nil
-                                    }
-                                }
-                                .foregroundColor(.red)
-                            }
-                        }
-                        .padding()
-                        .background(Color(colorScheme == .dark ? .systemGray6 : .systemBackground))
-                        .cornerRadius(16)
-                        .shadow(radius: 5)
-                    } else {
-                        purchaseView
-                    }
-                }
-                .padding()
-                
+                mainContent
                 Spacer()
             }
             .navigationTitle("Background Settings")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+            .navigationBarItems(trailing: Button("Done") {
+                dismiss()
+            })
             .sheet(isPresented: $showingImagePicker) {
                 ImagePickerView(image: $selectedImage, onImageSelected: { image in
                     if let imageData = image.jpegData(compressionQuality: 0.7) {
@@ -102,10 +38,27 @@ struct BackgroundSettingsView: View {
             } message: { error in
                 Text(error)
             }
-            .onChange(of: storeManager.purchaseError) { newValue, _ in
-                showingAlert = newValue != nil
+            .onChange(of: storeManager.purchaseError) { error in
+                showingAlert = error != nil
             }
         }
+    }
+    
+    private var mainContent: some View {
+        Group {
+            if storeManager.customBackgroundUnlocked {
+                CustomBackgroundContent(
+                    selectedImage: $selectedImage,
+                    savedImageData: $savedImageData,
+                    useCustomBackground: $useCustomBackground,
+                    showingImagePicker: $showingImagePicker,
+                    colorScheme: colorScheme
+                )
+            } else {
+                purchaseView
+            }
+        }
+        .padding()
     }
     
     private var purchaseView: some View {
@@ -153,6 +106,70 @@ struct BackgroundSettingsView: View {
                 }
             }
             .padding(.top)
+        }
+        .padding()
+        .background(Color(colorScheme == .dark ? .systemGray6 : .systemBackground))
+        .cornerRadius(16)
+        .shadow(radius: 5)
+    }
+}
+
+struct CustomBackgroundContent: View {
+    @Binding var selectedImage: UIImage?
+    @Binding var savedImageData: Data?
+    @Binding var useCustomBackground: Bool
+    @Binding var showingImagePicker: Bool
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Custom Background Settings")
+                .font(.headline)
+            
+            if let selectedImage = selectedImage {
+                Image(uiImage: selectedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .shadow(radius: 4)
+            } else if let savedData = savedImageData, let image = UIImage(data: savedData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .shadow(radius: 4)
+            } else {
+                Image(systemName: "photo.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 100)
+                    .foregroundColor(.gray)
+                    .padding()
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray, style: StrokeStyle(lineWidth: 2, dash: [5]))
+                    )
+            }
+            
+            Button("Select Custom Background") {
+                showingImagePicker = true
+            }
+            .buttonStyle(.borderedProminent)
+            
+            if savedImageData != nil {
+                Toggle("Use custom background", isOn: $useCustomBackground)
+                    .padding(.vertical)
+                
+                Button("Reset to Default Background") {
+                    withAnimation {
+                        savedImageData = nil
+                        selectedImage = nil
+                    }
+                }
+                .foregroundColor(.red)
+            }
         }
         .padding()
         .background(Color(colorScheme == .dark ? .systemGray6 : .systemBackground))

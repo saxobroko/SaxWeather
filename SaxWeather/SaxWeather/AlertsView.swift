@@ -12,36 +12,11 @@ struct AlertsView: View {
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
 
-    // Helper to get a condition string for the background
-    private func getCondition() -> String {
-        if let forecast = weatherService.forecast {
-            // Use the first daily forecast as a fallback
-            if let firstDay = forecast.daily.first {
-                return weatherTypeFor(code: firstDay.weatherCode)
-            }
-        }
-        // fallback
-        return "clear"
-    }
-
-    // Map weather code to weather type for background images (reuse your mapping logic)
-    private func weatherTypeFor(code: Int) -> String {
-        switch code {
-        case 0, 1: return "sunny"
-        case 2, 3: return "cloudy"
-        case 45, 48: return "foggy"
-        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82: return "rainy"
-        case 71, 73, 75, 77, 85, 86: return "snowy"
-        case 95, 96, 99: return "thunder"
-        default: return "clear"
-        }
-    }
-
     var body: some View {
         NavigationView {
             ZStack {
-                // --- Dynamic background ---
-                BackgroundView(condition: getCondition())
+                // Use the centralized background condition
+                BackgroundView(condition: weatherService.currentBackgroundCondition)
                     .ignoresSafeArea()
 
                 // --- Foreground content ---
