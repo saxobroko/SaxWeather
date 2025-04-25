@@ -9,11 +9,13 @@ All notable changes to SaxWeather will be documented in this file.
 - Fixed toolbar implementation to resolve ambiguity issues
 - Updated onChange modifier to support pre-iOS 17 versions
 - General code improvements and bug fixes
+- Removed unnecessary MKDirectionsApplicationSupportedModes from Info.plist
 
 ### Fixed
 - Resolved compiler errors related to SwiftUI compatibility
 - Fixed ambiguous use of toolbar content
 - Improved backward compatibility for iOS versions prior to 17.0
+- Fixed App Store submission error related to routing capabilities
 
 ## [Previous Versions]
 - Initial release and subsequent updates 

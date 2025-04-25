@@ -12,12 +12,5 @@
     <!-- Location permissions -->
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>SaxWeather needs your location to show weather for your current location and center the radar map.</string>
-
-    <!-- Map capabilities -->
-    <key>MKDirectionsApplicationSupportedModes</key>
-    <array>
-        <string>MKDirectionsModePedestrian</string>
-        <string>MKDirectionsModeCar</string>
-    </array>
 </dict>
 </plist>
