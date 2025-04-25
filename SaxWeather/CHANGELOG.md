@@ -17,5 +17,10 @@ All notable changes to SaxWeather will be documented in this file.
 - Improved backward compatibility for iOS versions prior to 17.0
 - Fixed App Store submission error related to routing capabilities
 
+## [1.2.2] - 2024-03-21
+
+### Changed
+- Version update and maintenance release
+
 ## [Previous Versions]
 - Initial release and subsequent updates 
