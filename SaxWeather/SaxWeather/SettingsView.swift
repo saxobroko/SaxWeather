@@ -32,7 +32,96 @@ struct SettingsView: View {
     private let forecastDayOptions = [3, 5, 7, 10, 14]
     
     var body: some View {
-        NavigationView {
+        #if os(macOS)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack {
+                    Form {
+                        GroupBox(label: Text("Weather Sources").font(.title2)) {
+                            weatherSourcesSection
+                                .padding()
+                        }
+                        GroupBox(label: Text("Location").font(.title2)) {
+                            locationSection
+                                .padding()
+                        }
+                        GroupBox(label: Text("Units & Display").font(.title2)) {
+                            unitsAndDisplaySection
+                                .padding()
+                        }
+                        GroupBox(label: Text("Appearance").font(.title2)) {
+                            BackgroundSettingsButton()
+                                .environmentObject(storeManager)
+                                .padding()
+                        }
+                        GroupBox(label: Text("About").font(.title2)) {
+                            aboutSection
+                                .padding()
+                        }
+                        // Save button at the bottom
+                        HStack {
+                            Spacer()
+                            Button("Save") {
+                                if validateSettings() {
+                                    alertMessage = "Settings saved successfully!"
+                                    showingAlert = true
+                                    dismiss()
+                                } else {
+                                    alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
+                                    showingAlert = true
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            Spacer()
+                        }
+                        .padding(.top, 12)
+                    }
+                    .frame(minWidth: 320, maxWidth: min(geometry.size.width * 0.95, 500))
+                    .background(.regularMaterial)
+                    .cornerRadius(12)
+                    .font(.system(size: 14))
+                    .padding(.vertical, 32)
+                    .padding(.horizontal, max(24, (geometry.size.width - 500) / 2))
+                }
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .center)
+            }
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Save") {
+                        if validateSettings() {
+                            alertMessage = "Settings saved successfully!"
+                            showingAlert = true
+                            dismiss()
+                        } else {
+                            alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
+                            showingAlert = true
+                        }
+                    }.buttonStyle(.bordered)
+                }
+                if isOnboarding {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }.buttonStyle(.bordered)
+                    }
+                }
+            }
+            .alert(isPresented: $showingAlert) {
+                Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            }
+            .alert("Location Access Required", isPresented: $weatherService.showLocationAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Open Settings") { weatherService.openSettings() }
+            } message: {
+                Text("Location access is required to use GPS. Please enable it in Settings > Privacy > Location Services > SaxWeather")
+            }
+            .onChange(of: forecastDays) { newValue in
+                Task { await weatherService.fetchForecasts() }
+            }
+        }
+        #else
+        NavigationStack {
             Form {
                 Section(header: Text("Weather Sources")) {
                     weatherSourcesSection
@@ -57,8 +146,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .toolbar {
-                // Save button always visible
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("Save") {
                         if validateSettings() {
                             alertMessage = "Settings saved successfully!"
@@ -68,14 +156,13 @@ struct SettingsView: View {
                             alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
                             showingAlert = true
                         }
-                    }
+                    }.buttonStyle(.bordered)
                 }
-                // Dismiss button only visible during onboarding
                 if isOnboarding {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .cancellationAction) {
                         Button("Done") {
                             dismiss()
-                        }
+                        }.buttonStyle(.bordered)
                     }
                 }
             }
@@ -83,16 +170,16 @@ struct SettingsView: View {
                 Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
             }
             .alert("Location Access Required", isPresented: $weatherService.showLocationAlert) {
-                Button("Cancel", role: .cancel) {
-                    // Just dismiss the alert
-                }
-                Button("Open Settings") {
-                    weatherService.openSettings()
-                }
+                Button("Cancel", role: .cancel) {}
+                Button("Open Settings") { weatherService.openSettings() }
             } message: {
                 Text("Location access is required to use GPS. Please enable it in Settings > Privacy > Location Services > SaxWeather")
             }
+            .onChange(of: forecastDays) { newValue in
+                Task { await weatherService.fetchForecasts() }
+            }
         }
+        #endif
     }
     
     // Safe accessor for weather values using Mirror
@@ -122,14 +209,18 @@ struct SettingsView: View {
                     .font(.headline)
                 
                 TextField("API Key", text: $wuApiKey)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    #endif
                 
                 TextField("Station ID", text: $stationID)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    #endif
             }
             
             VStack(alignment: .leading) {
@@ -137,14 +228,16 @@ struct SettingsView: View {
                     .font(.headline)
                 
                 TextField("API Key", text: $owmApiKey)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    #endif
             }
             
             Button("Save API Keys") {
                 saveAPIKeys()
-            }
+            }.buttonStyle(.bordered)
             .onAppear {
                 loadAPIKeys()
             }
@@ -162,6 +255,7 @@ struct SettingsView: View {
             }
             .toggleStyle(SwitchToggleStyle(tint: .blue))
             
+            #if os(iOS)
             if !weatherService.useGPS {
                 VStack(alignment: .leading) {
                     Text("Manual Coordinates")
@@ -171,19 +265,41 @@ struct SettingsView: View {
                     HStack {
                         TextField("Latitude", text: $latitude)
                             .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.roundedBorder)
                         
                         TextField("Longitude", text: $longitude)
                             .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.roundedBorder)
                     }
                     
                     Button("Save Coordinates") {
                         saveCoordinates()
-                    }
+                    }.buttonStyle(.bordered)
                     .padding(.top, 5)
                 }
             }
+            #else
+            if !weatherService.useGPS {
+                VStack(alignment: .leading) {
+                    Text("Manual Coordinates")
+                        .font(.headline)
+                        .padding(.top)
+                    
+                    HStack {
+                        TextField("Latitude", text: $latitude)
+                            .textFieldStyle(.roundedBorder)
+                        
+                        TextField("Longitude", text: $longitude)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    Button("Save Coordinates") {
+                        saveCoordinates()
+                    }.buttonStyle(.bordered)
+                    .padding(.top, 5)
+                }
+            }
+            #endif
         }
     }
     
@@ -194,21 +310,28 @@ struct SettingsView: View {
                     Text(unit).tag(unit)
                 }
             }
+            #if os(macOS)
+            .pickerStyle(.radioGroup)
+            #endif
             .onChange(of: unitSystem) { newValue in
                 weatherService.unitSystem = newValue
             }
-            
             Picker("Appearance", selection: $colorScheme) {
                 Text("System").tag("system")
                 Text("Light").tag("light")
                 Text("Dark").tag("dark")
             }
-            
+            #if os(macOS)
+            .pickerStyle(.radioGroup)
+            #endif
             Picker("Forecast Days", selection: $forecastDays) {
                 ForEach(forecastDayOptions, id: \.self) { days in
                     Text("\(days) Days").tag(days)
                 }
             }
+            #if os(macOS)
+            .pickerStyle(.radioGroup)
+            #endif
             .onChange(of: forecastDays) { newValue in
                 Task {
                     await weatherService.fetchForecasts()
@@ -321,6 +444,7 @@ struct SettingsView: View {
         // 2. Valid manual coordinates are provided
         var hasValidLocation = false
         
+        #if os(iOS)
         if useGPS {
             // Check if location services are authorized
             let status = weatherService.locationManager.authorizationStatus
@@ -331,6 +455,11 @@ struct SettingsView: View {
                 hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
             }
         }
+        #else
+        if let lat = Double(latitude), let lon = Double(longitude) {
+            hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+        }
+        #endif
         
         // Return true if either:
         // 1. We have proper WU config, or

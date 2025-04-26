@@ -7,45 +7,51 @@
 
 import SwiftUI
 
+private var secondarySystemBackgroundColor: Color {
+    #if os(iOS)
+    return Color(UIColor.secondarySystemBackground)
+    #elseif os(macOS)
+    return Color(NSColor.windowBackgroundColor)
+    #endif
+}
+
 struct AlertsView: View {
     @ObservedObject var alertManager: WeatherAlertManager
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Use the centralized background condition
-                BackgroundView(condition: weatherService.currentBackgroundCondition)
-                    .ignoresSafeArea()
+        ZStack {
+            // Use the centralized background condition
+            BackgroundView(condition: weatherService.currentBackgroundCondition)
+                .ignoresSafeArea()
 
-                // --- Foreground content ---
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Precipitation Timeline Section
-                        if let timeline = alertManager.precipitationTimeline {
-                            precipitationSection(timeline)
-                        }
-
-                        // Weather Alerts Section
-                        alertsSection
-
-                        // Notifications Permission Section
-                        if alertManager.authorizationStatus != .authorized {
-                            notificationPermissionView
-                        }
+            // --- Foreground content ---
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Precipitation Timeline Section
+                    if let timeline = alertManager.precipitationTimeline {
+                        precipitationSection(timeline)
                     }
-                    .padding()
+
+                    // Weather Alerts Section
+                    alertsSection
+
+                    // Notifications Permission Section
+                    if alertManager.authorizationStatus != .authorized {
+                        notificationPermissionView
+                    }
                 }
-                .navigationTitle("Weather Alerts")
-                .refreshable {
-                    await refreshData()
-                }
+                .padding()
             }
-            .onAppear {
-                Task {
-                    await refreshData()
-                }
+            .navigationTitle("Weather Alerts")
+            .refreshable {
+                await refreshData()
+            }
+        }
+        .onAppear {
+            Task {
+                await refreshData()
             }
         }
     }
@@ -155,7 +161,7 @@ struct AlertsView: View {
             .padding(.top, 8)
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(secondarySystemBackgroundColor)
         .cornerRadius(12)
     }
 
@@ -290,7 +296,7 @@ struct AlertsView: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .background(secondarySystemBackgroundColor)
                     .cornerRadius(12)
                     .padding(.horizontal)
             } else {
@@ -328,7 +334,7 @@ struct AlertsView: View {
                 .padding(.top, 4)
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(secondarySystemBackgroundColor)
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -377,7 +383,7 @@ struct AlertsView: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(secondarySystemBackgroundColor)
         .cornerRadius(12)
         .padding(.horizontal)
     }

@@ -139,15 +139,15 @@ struct Weather: Codable {
         self.lastUpdateTime = Date()
         
         self.temperature = wuObservation?.metric.temp ?? owmCurrent?.temp ?? openMeteoResponse?.current?.temperature_2m
-            self.humidity = wuObservation?.humidity ?? owmCurrent?.humidity ?? Double(openMeteoResponse?.current?.relative_humidity_2m ?? 0)
-            self.windSpeed = wuObservation?.metric.windSpeed ?? owmCurrent?.wind_speed ?? openMeteoResponse?.current?.wind_speed_10m
-            self.high = owmDaily?.temp.max
-            self.low = owmDaily?.temp.min
-            self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
-            self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure ?? openMeteoResponse?.current?.pressure_msl
-            self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
+        self.humidity = wuObservation?.humidity ?? owmCurrent?.humidity ?? Double(openMeteoResponse?.current?.relative_humidity_2m ?? 0)
+        self.windSpeed = wuObservation?.metric.windSpeed ?? owmCurrent?.wind_speed ?? openMeteoResponse?.current?.wind_speed_10m
+        self.high = owmDaily?.temp.max ?? openMeteoResponse?.daily.temperature_2m_max.first
+        self.low = owmDaily?.temp.min ?? openMeteoResponse?.daily.temperature_2m_min.first
+        self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
+        self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure ?? openMeteoResponse?.current?.pressure_msl
+        self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
         self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
-            self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
+        self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
         
         // Initialize forecasts if OpenMeteo data is available
         if let openMeteoDaily = openMeteoResponse?.daily {

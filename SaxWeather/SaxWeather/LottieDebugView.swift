@@ -6,6 +6,8 @@
 //  Last modified: 2025-03-10 11:02:41 UTC
 //
 
+#if os(iOS)
+
 import SwiftUI
 import Lottie
 import UniformTypeIdentifiers
@@ -705,3 +707,5 @@ struct LottieDebugView: View {
         }
     }
 }
+
+#endif

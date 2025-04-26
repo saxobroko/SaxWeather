@@ -17,145 +17,167 @@ struct ForecastView: View {
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
     
+    private var cardBackgroundColor: Color {
+        #if os(iOS)
+        return colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white
+        #elseif os(macOS)
+        return colorScheme == .dark ? Color(NSColor.windowBackgroundColor) : Color.white
+        #endif
+    }
+    private var cardShadowColor: Color {
+        return colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.15)
+    }
+    private var cardFillColor: Color {
+        #if os(iOS)
+        return Color(UIColor.systemGray5).opacity(0.9)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor).opacity(0.9)
+        #endif
+    }
+    private var cardFillColor6: Color {
+        #if os(iOS)
+        return Color(UIColor.systemGray6)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor)
+        #endif
+    }
+    
     init(weatherService: WeatherService) {
         self.weatherService = weatherService
     }
     
     var body: some View {
-        let cardBackgroundColor = colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white
-        let shadowColor = colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.15)
-        
-        NavigationView {
-            ZStack {
-                // Use the centralized background condition
-                BackgroundView(condition: weatherService.currentBackgroundCondition)
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 28) {
-                        // Header section - keeping your original styling
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Weather Forecast")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                            
-                            if let forecast = weatherService.forecast {
-                                Text("Next \(forecast.daily.count) days")
-                                    .font(.title3)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
+        ZStack {
+            // Use the centralized background condition
+            BackgroundView(condition: weatherService.currentBackgroundCondition)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 28) {
+                    // Header section - keeping your original styling
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Weather Forecast")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
                         
-                        // Improved hourly forecast section
-                        VStack(alignment: .leading, spacing: 16) {
-                            // Section header
-                            HStack {
-                                Image(systemName: "clock")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                                
-                                Text("Hourly Forecast")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            // Weather condition summary
-                            if !conditionSummary.isEmpty && !isLoadingHourly {
-                                Text(conditionSummary)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal, 20)
-                            }
-                            
-                            // Hourly forecast scrollable container
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    if isLoadingHourly {
-                                        ForEach(0..<6, id: \.self) { _ in
-                                            hourlyForecastItemSkeleton()
-                                        }
-                                    } else if hourlyData.isEmpty {
-                                        Text("No hourly data available")
-                                            .foregroundColor(.secondary)
-                                            .padding()
-                                    } else {
-                                        ForEach(hourlyData) { hour in
-                                            hourlyForecastItem(hour)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                            }
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(cardBackgroundColor)
-                                .shadow(color: shadowColor, radius: 10, x: 0, y: 4)
-                        )
-                        .padding(.horizontal)
-                        
-                        // YOUR ORIGINAL DAILY FORECAST SECTION
-                        // Daily forecast cards in a vertical stack
                         if let forecast = weatherService.forecast {
-                            LazyVStack(spacing: 24) {
-                                ForEach(forecast.daily) { day in
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        // Date header above the card
-                                        Text(formattedDate(day.date))
-                                            .font(.headline)
-                                            .padding(.horizontal, 4)
-                                        
-                                        // The card itself
-                                        ForecastDayCard(day: day, unitSystem: weatherService.unitSystem)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                selectedDay = day
-                                            }
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        } else {
-                            // Skeleton loading for daily forecasts
-                            LazyVStack(spacing: 24) {
-                                ForEach(0..<5, id: \.self) { _ in
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        // Date header skeleton
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.3))
-                                            .frame(height: 20)
-                                            .cornerRadius(4)
-                                            .padding(.horizontal, 4)
-                                        
-                                        // Card skeleton
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.3))
-                                            .frame(height: 120)
-                                            .cornerRadius(16)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                            .redacted(reason: .placeholder)
+                            Text("Next \(forecast.daily.count) days")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.vertical)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    
+                    // Improved hourly forecast section
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Section header
+                        HStack {
+                            Image(systemName: "clock")
+                                .font(.title3)
+                                .foregroundColor(.blue)
+                            
+                            Text("Hourly Forecast")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Weather condition summary
+                        if !conditionSummary.isEmpty && !isLoadingHourly {
+                            Text(conditionSummary)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 20)
+                        }
+                        
+                        // Hourly forecast scrollable container
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                if isLoadingHourly {
+                                    ForEach(0..<6, id: \.self) { _ in
+                                        hourlyForecastItemSkeleton()
+                                    }
+                                } else if hourlyData.isEmpty {
+                                    Text("No hourly data available")
+                                        .foregroundColor(.secondary)
+                                        .padding()
+                                } else {
+                                    ForEach(hourlyData) { hour in
+                                        hourlyForecastItem(hour)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                        }
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(cardBackgroundColor)
+                            .shadow(color: cardShadowColor, radius: 10, x: 0, y: 4)
+                    )
+                    .padding(.horizontal)
+                    
+                    // YOUR ORIGINAL DAILY FORECAST SECTION
+                    // Daily forecast cards in a vertical stack
+                    if let forecast = weatherService.forecast {
+                        LazyVStack(spacing: 24) {
+                            ForEach(forecast.daily) { day in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    // Date header above the card
+                                    Text(formattedDate(day.date))
+                                        .font(.headline)
+                                        .padding(.horizontal, 4)
+                                    
+                                    // The card itself
+                                    ForecastDayCard(day: day, unitSystem: weatherService.unitSystem)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedDay = day
+                                        }
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        // Skeleton loading for daily forecasts
+                        LazyVStack(spacing: 24) {
+                            ForEach(0..<5, id: \.self) { _ in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    // Date header skeleton
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(height: 20)
+                                        .cornerRadius(4)
+                                        .padding(.horizontal, 4)
+                                    
+                                    // Card skeleton
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(height: 120)
+                                        .cornerRadius(16)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                        .redacted(reason: .placeholder)
+                    }
                 }
-                .background(Color.clear)
+                .padding(.vertical)
             }
-            .sheet(item: $selectedDay) { day in
-                DetailedForecastSheet(day: day, unitSystem: weatherService.unitSystem)
-            }
-            .navigationBarHidden(true)
-            .onAppear {
-                fetchHourlyForecast()
-            }
+            .background(Color.clear)
+        }
+        .sheet(item: $selectedDay) { day in
+            DetailedForecastSheet(day: day, unitSystem: weatherService.unitSystem)
+        }
+        #if os(iOS)
+        .navigationBarHidden(true)
+        #endif
+        .onAppear {
+            fetchHourlyForecast()
         }
     }
     
@@ -191,11 +213,7 @@ struct ForecastView: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(
-                    colorScheme == .dark ?
-                    Color(UIColor.systemGray5).opacity(0.9) :
-                    Color.white.opacity(0.9)
-                )
+                .fill(cardFillColor)
                 .shadow(color: colorScheme == .dark ?
                         Color.black.opacity(0.2) :
                         Color.gray.opacity(0.1),
@@ -222,9 +240,7 @@ struct ForecastView: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray5).opacity(0.9) :
-                      Color.white.opacity(0.9))
+                .fill(cardFillColor)
         )
         .frame(width: 80)
     }
@@ -437,6 +453,14 @@ struct ForecastDayCard: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var loadingFailed: Bool = false
     
+    private var cardFillColor6: Color {
+        #if os(iOS)
+        return Color(UIColor.systemGray6)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor)
+        #endif
+    }
+    
     var body: some View {
         HStack(spacing: 20) {
             // Left: Weather Lottie animation and temperatures
@@ -507,9 +531,7 @@ struct ForecastDayCard: View {
         .padding(.horizontal, 20)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(cardFillColor6)
                 .shadow(color: colorScheme == .dark ?
                         Color.black.opacity(0.3) :
                         Color.gray.opacity(0.2),

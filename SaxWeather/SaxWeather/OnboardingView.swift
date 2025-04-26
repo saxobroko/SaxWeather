@@ -14,6 +14,7 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct OnboardingView: View {
     @Binding var isFirstLaunch: Bool
@@ -56,8 +57,13 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
+            #if os(iOS)
             Color(UIColor.systemBackground)
                 .ignoresSafeArea()
+            #elseif os(macOS)
+            Color(NSColor.windowBackgroundColor)
+                .ignoresSafeArea()
+            #endif
             
             VStack(spacing: 20) {
                 Spacer()
@@ -101,6 +107,9 @@ struct OnboardingView: View {
                             Text("Previous")
                                 .foregroundColor(.blue)
                         }
+                        #if os(macOS)
+                        .buttonStyle(.bordered)
+                        #endif
                     }
                     
                     if currentStep < steps.count - 1 {
@@ -121,6 +130,15 @@ struct OnboardingView: View {
                                 .bold()
                         }
                         .buttonStyle(.borderedProminent)
+                        #if os(macOS)
+                        Button(action: {
+                            // Skip onboarding on macOS
+                            isFirstLaunch = false
+                        }) {
+                            Text("Skip")
+                        }
+                        .buttonStyle(.bordered)
+                        #endif
                     }
                 }
                 .padding(.bottom, 30)
@@ -128,52 +146,57 @@ struct OnboardingView: View {
             .padding()
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView(weatherService: weatherService)
-                .interactiveDismissDisabled()
+            SettingsView(weatherService: weatherService, isOnboarding: true)
+                .environmentObject(StoreManager.shared)
+                .interactiveDismissDisabled(false)
                 .onDisappear {
-                    // Only dismiss the onboarding if settings are properly configured
+                    // On macOS, always allow onboarding to complete after settings
+                    #if os(macOS)
+                    isFirstLaunch = false
+                    #else
                     if validateSettings() {
-                        // Ensure we're on the main thread when updating the binding
                         DispatchQueue.main.async {
                             isFirstLaunch = false
                         }
                     }
+                    #endif
                 }
         }
     }
     
     private func validateSettings() -> Bool {
+        #if os(macOS)
+        // TODO: Implement proper validation for macOS. For now, always allow onboarding to complete.
+        return true
+        #else
         let wuApiKey = UserDefaults.standard.string(forKey: "wuApiKey") ?? ""
         let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
         let owmApiKey = UserDefaults.standard.string(forKey: "owmApiKey") ?? ""
         let latitude = UserDefaults.standard.string(forKey: "latitude") ?? ""
         let longitude = UserDefaults.standard.string(forKey: "longitude") ?? ""
         let useGPS = UserDefaults.standard.bool(forKey: "useGPS")
-        
         let hasWUConfig = !wuApiKey.isEmpty && !stationID.isEmpty
         let hasOWMConfig = !owmApiKey.isEmpty
-        
-        // For location, we need to ensure either:
-        // 1. GPS is enabled and authorized, or
-        // 2. Valid manual coordinates are provided
         var hasValidLocation = false
-        
         if useGPS {
-            // Check if location services are authorized
             let status = weatherService.locationManager.authorizationStatus
-            hasValidLocation = status == .authorizedWhenInUse || status == .authorizedAlways
+            hasValidLocation = hasValidLocationStatus(status)
         } else {
-            // Check if manual coordinates are valid
             if let lat = Double(latitude), let lon = Double(longitude) {
                 hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
             }
         }
-        
-        // Return true if either:
-        // 1. We have proper WU config, or
-        // 2. We have proper OWM config with valid location, or
-        // 3. We have valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
+        #endif
+    }
+    
+    private func hasValidLocationStatus(_ status: CLAuthorizationStatus) -> Bool {
+        #if os(iOS)
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+        #else
+        // macOS fallback: treat authorized as valid
+        return status == .authorized
+        #endif
     }
 }
 

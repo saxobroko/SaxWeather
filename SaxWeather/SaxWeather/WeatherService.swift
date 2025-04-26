@@ -7,7 +7,9 @@
 
 import Foundation
 import CoreLocation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
@@ -493,9 +495,11 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func openSettings() {
+        #if os(iOS)
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
         }
+        #endif
     }
     
     func hasValidDataSources() -> Bool {
@@ -513,7 +517,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         var hasValidLocation = false
         if useGPS {
             let status = locationManager.authorizationStatus
-            hasValidLocation = status == .authorizedWhenInUse || status == .authorizedAlways
+            hasValidLocation = hasValidLocationStatus(status)
         } else {
             if let lat = Double(latitude), let lon = Double(longitude) {
                 hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
@@ -525,6 +529,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         // 2. Valid OWM config with location
         // 3. Valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
+    }
+    
+    private func hasValidLocationStatus(_ status: CLAuthorizationStatus) -> Bool {
+        #if os(iOS)
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+        #else
+        return status == .authorized
+        #endif
     }
     
     private func weatherTypeFor(code: Int) -> String {

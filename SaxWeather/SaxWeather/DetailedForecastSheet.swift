@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+private func backgroundFillColor(_ colorScheme: ColorScheme) -> Color {
+    #if os(iOS)
+    return Color(UIColor.systemGray6)
+    #elseif os(macOS)
+    return Color(NSColor.windowBackgroundColor)
+    #endif
+}
+
 struct DetailedForecastSheet: View {
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
@@ -15,136 +23,132 @@ struct DetailedForecastSheet: View {
     @State private var loadingFailed: Bool = false
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header with date and dismiss button
-                    HStack {
-                        Text(formattedDate(day.date))
-                            .font(.title2.bold())
+        ScrollView {
+            VStack(spacing: 20) {
+                // Header with date and dismiss button
+                HStack {
+                    Text(formattedDate(day.date))
+                        .font(.title2.bold())
+                    
+                    Spacer()
+                    
+                    Button {
+                        presentationMode.wrappedValue.dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                
+                // Main weather info
+                VStack(spacing: 16) {
+                    // Lottie animation with temperature
+                    HStack(spacing: 25) {
+                        // Use Lottie animation instead of text emoji
+                        if loadingFailed {
+                            Text(day.weatherSymbol)
+                                .font(.system(size: 80))
+                                .minimumScaleFactor(0.7)
+                        } else {
+                            let isNight = WeatherAnimationHelper.isNighttime(sunrise: day.sunrise, sunset: day.sunset)
+                            LottieView(
+                                name: WeatherAnimationHelper.animationNameFromCode(
+                                    for: day.weatherCode,
+                                    isNight: isNight
+                                ),
+                                loadingFailed: $loadingFailed
+                            )
+                            .frame(width: 120, height: 120)
+                        }
                         
-                        Spacer()
-                        
-                        Button {
-                            presentationMode.wrappedValue.dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title2)
+                        // Temperature
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(Int(round(day.tempMax)))°")
+                                .font(.system(size: 46, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                            
+                            Text("\(Int(round(day.tempMin)))°")
+                                .font(.system(size: 32, design: .rounded))
+                                .monospacedDigit()
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.horizontal)
                     .padding(.top, 10)
                     
-                    // Main weather info
-                    VStack(spacing: 16) {
-                        // Lottie animation with temperature
-                        HStack(spacing: 25) {
-                            // Use Lottie animation instead of text emoji
-                            if loadingFailed {
-                                Text(day.weatherSymbol)
-                                    .font(.system(size: 80))
-                                    .minimumScaleFactor(0.7)
-                            } else {
-                                let isNight = WeatherAnimationHelper.isNighttime(sunrise: day.sunrise, sunset: day.sunset)
-                                LottieView(
-                                    name: WeatherAnimationHelper.animationNameFromCode(
-                                        for: day.weatherCode,
-                                        isNight: isNight
-                                    ),
-                                    loadingFailed: $loadingFailed
-                                )
-                                .frame(width: 120, height: 120)
-                            }
-                            
-                            // Temperature
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(Int(round(day.tempMax)))°")
-                                    .font(.system(size: 46, weight: .bold, design: .rounded))
-                                    .monospacedDigit()
-                                
-                                Text("\(Int(round(day.tempMin)))°")
-                                    .font(.system(size: 32, design: .rounded))
-                                    .monospacedDigit()
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.top, 10)
-                        
-                        // Weather description
-                        Text(weatherDescription(day.weatherCode))
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white)
-                            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.2),
-                                   radius: 8, x: 0, y: 4)
-                    )
-                    .padding(.horizontal)
-                    
-                    // Detailed weather data
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                        // Sunrise
-                        WeatherDetailCard(
-                            icon: "sunrise.fill",
-                            label: "Sunrise",
-                            value: day.sunrise != nil ? formattedTime(day.sunrise!) : "N/A",
-                            color: .orange
-                        )
-                        
-                        // Sunset
-                        WeatherDetailCard(
-                            icon: "sunset.fill",
-                            label: "Sunset",
-                            value: day.sunset != nil ? formattedTime(day.sunset!) : "N/A",
-                            color: .orange
-                        )
-                        
-                        // Humidity
-                        WeatherDetailCard(
-                            icon: "humidity.fill",
-                            label: "Humidity",
-                            value: "\(Int(round(day.humidity)))%",
-                            color: .blue
-                        )
-                        
-                        // UV Index
-                        WeatherDetailCard(
-                            icon: "sun.max.fill",
-                            label: "UV Index",
-                            value: "\(Int(round(day.uvIndex)))",
-                            color: .purple
-                        )
-                        
-                        // Wind Speed
-                        WeatherDetailCard(
-                            icon: "wind",
-                            label: "Wind Speed",
-                            value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
-                            color: .teal
-                        )
-                        
-                        // Precipitation
-                        WeatherDetailCard(
-                            icon: "drop.fill",
-                            label: "Precipitation",
-                            value: "\(Int(round(day.precipitationProbability)))%",
-                            color: .blue
-                        )
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer(minLength: 20)
+                    // Weather description
+                    Text(weatherDescription(day.weatherCode))
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(backgroundFillColor(colorScheme))
+                        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.2),
+                               radius: 8, x: 0, y: 4)
+                )
+                .padding(.horizontal)
+                
+                // Detailed weather data
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                    // Sunrise
+                    WeatherDetailCard(
+                        icon: "sunrise.fill",
+                        label: "Sunrise",
+                        value: day.sunrise != nil ? formattedTime(day.sunrise!) : "N/A",
+                        color: .orange
+                    )
+                    
+                    // Sunset
+                    WeatherDetailCard(
+                        icon: "sunset.fill",
+                        label: "Sunset",
+                        value: day.sunset != nil ? formattedTime(day.sunset!) : "N/A",
+                        color: .orange
+                    )
+                    
+                    // Humidity
+                    WeatherDetailCard(
+                        icon: "humidity.fill",
+                        label: "Humidity",
+                        value: "\(Int(round(day.humidity)))%",
+                        color: .blue
+                    )
+                    
+                    // UV Index
+                    WeatherDetailCard(
+                        icon: "sun.max.fill",
+                        label: "UV Index",
+                        value: "\(Int(round(day.uvIndex)))",
+                        color: .purple
+                    )
+                    
+                    // Wind Speed
+                    WeatherDetailCard(
+                        icon: "wind",
+                        label: "Wind Speed",
+                        value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
+                        color: .teal
+                    )
+                    
+                    // Precipitation
+                    WeatherDetailCard(
+                        icon: "drop.fill",
+                        label: "Precipitation",
+                        value: "\(Int(round(day.precipitationProbability)))%",
+                        color: .blue
+                    )
+                }
+                .padding(.horizontal)
+                
+                Spacer(minLength: 20)
             }
-            .navigationBarHidden(true)
-            .background(Color(UIColor.systemBackground))
         }
     }
     
@@ -216,7 +220,7 @@ struct WeatherDetailCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white)
+                .fill(backgroundFillColor(colorScheme))
                 .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.gray.opacity(0.15),
                        radius: 6, x: 0, y: 3)
         )
@@ -250,9 +254,7 @@ struct DetailBox: View {
         .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(backgroundFillColor(colorScheme))
                 .shadow(radius: 3)
         )
     }

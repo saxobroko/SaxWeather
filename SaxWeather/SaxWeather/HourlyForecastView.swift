@@ -17,6 +17,14 @@ struct HourlyForecastView: View {
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
     
+    private var backgroundFillColor: Color {
+        #if os(iOS)
+        return Color(UIColor.systemGray6)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor)
+        #endif
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section title with condition summary
@@ -75,9 +83,7 @@ struct HourlyForecastView: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(colorScheme == .dark ? backgroundFillColor : Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
         )
         .frame(width: 75)
@@ -113,9 +119,7 @@ struct HourlyForecastView: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(colorScheme == .dark ? backgroundFillColor : Color.white)
         )
         .frame(width: 75)
         .redacted(reason: .placeholder)

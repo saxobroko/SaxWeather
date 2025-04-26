@@ -22,7 +22,11 @@ struct BackgroundSettingsButton: View {
                     .foregroundColor(.gray)
             }
             .padding()
+            #if os(iOS)
             .background(Color(.systemBackground))
+            #elseif os(macOS)
+            .background(Color(NSColor.windowBackgroundColor))
+            #endif
             .cornerRadius(10)
         }
         .sheet(isPresented: $showingBackgroundSettings) {

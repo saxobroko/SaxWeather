@@ -6,9 +6,30 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 import CoreLocation
 import StoreKit
 import MapKit
+
+// MARK: - Popup Environment
+struct PopupData {
+    let title: String
+    let value: String
+    let description: String
+}
+
+private struct PopupStateKey: EnvironmentKey {
+    static let defaultValue: Binding<PopupData?> = .constant(nil)
+}
+
+extension EnvironmentValues {
+    var popupState: Binding<PopupData?> {
+        get { self[PopupStateKey.self] }
+        set { self[PopupStateKey.self] = newValue }
+    }
+}
 
 // MARK: - Content View
 struct ContentView: View {
@@ -18,71 +39,116 @@ struct ContentView: View {
     @State private var isRefreshing = false
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var systemColorScheme
-    @StateObject private var weatherAlertManager = WeatherAlertManager() // Add this line
+    @StateObject private var weatherAlertManager = WeatherAlertManager()
+    @State private var activePopup: PopupData?
     
     var body: some View {
-        Group {
-            if isFirstLaunch {
-                OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
-                    .preferredColorScheme(selectedColorScheme)
-                    .environmentObject(storeManager)
-            } else {
-                TabView {
-                    // Tab 1: Main Weather View
-                    mainWeatherView
+        ZStack {
+            Group {
+                if isFirstLaunch {
+                    OnboardingView(isFirstLaunch: $isFirstLaunch, weatherService: weatherService)
+                        .preferredColorScheme(selectedColorScheme)
+                        .environmentObject(storeManager)
+                } else {
+                    TabView {
+                        NavigationStack {
+                            mainWeatherView
+                        }
                         .tabItem {
                             Label("Weather", systemImage: "cloud.sun.fill")
                         }
-                    
-                    // Tab 2: Forecast - Updated to use ForecastContainerView
-                    ForecastView(weatherService: weatherService)
+                        
+                        NavigationStack {
+                            ForecastView(weatherService: weatherService)
+                        }
                         .tabItem {
                             Label("Forecast", systemImage: "calendar")
                         }
-                    
-                    // New Tab 3: Weather Alerts
-                    AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                        
+                        NavigationStack {
+                            AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                        }
                         .tabItem {
                             Label("Alerts", systemImage: "exclamationmark.triangle")
                         }
-                    
-                    // Tab 4: Settings
-                    SettingsView(weatherService: weatherService)
+                        
+                        NavigationStack {
+                            SettingsView(weatherService: weatherService)
+                        }
                         .tabItem {
                             Label("Settings", systemImage: "gear")
                         }
-                    
-                    // Tab 5: Debug Tab - Only shows in DEBUG builds
-                    #if DEBUG
-                    LottieDebugView()
+                        
+                        #if os(iOS)
+                        NavigationStack {
+                            LottieDebugView()
+                        }
                         .tabItem {
                             Label("Debug", systemImage: "ladybug.fill")
                         }
-                    #endif
-                }
-                .preferredColorScheme(selectedColorScheme)
-                .onAppear {
-                    // Fetch weather data when transitioning to main view
-                    Task {
-                        await weatherService.fetchWeather()
+                        #endif
+                    }
+                    .preferredColorScheme(selectedColorScheme)
+                    .onAppear {
+                        Task {
+                            await weatherService.fetchWeather()
+                        }
                     }
                 }
             }
+            .environment(\.popupState, $activePopup)
+            
+            // Global popup
+            if let popupData = activePopup {
+                Color.black.opacity(0.6)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        activePopup = nil
+                    }
+                
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text(popupData.title)
+                            .font(.system(size: 17, weight: .semibold))
+                        Spacer()
+                        Text(popupData.value)
+                            .font(.system(size: 17))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Divider()
+                    
+                    Text(popupData.description)
+                        .font(.system(size: 15))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(4)
+                }
+                .padding()
+                .frame(width: 280)
+                #if os(iOS)
+                .background(Color(UIColor.systemBackground))
+                #elseif os(macOS)
+                .background(Color(NSColor.windowBackgroundColor))
+                #endif
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.2), radius: 8)
+            }
         }
         .animation(.easeInOut, value: isFirstLaunch)
+        .animation(.easeInOut, value: activePopup != nil)
     }
     
     private var mainWeatherView: some View {
-        NavigationView {
-            ZStack {
-                backgroundLayer
-                contentLayer
-            }
-            .onAppear {
-                Task {
-                    await weatherService.fetchWeather()
-                }
+        ZStack {
+            backgroundLayer
+            contentLayer
+        }
+        .onAppear {
+            Task {
+                await weatherService.fetchWeather()
             }
         }
     }
@@ -112,41 +178,56 @@ struct ContentView: View {
             }
             footerView
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
     
     private var weatherContent: some View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
-                // Use SF Symbols instead of Lottie
                 VStack(spacing: 8) {
-                    // Weather animation based on condition
+                    #if os(macOS)
+                    Spacer().frame(height: 48)
+                    LottieView(name: getAnimationName(for: weather.condition))
+                        .frame(width: 100, height: 100)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    #else
                     LottieView(name: getAnimationName(for: weather.condition))
                         .frame(width: 150, height: 150)
                         .padding(.top, 20)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    #endif
+                    
+                    let unitSymbol = unitSystem == "Metric" ? "°C" : "°F"
                     
                     // Current Temperature Display
                     if let temperature = weather.temperature {
-                        // Get the unit directly from UserDefaults with a default to celsius
-                        let unitSymbol = UserDefaults.standard.string(forKey: "temperatureUnit") == "fahrenheit" ? "°F" : "°C"
-                        
+                        #if os(macOS)
                         Text(String(format: "%.1f%@", temperature, unitSymbol))
-                            .font(.system(size: 80, weight: .bold))
+                            .font(.system(size: 100, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.white.opacity(0.18), radius: 2, x: 0, y: 0)
+                        #else
+                        Text(String(format: "%.1f%@", temperature, unitSymbol))
+                            .font(.system(size: 80, weight: .heavy))
                             .foregroundColor(.primary)
+                            .shadow(color: Color.black.opacity(0.18), radius: 3, x: 0, y: 2)
+                        #endif
                     }
                     if let feelsLike = weather.feelsLike {
-                        Text(String(format: "Feels like %.1f%@", feelsLike, temperatureUnit))
+                        Text(String(format: "Feels like %.1f%@", feelsLike, unitSymbol))
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(.primary)
                     }
                     
                     HStack {
                         if let high = weather.high {
-                            Text(String(format: "H: %.1f%@", high, temperatureUnit))
+                            Text(String(format: "H: %.1f%@", high, unitSymbol))
                                 .font(.system(size: 20, weight: .medium))
                                 .foregroundColor(.primary)
                         }
                         if let low = weather.low {
-                            Text(String(format: "L: %.1f%@", low, temperatureUnit))
+                            Text(String(format: "L: %.1f%@", low, unitSymbol))
                                 .font(.system(size: 20, weight: .medium))
                                 .foregroundColor(.primary)
                         }
@@ -447,7 +528,11 @@ struct WeatherDetailsView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(colorScheme == .dark ? Color.black.opacity(0.8) : Color.white.opacity(0.8))
+                #if os(iOS)
+                .fill(Color(UIColor.systemBackground))
+                #elseif os(macOS)
+                .fill(Color(NSColor.windowBackgroundColor))
+                #endif
                 .shadow(radius: 5)
         )
         .padding(.horizontal)
@@ -466,11 +551,72 @@ struct WeatherDetailsView: View {
     }
 }
 
+// MARK: - Custom Popup View
+struct CustomPopup<Content: View>: View {
+    let content: Content
+    @Binding var isPresented: Bool
+    
+    init(isPresented: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self._isPresented = isPresented
+        self.content = content()
+    }
+    
+    var body: some View {
+        if isPresented {
+            ZStack {
+                // Full screen transparent button to handle dismissal
+                Color.black.opacity(0.6)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        isPresented = false
+                    }
+                
+                content
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            #if os(iOS)
+                            .fill(Color(UIColor.systemBackground))
+                            #elseif os(macOS)
+                            .fill(Color(NSColor.windowBackgroundColor))
+                            #endif
+                            .shadow(color: .black.opacity(0.2), radius: 8)
+                    )
+            }
+            .transition(.opacity)
+            .zIndex(999) // Ensure popup is always on top
+        }
+    }
+}
+
 // MARK: - Weather Row View
 struct WeatherRowView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.popupState) private var popupState
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     let title: String
     let value: String
+    
+    var description: String {
+        switch title {
+            case "Humidity":
+                return "Humidity is the amount of water vapor present in the air. High humidity can make it feel warmer than it actually is, while low humidity can make it feel cooler."
+            case "Dew Point":
+                let threshold = unitSystem == "Metric" ? "18°C" : "65°F"
+                return "Dew point is the temperature at which water vapor in the air begins to condense. A higher dew point (above \(threshold)) means the air feels more humid and uncomfortable."
+            case "Pressure":
+                return "Atmospheric pressure affects weather conditions. Falling pressure often indicates approaching storms, while rising pressure typically means clearer weather."
+            case "Wind Speed":
+                return "Wind speed measures how fast the air is moving. Higher wind speeds can make it feel colder and may affect outdoor activities."
+            case "Wind Gust":
+                return "Wind gusts are sudden increases in wind speed. They're typically stronger than the average wind speed and can be particularly important for outdoor safety."
+            case "UV Index":
+                return "The UV Index measures the intensity of ultraviolet radiation from the sun. Higher values (6+) mean greater risk of sun damage and need for protection."
+            case "Solar Radiation":
+                return "Solar radiation measures the sun's energy reaching Earth's surface. It affects temperature and can impact solar panel efficiency."
+            default:
+                return "Weather measurement data"
+        }
+    }
     
     var body: some View {
         HStack {
@@ -483,6 +629,50 @@ struct WeatherRowView: View {
                 .foregroundColor(colorScheme == .dark ? .white : .black)
         }
         .padding(.horizontal)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            popupState.wrappedValue = PopupData(
+                title: title,
+                value: value,
+                description: description
+            )
+        }
+    }
+}
+
+// MARK: - Weather Metric Detail View
+struct WeatherMetricDetailView: View {
+    let title: String
+    let value: String
+    let description: String
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                Text(value)
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
+            }
+            
+            Divider()
+            
+            Text(description)
+                .font(.system(size: 15))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(4)
+        }
+        .padding()
+        .frame(width: 280)
+        #if os(iOS)
+        .background(Color(UIColor.systemBackground))
+        #elseif os(macOS)
+        .background(Color(NSColor.windowBackgroundColor))
+        #endif
     }
 }
 
