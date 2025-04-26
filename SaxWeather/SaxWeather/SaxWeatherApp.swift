@@ -13,7 +13,18 @@ struct SaxWeatherApp: App {
         ]
         UserDefaults.standard.register(defaults: defaults)
         
-}
+        // Set up custom tab bar appearance (iOS only)
+        #if os(iOS)
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterialDark)
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.3) // Subtle, modern tint with blur
+        UITabBar.appearance().standardAppearance = appearance
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
+        #endif
+    }
     
     var body: some Scene {
         WindowGroup {
