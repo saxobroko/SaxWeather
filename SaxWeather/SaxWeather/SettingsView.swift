@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreLocation
+import MapKit
 
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
@@ -22,6 +23,16 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
+    @StateObject private var locationsManager = SavedLocationsManager()
+    @State private var showingAddLocationSheet = false
+    @State private var addLocationMode: AddLocationMode? = nil
+    @State private var newLocationName = ""
+    @State private var newLatitude = ""
+    @State private var newLongitude = ""
+    @State private var citySearchQuery = ""
+    @State private var citySearchResults: [MKLocalSearchCompletion] = []
+    @State private var selectedSearchCompletion: MKLocalSearchCompletion?
+    @State private var isSearchingCity = false
 
     // For onboarding dismiss button
     var isOnboarding: Bool = false
@@ -37,6 +48,10 @@ struct SettingsView: View {
             ScrollView {
                 VStack {
                     Form {
+                        GroupBox(label: Text("Saved Locations").font(.title2)) {
+                            savedLocationsSection
+                                .padding()
+                        }
                         GroupBox(label: Text("Weather Sources").font(.title2)) {
                             weatherSourcesSection
                                 .padding()
@@ -123,6 +138,9 @@ struct SettingsView: View {
         #else
         NavigationStack {
             Form {
+                Section(header: Text("Saved Locations")) {
+                    savedLocationsSection
+                }
                 Section(header: Text("Weather Sources")) {
                     weatherSourcesSection
                 }
@@ -177,6 +195,9 @@ struct SettingsView: View {
             }
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
+            }
+            .sheet(isPresented: $showingAddLocationSheet) {
+                addLocationSheet
             }
         }
         #endif
@@ -367,6 +388,164 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+    
+    private var savedLocationsSection: some View {
+        VStack(alignment: .leading) {
+            List {
+                Button(action: {
+                    locationsManager.selectCurrentLocation()
+                    weatherService.useGPS = true
+                }) {
+                    HStack {
+                        Image(systemName: "location.fill")
+                        Text("Current Location (GPS)")
+                        Spacer()
+                        if locationsManager.selectedLocation?.isCurrentLocation ?? false {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                ForEach(locationsManager.locations) { location in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(location.name)
+                            Text("\(location.latitude), \(location.longitude)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if locationsManager.selectedLocation?.id == location.id {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        locationsManager.selectLocation(location)
+                        weatherService.useGPS = false
+                        // Update WeatherService with new coordinates
+                        Task { await weatherService.fetchWeather() }
+                    }
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            locationsManager.removeLocation(location)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+            .frame(height: min(220, CGFloat(44 * (locationsManager.locations.count + 1))))
+            // Add vertical spacing before the Add Location button
+            Spacer(minLength: 12)
+            HStack {
+                Spacer()
+                Button(action: { showingAddLocationSheet = true }) {
+                    Label("Add Location", systemImage: "plus")
+                        .labelStyle(IconOnlyLabelStyle())
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(Circle().fill(Color.blue))
+                        .overlay(
+                            Image(systemName: "plus")
+                                .foregroundColor(.white)
+                        )
+                }
+                .accessibilityLabel("Add Location")
+                Spacer()
+            }
+            .padding(.top, 8)
+        }
+    }
+    
+    private var addLocationSheet: some View {
+        NavigationView {
+            List {
+                Button("Use Current Location (GPS)") {
+                    locationsManager.selectCurrentLocation()
+                    weatherService.useGPS = true
+                    showingAddLocationSheet = false
+                }
+                Button("Enter Custom Coordinates") {
+                    addLocationMode = .manual
+                }
+                Button("Search City/Town") {
+                    addLocationMode = .search
+                }
+            }
+            .navigationTitle("Add Location")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showingAddLocationSheet = false }
+                }
+            }
+            .sheet(item: $addLocationMode) { mode in
+                switch mode {
+                case .manual:
+                    manualCoordinatesSheet
+                case .search:
+                    citySearchSheet
+                }
+            }
+        }
+    }
+    
+    private var manualCoordinatesSheet: some View {
+        Form {
+            Section {
+                TextField("Location Name", text: $newLocationName)
+                TextField("Latitude", text: $newLatitude)
+                    .keyboardType(.decimalPad)
+                TextField("Longitude", text: $newLongitude)
+                    .keyboardType(.decimalPad)
+            }
+            // Visually separate the Save button
+            Section {
+                Button("Save") {
+                    if let lat = Double(newLatitude), let lon = Double(newLongitude), !newLocationName.isEmpty {
+                        let loc = SavedLocation(name: newLocationName, latitude: lat, longitude: lon)
+                        locationsManager.addLocation(loc)
+                        locationsManager.selectLocation(loc)
+                        weatherService.useGPS = false
+                        Task { await weatherService.fetchWeather() }
+                        showingAddLocationSheet = false
+                        newLocationName = ""
+                        newLatitude = ""
+                        newLongitude = ""
+                    }
+                }
+                .disabled(newLocationName.isEmpty || Double(newLatitude) == nil || Double(newLongitude) == nil)
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .navigationTitle("Custom Coordinates")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { addLocationMode = nil }
+            }
+        }
+    }
+    
+    private var citySearchSheet: some View {
+        VStack {
+            TextField("Search for a city or town", text: $citySearchQuery)
+                .textFieldStyle(.roundedBorder)
+                .padding()
+            // TODO: Implement search results using MKLocalSearchCompleter and show results
+            Text("City search coming soon...")
+                .foregroundColor(.secondary)
+            Button("Cancel") { addLocationMode = nil }
+                .padding(.top)
+        }
+        .navigationTitle("Search City/Town")
+    }
+    
+    enum AddLocationMode: Identifiable {
+        case manual, search
+        var id: Int { hashValue }
     }
     
     private func saveAPIKeys() {
