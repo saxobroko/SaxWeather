@@ -59,10 +59,6 @@ struct SettingsView: View {
                             weatherSourcesSection
                                 .padding()
                         }
-                        GroupBox(label: Text("Location").font(.title2)) {
-                            locationSection
-                                .padding()
-                        }
                         GroupBox(label: Text("Units & Display").font(.title2)) {
                             unitsAndDisplaySection
                                 .padding()
@@ -146,10 +142,6 @@ struct SettingsView: View {
                 }
                 Section(header: Text("Weather Sources")) {
                     weatherSourcesSection
-                }
-                
-                Section(header: Text("Location")) {
-                    locationSection
                 }
                 
                 Section(header: Text("Units & Display")) {
@@ -268,65 +260,6 @@ struct SettingsView: View {
         }
     }
     
-    private var locationSection: some View {
-        Group {
-            Toggle(isOn: $weatherService.useGPS) {
-                HStack {
-                    Image(systemName: "location")
-                        .foregroundColor(.blue)
-                    Text("Use Current Location")
-                }
-            }
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
-            
-            #if os(iOS)
-            if !weatherService.useGPS {
-                VStack(alignment: .leading) {
-                    Text("Manual Coordinates")
-                        .font(.headline)
-                        .padding(.top)
-                    
-                    HStack {
-                        TextField("Latitude", text: $latitude)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        TextField("Longitude", text: $longitude)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    Button("Save Coordinates") {
-                        saveCoordinates()
-                    }.buttonStyle(.bordered)
-                    .padding(.top, 5)
-                }
-            }
-            #else
-            if !weatherService.useGPS {
-                VStack(alignment: .leading) {
-                    Text("Manual Coordinates")
-                        .font(.headline)
-                        .padding(.top)
-                    
-                    HStack {
-                        TextField("Latitude", text: $latitude)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        TextField("Longitude", text: $longitude)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    Button("Save Coordinates") {
-                        saveCoordinates()
-                    }.buttonStyle(.bordered)
-                    .padding(.top, 5)
-                }
-            }
-            #endif
-        }
-    }
-    
     private var unitsAndDisplaySection: some View {
         Group {
             Picker("Unit System", selection: $unitSystem) {
@@ -400,40 +333,24 @@ struct SettingsView: View {
                 .foregroundColor(.accentColor)
                 .padding(.vertical, 2)
         ) {
-            Button(action: {
+            HStack {
+                Image(systemName: "location.fill")
+                Text("Current Location (GPS)")
+                Spacer()
+                if locationsManager.selectedLocation?.isCurrentLocation ?? false {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
+                        .frame(height: 20)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
                 locationsManager.selectCurrentLocation()
                 weatherService.useGPS = true
-            }) {
-                HStack {
-                    Image(systemName: "location.fill")
-                    Text("Current Location (GPS)")
-                    Spacer()
-                    if locationsManager.selectedLocation?.isCurrentLocation ?? false {
-                        Image(systemName: "checkmark")
-                            .foregroundColor(.blue)
-                            .frame(height: 20)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            #if os(iOS)
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button(role: .destructive) {
-                    locationsManager.removeLocation(locationsManager.selectedLocation!)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
-            #endif
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             ForEach(Array(locationsManager.locations.enumerated()), id: \ .element.id) { idx, location in
-                Button(action: {
-                    locationsManager.selectLocation(location)
-                    weatherService.useGPS = false
-                    Task { await weatherService.fetchWeather() }
-                }) {
+                VStack(spacing: 0) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(location.name)
@@ -448,22 +365,25 @@ struct SettingsView: View {
                                 .frame(height: 20)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-                #if os(iOS)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        locationsManager.removeLocation(location)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        locationsManager.selectLocation(location)
+                        weatherService.useGPS = false
+                        Task { await weatherService.fetchWeather() }
                     }
-                }
-                #endif
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                if idx < locationsManager.locations.count - 1 {
-                    Divider()
+                    #if os(iOS)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            locationsManager.removeLocation(location)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    #endif
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    if idx < locationsManager.locations.count - 1 {
+                        Divider()
+                    }
                 }
             }
             HStack {
@@ -614,31 +534,6 @@ struct SettingsView: View {
         wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
         owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
         stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
-    }
-    
-    private func saveCoordinates() {
-        guard !latitude.isEmpty, !longitude.isEmpty,
-              let lat = Double(latitude), let lon = Double(longitude) else {
-            alertMessage = "Please enter valid coordinates."
-            showingAlert = true
-            return
-        }
-        
-        guard lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 else {
-            alertMessage = "Coordinates out of range. Latitude must be between -90 and 90, longitude between -180 and 180."
-            showingAlert = true
-            return
-        }
-        
-        UserDefaults.standard.set(latitude, forKey: "latitude")
-        UserDefaults.standard.set(longitude, forKey: "longitude")
-        
-        alertMessage = "Coordinates saved successfully!"
-        showingAlert = true
-        
-        Task {
-            await weatherService.fetchWeather()
-        }
     }
     
     private func validateSettings() -> Bool {
