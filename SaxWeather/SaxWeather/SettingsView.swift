@@ -36,10 +36,21 @@ struct SettingsView: View {
     @State private var citySearchResults: [MKLocalSearchCompletion] = []
     @State private var selectedSearchCompletion: MKLocalSearchCompletion?
     @State private var isSearchingCity = false
+    @State private var citySearchCompleter = MKLocalSearchCompleter()
+    @State private var citySearchError: String? = nil
+    @State private var citySearchCoordinate: CLLocationCoordinate2D? = nil
+    @State private var citySearchCompleterDelegate: CitySearchCompleterDelegate? = nil
 
     // For onboarding dismiss button
     var isOnboarding: Bool = false
     @Environment(\.dismiss) private var dismiss
+
+    #if os(iOS)
+    @FocusState private var focusedField: Field?
+    enum Field: Hashable {
+        case wuApiKey, stationID, owmApiKey
+    }
+    #endif
 
     private let unitSystems = ["Metric", "Imperial", "UK"]
     private let colorSchemes = ["system", "light", "dark"]
@@ -100,36 +111,6 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .center)
             }
             .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Save") {
-                        if validateSettings() {
-                            alertMessage = "Settings saved successfully!"
-                            showingAlert = true
-                            dismiss()
-                        } else {
-                            alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
-                            showingAlert = true
-                        }
-                    }.buttonStyle(.bordered)
-                }
-                if isOnboarding {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }.buttonStyle(.bordered)
-                    }
-                }
-            }
-            .alert(isPresented: $showingAlert) {
-                Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-            }
-            .alert("Location Access Required", isPresented: $weatherService.showLocationAlert) {
-                Button("Cancel", role: .cancel) {}
-                Button("Open Settings") { weatherService.openSettings() }
-            } message: {
-                Text("Location access is required to use GPS. Please enable it in Settings > Privacy > Location Services > SaxWeather")
-            }
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
             }
@@ -158,36 +139,6 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Save") {
-                        if validateSettings() {
-                            alertMessage = "Settings saved successfully!"
-                            showingAlert = true
-                            dismiss()
-                        } else {
-                            alertMessage = "Missing required settings. Please enter either:\n1. Weather Underground API key and Station ID, or\n2. OpenWeatherMap API key with location, or\n3. Valid location coordinates"
-                            showingAlert = true
-                        }
-                    }.buttonStyle(.bordered)
-                }
-                if isOnboarding {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }.buttonStyle(.bordered)
-                    }
-                }
-            }
-            .alert(isPresented: $showingAlert) {
-                Alert(title: Text("Settings"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-            }
-            .alert("Location Access Required", isPresented: $weatherService.showLocationAlert) {
-                Button("Cancel", role: .cancel) {}
-                Button("Open Settings") { weatherService.openSettings() }
-            } message: {
-                Text("Location access is required to use GPS. Please enable it in Settings > Privacy > Location Services > SaxWeather")
-            }
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
             }
@@ -195,6 +146,9 @@ struct SettingsView: View {
                 addLocationSheet
             }
         }
+        #if os(iOS)
+        .hideKeyboardOnTap()
+        #endif
         #endif
     }
     
@@ -229,6 +183,7 @@ struct SettingsView: View {
                     #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    .focused($focusedField, equals: .wuApiKey)
                     #endif
                 
                 TextField("Station ID", text: $stationID)
@@ -236,6 +191,7 @@ struct SettingsView: View {
                     #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    .focused($focusedField, equals: .stationID)
                     #endif
             }
             
@@ -248,6 +204,7 @@ struct SettingsView: View {
                     #if os(iOS)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                    .focused($focusedField, equals: .owmApiKey)
                     #endif
             }
             
@@ -333,6 +290,13 @@ struct SettingsView: View {
                 .foregroundColor(.accentColor)
                 .padding(.vertical, 2)
         ) {
+            if !wuApiKey.isEmpty && !stationID.isEmpty {
+                Text("Custom locations are ignored when a Weather Underground station is set. Weather data will be fetched from your station's location.")
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 8)
+                    .font(.callout)
+            }
+            
             HStack {
                 Image(systemName: "location.fill")
                 Text("Current Location (GPS)")
@@ -417,11 +381,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Add Location")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showingAddLocationSheet = false }
-                }
-            }
+            .navigationBarItems(leading: Button("Cancel") { showingAddLocationSheet = false })
             .sheet(item: $addLocationMode) { mode in
                 switch mode {
                 case .manual:
@@ -476,25 +436,107 @@ struct SettingsView: View {
             .padding(.top, 8)
         }
         .navigationTitle("Custom Coordinates")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { addLocationMode = nil }
-            }
-        }
     }
     
     private var citySearchSheet: some View {
-        VStack {
-            TextField("Search for a city or town", text: $citySearchQuery)
-                .textFieldStyle(.roundedBorder)
-                .padding()
-            // TODO: Implement search results using MKLocalSearchCompleter and show results
-            Text("City search coming soon...")
-                .foregroundColor(.secondary)
-            Button("Cancel") { addLocationMode = nil }
-                .padding(.top)
+        NavigationView {
+            VStack(spacing: 0) {
+                TextField("Search for a city or town", text: $citySearchQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                    .onChange(of: citySearchQuery) { newValue in
+                        if newValue.count >= 2 {
+                            citySearchCompleter.queryFragment = newValue
+                            citySearchError = nil
+                        } else {
+                            citySearchResults = []
+                            citySearchError = nil
+                        }
+                    }
+                if let error = citySearchError {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding(.top, 8)
+                }
+                if let selected = selectedSearchCompletion, let coordinate = citySearchCoordinate {
+                    VStack(spacing: 12) {
+                        Text(selected.title)
+                            .font(.headline)
+                        Text(selected.subtitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text("Lat: \(formatCoordinate(coordinate.latitude)), Lon: \(formatCoordinate(coordinate.longitude))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button("Save") {
+                            let name = selected.title
+                            let loc = SavedLocation(name: name, latitude: coordinate.latitude, longitude: coordinate.longitude)
+                            locationsManager.addLocation(loc)
+                            locationsManager.selectLocation(loc)
+                            weatherService.useGPS = false
+                            Task { await weatherService.fetchWeather() }
+                            showingAddLocationSheet = false
+                            citySearchQuery = ""
+                            citySearchResults = []
+                            selectedSearchCompletion = nil
+                            citySearchCoordinate = nil
+                            citySearchError = nil
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding()
+                } else {
+                    List(citySearchResults, id: \ .self) { completion in
+                        VStack(alignment: .leading) {
+                            Text(completion.title)
+                            if !completion.subtitle.isEmpty {
+                                Text(completion.subtitle)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Search for coordinates
+                            isSearchingCity = true
+                            citySearchError = nil
+                            let request = MKLocalSearch.Request(completion: completion)
+                            let search = MKLocalSearch(request: request)
+                            search.start { response, error in
+                                isSearchingCity = false
+                                if let error = error {
+                                    citySearchError = error.localizedDescription
+                                    return
+                                }
+                                if let item = response?.mapItems.first {
+                                    selectedSearchCompletion = completion
+                                    citySearchCoordinate = item.placemark.coordinate
+                                } else {
+                                    citySearchError = "No location found."
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+                Button("Cancel") { addLocationMode = nil }
+                    .padding(.top)
+            }
+            .navigationTitle("Search City/Town")
+            .onAppear {
+                citySearchCompleter.resultTypes = .address
+                let delegate = CitySearchCompleterDelegate(
+                    onResults: { results in
+                        citySearchResults = results
+                    },
+                    onError: { error in
+                        citySearchError = error
+                    }
+                )
+                citySearchCompleter.delegate = delegate
+                citySearchCompleterDelegate = delegate
+            }
         }
-        .navigationTitle("Search City/Town")
     }
     
     enum AddLocationMode: Identifiable {
@@ -591,6 +633,16 @@ struct SettingsView_Previews: PreviewProvider {
 }
 
 #if os(iOS)
+extension View {
+    func hideKeyboardOnTap() -> some View {
+        self.gesture(
+            TapGesture().onEnded { _ in
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+        )
+    }
+}
+
 struct CoordinateTextField: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
@@ -655,4 +707,20 @@ struct CoordinateTextField: UIViewRepresentable {
     }
 }
 #endif
+
+// Add a delegate class for MKLocalSearchCompleter
+class CitySearchCompleterDelegate: NSObject, MKLocalSearchCompleterDelegate {
+    let onResults: ([MKLocalSearchCompletion]) -> Void
+    let onError: (String?) -> Void
+    init(onResults: @escaping ([MKLocalSearchCompletion]) -> Void, onError: @escaping (String?) -> Void) {
+        self.onResults = onResults
+        self.onError = onError
+    }
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        onResults(completer.results)
+    }
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        onError(error.localizedDescription)
+    }
+}
 

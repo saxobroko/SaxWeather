@@ -155,9 +155,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             // If GPS is enabled but location is nil, or if no saved coordinates, request location
             if (useGPS && locationManager.location == nil) || (latitude.isEmpty || longitude.isEmpty) {
-#if DEBUG
+                #if DEBUG
                 print("⚠️ No valid coordinates available for weather data, requesting location")
-#endif
+                #endif
                 requestLocation()
                 
                 // Wait a moment for location to update
@@ -178,32 +178,69 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let lat = latitude
         let lon = longitude
         
-        async let wuObservation = (!wuApiKey.isEmpty && !stationID.isEmpty) ?
-        fetchWUWeather(apiKey: wuApiKey, stationID: stationID) :
-        nil
+        // Try Weather Underground first if configured
+        if !wuApiKey.isEmpty && !stationID.isEmpty {
+            do {
+                if let wuData = try await fetchWUWeather(apiKey: wuApiKey, stationID: stationID) {
+                    var weather = Weather(
+                        wuObservation: wuData,
+                        owmCurrent: nil,
+                        owmDaily: nil,
+                        unitSystem: unitSystem
+                    )
+                    
+                    if unitSystem != "Metric" {
+                        weather.convertUnits(from: "Metric", to: unitSystem)
+                    }
+                    
+                    return weather
+                }
+            } catch {
+                #if DEBUG
+                print("⚠️ Weather Underground fetch failed, falling back to OpenWeatherMap: \(error.localizedDescription)")
+                #endif
+            }
+        }
         
-        async let owmWeather = !owmApiKey.isEmpty ?
-        fetchOWMWeather(
-            apiKey: owmApiKey,
-            latitude: lat,  // Using immutable copy
-            longitude: lon,  // Using immutable copy
-            unitSystem: unitSystem
-        ) :
-        (nil, nil)
+        // Try OpenWeatherMap if configured
+        if !owmApiKey.isEmpty {
+            do {
+                let (owmCurrent, owmDaily) = try await fetchOWMWeather(
+                    apiKey: owmApiKey,
+                    latitude: lat,
+                    longitude: lon,
+                    unitSystem: unitSystem
+                )
+                
+                var weather = Weather(
+                    wuObservation: nil,
+                    owmCurrent: owmCurrent,
+                    owmDaily: owmDaily,
+                    unitSystem: unitSystem
+                )
+                
+                if unitSystem != "Metric" {
+                    weather.convertUnits(from: "Metric", to: unitSystem)
+                }
+                
+                return weather
+            } catch {
+                #if DEBUG
+                print("⚠️ OpenWeatherMap fetch failed, falling back to OpenMeteo: \(error.localizedDescription)")
+                #endif
+            }
+        }
         
-        async let openMeteoWeather = (wuApiKey.isEmpty || stationID.isEmpty) && owmApiKey.isEmpty ?
-        fetchOpenMeteoWeather(
-            latitude: lat,  // Using immutable copy
-            longitude: lon  // Using immutable copy
-        ) :
-        (nil, nil)
-        
-        let (wuData, (owmCurrent, owmDaily), (openMeteoCurrent, openMeteoDaily)) = try await (wuObservation, owmWeather, openMeteoWeather)
+        // Fallback to OpenMeteo as last resort
+        let (openMeteoCurrent, openMeteoDaily) = try await fetchOpenMeteoWeather(
+            latitude: lat,
+            longitude: lon
+        )
         
         var weather = Weather(
-            wuObservation: wuData,
-            owmCurrent: owmCurrent ?? openMeteoCurrent,
-            owmDaily: owmDaily ?? openMeteoDaily,
+            wuObservation: nil,
+            owmCurrent: openMeteoCurrent,
+            owmDaily: openMeteoDaily,
             unitSystem: unitSystem
         )
         
