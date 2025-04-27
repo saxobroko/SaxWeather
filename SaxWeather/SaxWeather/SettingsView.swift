@@ -8,6 +8,9 @@
 import SwiftUI
 import CoreLocation
 import MapKit
+#if os(iOS)
+import UIKit
+#endif
 
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
@@ -391,28 +394,50 @@ struct SettingsView: View {
     }
     
     private var savedLocationsSection: some View {
-        VStack(alignment: .leading) {
-            List {
-                Button(action: {
-                    locationsManager.selectCurrentLocation()
-                    weatherService.useGPS = true
-                }) {
-                    HStack {
-                        Image(systemName: "location.fill")
-                        Text("Current Location (GPS)")
-                        Spacer()
-                        if locationsManager.selectedLocation?.isCurrentLocation ?? false {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
+        Section(header:
+            Text("Saved Locations")
+                .font(.headline)
+                .foregroundColor(.accentColor)
+                .padding(.vertical, 2)
+        ) {
+            Button(action: {
+                locationsManager.selectCurrentLocation()
+                weatherService.useGPS = true
+            }) {
+                HStack {
+                    Image(systemName: "location.fill")
+                    Text("Current Location (GPS)")
+                    Spacer()
+                    if locationsManager.selectedLocation?.isCurrentLocation ?? false {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.blue)
+                            .frame(height: 20)
                     }
                 }
-                .buttonStyle(.plain)
-                ForEach(locationsManager.locations) { location in
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            #if os(iOS)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    locationsManager.removeLocation(locationsManager.selectedLocation!)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            #endif
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            ForEach(Array(locationsManager.locations.enumerated()), id: \ .element.id) { idx, location in
+                Button(action: {
+                    locationsManager.selectLocation(location)
+                    weatherService.useGPS = false
+                    Task { await weatherService.fetchWeather() }
+                }) {
                     HStack {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(location.name)
-                            Text("\(location.latitude), \(location.longitude)")
+                            Text("\(formatCoordinate(location.latitude)), \(formatCoordinate(location.longitude))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -420,44 +445,39 @@ struct SettingsView: View {
                         if locationsManager.selectedLocation?.id == location.id {
                             Image(systemName: "checkmark")
                                 .foregroundColor(.blue)
+                                .frame(height: 20)
                         }
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        locationsManager.selectLocation(location)
-                        weatherService.useGPS = false
-                        // Update WeatherService with new coordinates
-                        Task { await weatherService.fetchWeather() }
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            locationsManager.removeLocation(location)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                #if os(iOS)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        locationsManager.removeLocation(location)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
                 }
+                #endif
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                if idx < locationsManager.locations.count - 1 {
+                    Divider()
+                }
             }
-            .frame(height: min(220, CGFloat(44 * (locationsManager.locations.count + 1))))
-            // Add vertical spacing before the Add Location button
-            Spacer(minLength: 12)
             HStack {
                 Spacer()
                 Button(action: { showingAddLocationSheet = true }) {
-                    Label("Add Location", systemImage: "plus")
-                        .labelStyle(IconOnlyLabelStyle())
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(Circle().fill(Color.blue))
-                        .overlay(
-                            Image(systemName: "plus")
-                                .foregroundColor(.white)
-                        )
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
                 }
                 .accessibilityLabel("Add Location")
                 Spacer()
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
         }
     }
     
@@ -494,32 +514,46 @@ struct SettingsView: View {
     }
     
     private var manualCoordinatesSheet: some View {
-        Form {
-            Section {
-                TextField("Location Name", text: $newLocationName)
-                TextField("Latitude", text: $newLatitude)
-                    .keyboardType(.decimalPad)
-                TextField("Longitude", text: $newLongitude)
-                    .keyboardType(.decimalPad)
-            }
-            // Visually separate the Save button
-            Section {
-                Button("Save") {
-                    if let lat = Double(newLatitude), let lon = Double(newLongitude), !newLocationName.isEmpty {
-                        let loc = SavedLocation(name: newLocationName, latitude: lat, longitude: lon)
-                        locationsManager.addLocation(loc)
-                        locationsManager.selectLocation(loc)
-                        weatherService.useGPS = false
-                        Task { await weatherService.fetchWeather() }
-                        showingAddLocationSheet = false
-                        newLocationName = ""
-                        newLatitude = ""
-                        newLongitude = ""
-                    }
+        VStack(spacing: 20) {
+            Form {
+                Section {
+                    TextField("Location Name", text: $newLocationName)
+                    #if os(iOS)
+                    CoordinateTextField(text: $newLatitude, placeholder: "Latitude")
+                        .frame(height: 36)
+                    CoordinateTextField(text: $newLongitude, placeholder: "Longitude")
+                        .frame(height: 36)
+                    #else
+                    TextField("Latitude", text: $newLatitude)
+                    TextField("Longitude", text: $newLongitude)
+                    #endif
                 }
-                .disabled(newLocationName.isEmpty || Double(newLatitude) == nil || Double(newLongitude) == nil)
-                .buttonStyle(.borderedProminent)
             }
+            Button(action: {
+                if let lat = Double(newLatitude), let lon = Double(newLongitude), !newLocationName.isEmpty {
+                    let loc = SavedLocation(name: newLocationName, latitude: lat, longitude: lon)
+                    locationsManager.addLocation(loc)
+                    locationsManager.selectLocation(loc)
+                    weatherService.useGPS = false
+                    Task { await weatherService.fetchWeather() }
+                    showingAddLocationSheet = false
+                    newLocationName = ""
+                    newLatitude = ""
+                    newLongitude = ""
+                }
+            }) {
+                HStack {
+                    Image(systemName: "checkmark")
+                    Text("Save")
+                }
+                .padding()
+                .frame(maxWidth: 220)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .disabled(newLocationName.isEmpty || Double(newLatitude) == nil || Double(newLongitude) == nil)
+            .padding(.top, 8)
         }
         .navigationTitle("Custom Coordinates")
         .toolbar {
@@ -646,6 +680,10 @@ struct SettingsView: View {
         // 3. We have valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
     }
+    
+    private func formatCoordinate(_ value: Double) -> String {
+        return String(format: "%.5g", value)
+    }
 }
 
 struct SettingsView_Previews: PreviewProvider {
@@ -656,3 +694,70 @@ struct SettingsView_Previews: PreviewProvider {
             .environmentObject(StoreManager.shared)
     }
 }
+
+#if os(iOS)
+struct CoordinateTextField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: CoordinateTextField
+        init(_ parent: CoordinateTextField) { self.parent = parent }
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+        }
+        @objc func insertMinus() {
+            var t = parent.text
+            if t.hasPrefix("-") {
+                t.removeFirst()
+            } else {
+                t = "-" + t
+            }
+            parent.text = t
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.placeholder = placeholder
+        textField.keyboardType = .decimalPad
+        textField.delegate = context.coordinator
+        textField.text = text
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChangeSelection(_:)), for: .editingChanged)
+        // Add minus button above keyboard
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let minusButton = UIBarButtonItem(title: "Negative -", style: .plain, target: context.coordinator, action: #selector(Coordinator.insertMinus))
+        // Style the minus button
+        let attributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 20, weight: .bold)
+        ]
+        minusButton.setTitleTextAttributes(attributes, for: .normal)
+        minusButton.setTitleTextAttributes(attributes, for: .highlighted)
+        minusButton.tintColor = .systemBlue
+        toolbar.items = [flex, minusButton]
+        // Match the toolbar background to the keyboard background
+        toolbar.barTintColor = UIColor.systemBackground
+        toolbar.backgroundColor = UIColor.systemBackground
+        return returnWithToolbar(textField, toolbar: toolbar)
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+    
+    private func returnWithToolbar(_ textField: UITextField, toolbar: UIToolbar) -> UITextField {
+        textField.inputAccessoryView = toolbar
+        return textField
+    }
+}
+#endif
+
