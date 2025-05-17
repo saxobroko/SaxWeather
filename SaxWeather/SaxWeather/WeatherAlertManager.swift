@@ -17,6 +17,8 @@ class WeatherAlertManager: ObservableObject {
 
     private let notificationCenter = UNUserNotificationCenter.current()
 
+    static let shared = WeatherAlertManager()
+
     init() {
         checkNotificationPermissions()
     }
@@ -242,6 +244,25 @@ class WeatherAlertManager: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    /// Fetch alerts in the background and trigger a local notification if rain is detected
+    func fetchAlertsInBackground(latitude: Double, longitude: Double, completion: @escaping (Bool) -> Void) {
+        Task {
+            await self.fetchAlerts(latitude: latitude, longitude: longitude)
+            // Check if any precipitation is expected in the next 2 hours
+            let rainExpected = self.precipitationTimeline?.isRainingNow == true || (self.precipitationTimeline?.minutesUntilRainStarts ?? Int.max) < 120
+            #if os(iOS)
+            if rainExpected {
+                let content = UNMutableNotificationContent()
+                content.title = "Rain Alert"
+                content.body = "Rain is expected soon in your area."
+                let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+                try? await UNUserNotificationCenter.current().add(request)
+            }
+            #endif
+            completion(rainExpected)
         }
     }
 }

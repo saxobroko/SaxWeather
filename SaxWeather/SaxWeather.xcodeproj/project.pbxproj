@@ -290,7 +290,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SaxWeather/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to provide weather updates for your area.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide weather updates for your area.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SaxWeather needs your location to show weather for your current location and center the radar map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -331,7 +331,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SaxWeather/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to provide weather updates for your area.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide weather updates for your area.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SaxWeather needs your location to show weather for your current location and center the radar map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

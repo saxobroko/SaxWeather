@@ -25,6 +25,11 @@ struct AlertsView: View {
             // Use the centralized background condition
             BackgroundView(condition: weatherService.currentBackgroundCondition)
                 .ignoresSafeArea()
+            // Add a dark overlay for better contrast
+            Color.black.opacity(0.28)
+                .blur(radius: 8)
+                .ignoresSafeArea()
+                .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)
 
             // --- Foreground content ---
             ScrollView {
