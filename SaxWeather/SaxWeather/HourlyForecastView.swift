@@ -10,7 +10,7 @@ import Foundation
 
 struct HourlyForecastView: View {
     @ObservedObject var weatherService: WeatherService
-    @State private var hourlyData: [HourlyData] = []
+    @State private var hourlyData: [HourlyWeatherData] = []
     @State private var conditionSummary: String = "Loading hourly forecast..."
     @State private var isLoading = true
     @State private var error: String?
@@ -62,7 +62,7 @@ struct HourlyForecastView: View {
         }
     }
     
-    private func hourlyForecastItem(_ forecast: HourlyData) -> some View {
+    private func hourlyForecastItem(_ forecast: HourlyWeatherData) -> some View {
         VStack(spacing: 8) {
             // Hour (12h format)
             Text(forecast.timeString)
@@ -193,8 +193,8 @@ struct HourlyForecastView: View {
         return (0.0, 0.0)
     }
     
-    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyData] {
-        var forecasts: [HourlyData] = []
+    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyWeatherData] {
+        var forecasts: [HourlyWeatherData] = []
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
         
@@ -203,14 +203,14 @@ struct HourlyForecastView: View {
         timeFormatter.amSymbol = "am"
         timeFormatter.pmSymbol = "pm"
         
-        for i in 0..<min(response.hourly.time.count, 24) {
+        for i in 0..<min(response.hourly.weather_code.count, 24) {
             if let date = formatter.date(from: response.hourly.time[i]) {
                 let timeString = timeFormatter.string(from: date).lowercased()
                 
-                forecasts.append(HourlyData(
+                forecasts.append(HourlyWeatherData(
                     id: i,
-                    time: date,
-                    timeString: timeString,
+                    time: /* conversion logic here */ Date(),
+                    timeString: response.hourly.time[i],
                     temperature: response.hourly.temperature_2m[i],
                     weatherCode: response.hourly.weather_code[i],
                     windSpeed: response.hourly.wind_speed_10m[i],

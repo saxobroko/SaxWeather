@@ -4,10 +4,9 @@
 //  Created by GitHub Copilot on 2025-05-18
 //
 
+import Foundation
 import SwiftUI
 import CoreLocation
-
-// NOTE: All types referenced below (WeatherService, SavedLocationsManager, WeatherForecast, HourlyData, WeatherDetailsView, LottieView) are defined in local files in the same target/module, so no import is needed for them.
 
 struct DetailedWeatherView: View {
     @ObservedObject var weatherService: WeatherService
@@ -16,73 +15,91 @@ struct DetailedWeatherView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Header: Location & Date
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(locationDisplayName)
-                            .font(.title.bold())
-                        Text(Date(), style: .date)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal)
-                
-                // Main Temperature & Condition
-                HStack(alignment: .center, spacing: 24) {
-                    if let condition = weatherService.weather?.condition {
-                        LottieView(name: getAnimationName(for: condition))
-                            .frame(width: 100, height: 100)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(weatherService.weather?.condition ?? "-")
-                            .font(.title2)
-                        if let temp = weatherService.weather?.temperature {
-                            Text(String(format: "%.1f%@", temp, unitSymbol))
-                                .font(.system(size: 48, weight: .bold))
+            VStack(spacing: 20) {
+                // HERO SECTION
+                VStack(spacing: 8) {
+                    HStack(alignment: .center, spacing: 20) {
+                        if let condition = weatherService.weather?.condition {
+                            LottieView(name: getAnimationName(for: condition))
+                                .frame(width: 120, height: 120)
                         }
-                        if let feels = weatherService.weather?.feelsLike {
-                            Text("Feels like " + String(format: "%.1f%@", feels, unitSymbol))
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(locationDisplayName)
+                                .font(.title.bold())
+                            Text(Date(), style: .date)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                            Text(weatherService.weather?.condition ?? "-")
+                                .font(.title2)
+                            if let temp = weatherService.weather?.temperature {
+                                Text(String(format: "%.1f%@", temp, unitSymbol))
+                                    .font(.system(size: 54, weight: .bold))
+                            }
+                            if let feels = weatherService.weather?.feelsLike {
+                                Text("Feels like " + String(format: "%.1f%@", feels, unitSymbol))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal)
-                
-                // High/Low, Humidity, Wind, etc. (Summary Panes)
-                HStack(spacing: 16) {
-                    if let high = weatherService.weather?.high {
-                        WeatherPane(title: "High", value: String(format: "%.1f%@", high, unitSymbol), systemImage: "arrow.up")
-                    }
-                    if let low = weatherService.weather?.low {
-                        WeatherPane(title: "Low", value: String(format: "%.1f%@", low, unitSymbol), systemImage: "arrow.down")
-                    }
-                    if let humidity = weatherService.weather?.humidity {
-                        WeatherPane(title: "Humidity", value: String(format: "%d%%", Int(humidity)), systemImage: "humidity")
-                    }
-                    if let wind = weatherService.weather?.windSpeed {
-                        WeatherPane(title: "Wind", value: String(format: "%.1f %@", wind, windUnit), systemImage: "wind")
+                        Spacer()
                     }
                 }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.ultraThinMaterial)
+                .cornerRadius(28)
+                .shadow(radius: 8)
                 .padding(.horizontal)
-                
-                // Hourly Graph (if available)
-                // NOTE: There is no hourlyData on DailyForecast. Use a shared hourlyData array if available.
-                if !weatherService.hourlyData.isEmpty {
-                    WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
-                        .frame(height: 180)
+
+                // GRID OF CARDS (2 columns)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "-", icon: "thermometer")
+                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "-", icon: "sun.max")
+                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "-", icon: "humidity")
+                }
+                .padding(.horizontal)
+
+                // WIND CARD (full width)
+                if let wind = weatherService.weather?.windSpeed, let gust = weatherService.weather?.windGust {
+                    // Try to get wind direction from forecast if available
+                    let direction = weatherService.forecast?.daily.first?.windDirection ?? 0
+                    WindCard(wind: wind, gust: gust, direction: direction, unit: windUnit)
                         .padding(.horizontal)
                 }
-                
-                // Forecast Panes
+
+                // SUNRISE/SUNSET & PRECIPITATION CARDS (side by side)
+                HStack(spacing: 16) {
+                    // Use first daily forecast for sunrise/sunset and precipitation if available
+                    if let day = weatherService.forecast?.daily.first {
+                        if let sunrise = day.sunrise, let sunset = day.sunset {
+                            SunriseCard(sunrise: sunrise, sunset: sunset)
+                        }
+                        PrecipitationCard(amount: day.precipitation)
+                    }
+                }
+                .padding(.horizontal)
+
+                // HOURLY FORECAST GRAPH
+                if !weatherService.hourlyData.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Hourly Forecast")
+                            .font(.headline)
+                            .padding(.leading, 8)
+                        WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
+                            .frame(height: 180)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(18)
+                            .padding(.horizontal, 4)
+                    }
+                    .padding(.horizontal)
+                }
+
+                // DAILY FORECAST
                 if let forecast = weatherService.forecast?.daily {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Next Days")
                             .font(.headline)
+                            .padding(.leading, 8)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(forecast.prefix(7)) { day in
@@ -90,17 +107,11 @@ struct DetailedWeatherView: View {
                                 }
                             }
                         }
-                    }
-                    .padding(.horizontal)
-                }
-                
-                // Additional Details
-                if let details = weatherService.weather {
-                    WeatherDetailsView(weather: details)
                         .padding(.horizontal)
+                    }
                 }
             }
-            .padding(.vertical)
+            .padding(.vertical, 16)
         }
     }
     
@@ -128,26 +139,176 @@ struct DetailedWeatherView: View {
     }
 }
 
-// MARK: - WeatherPane
-struct WeatherPane: View {
+// MARK: - WeatherCard
+struct WeatherCard: View {
     let title: String
     let value: String
-    let systemImage: String
+    let icon: String
     var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .foregroundColor(.accentColor)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text(title.uppercased())
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             Text(value)
-                .font(.headline)
-            Text(title)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+        }
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .cornerRadius(18)
+        .shadow(radius: 2)
+    }
+}
+
+// MARK: - WindCard
+struct WindCard: View {
+    let wind: Double
+    let gust: Double
+    let direction: Double
+    let unit: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "wind")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text("WIND")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Wind")
+                        .font(.subheadline)
+                    Text(String(format: "%.0f %@", wind, unit))
+                        .font(.title2.bold())
+                    Text("Gusts")
+                        .font(.subheadline)
+                    Text(String(format: "%.0f %@", gust, unit))
+                        .font(.body)
+                    Text("Direction")
+                        .font(.subheadline)
+                    Text(String(format: "%.0f°", direction))
+                        .font(.body)
+                }
+                Spacer()
+                // Compass
+                ZStack {
+                    Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 2)
+                    ForEach([0, 90, 180, 270], id: \ .self) { deg in
+                        Text(["N", "E", "S", "W"][deg/90])
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .offset(y: -40)
+                            .rotationEffect(.degrees(Double(deg)))
+                    }
+                    Arrow()
+                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 40, height: 40)
+                        .rotationEffect(.degrees(direction))
+                }
+                .frame(width: 80, height: 80)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .cornerRadius(18)
+        .shadow(radius: 2)
+    }
+}
+
+struct Arrow: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY + 10))
+        path.addLine(to: CGPoint(x: rect.midX - 6, y: rect.minY + 22))
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY + 10))
+        path.addLine(to: CGPoint(x: rect.midX + 6, y: rect.minY + 22))
+        return path
+    }
+}
+
+// MARK: - SunriseCard
+struct SunriseCard: View {
+    let sunrise: Date
+    let sunset: Date
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sunrise")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text("SUNRISE")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Text(timeString(sunrise))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+            Text("Sunset: " + timeString(sunset))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .frame(width: 70, height: 70)
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
         .background(.ultraThinMaterial)
-        .cornerRadius(14)
+        .cornerRadius(18)
         .shadow(radius: 2)
+    }
+    private func timeString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - PrecipitationCard
+struct PrecipitationCard: View {
+    let amount: Double
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "drop.fill")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text("PRECIPITATION")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Text(String(format: "%.0f mm", amount))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+            Text("Today")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .cornerRadius(18)
+        .shadow(radius: 2)
+    }
+}
+
+// MARK: - WeatherGraphView (stub)
+struct WeatherGraphView: View {
+    let hourly: [HourlyWeatherData]
+    let unitSystem: String
+    var body: some View {
+        // Placeholder for a temperature line graph
+        GeometryReader { geo in
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                Text("[Hourly Temperature Graph]")
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 }
 
@@ -171,23 +332,6 @@ struct ForecastPane: View {
         .frame(width: 60, height: 90)
         .background(.ultraThinMaterial)
         .cornerRadius(12)
-    }
-}
-
-// MARK: - WeatherGraphView (stub)
-struct WeatherGraphView: View {
-    let hourly: [HourlyData]
-    let unitSystem: String
-    var body: some View {
-        // Placeholder for a temperature line graph
-        GeometryReader { geo in
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
-                Text("[Hourly Temperature Graph]")
-                    .foregroundColor(.secondary)
-            }
-        }
     }
 }
 

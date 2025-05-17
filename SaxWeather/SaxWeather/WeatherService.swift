@@ -20,7 +20,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var _unitSystem: String
     @Published var showLocationAlert = false
     @Published var currentBackgroundCondition: String = "default"
-    @Published var hourlyData: [HourlyData] = [] // Added hourlyData property
+    @Published var hourlyData: [HourlyWeatherData] = [] // Renamed from HourlyData
     
     let locationManager: CLLocationManager
     

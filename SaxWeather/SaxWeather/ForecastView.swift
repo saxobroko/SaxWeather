@@ -12,7 +12,7 @@ import Lottie // Make sure to import Lottie
 struct ForecastView: View {
     @ObservedObject var weatherService: WeatherService
     @State private var selectedDay: WeatherForecast.DailyForecast?
-    @State private var hourlyData: [HourlyData] = []
+    @State private var hourlyData: [HourlyWeatherData] = []
     @State private var conditionSummary: String = ""
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
@@ -194,7 +194,7 @@ struct ForecastView: View {
     }
     
     // Hourly forecast item view with Lottie animations
-    private func hourlyForecastItem(_ forecast: HourlyData) -> some View {
+    private func hourlyForecastItem(_ forecast: HourlyWeatherData) -> some View {
         // Check if it's night based on hour
         let hour = Calendar.current.component(.hour, from: forecast.time)
         let isNight = hour < 6 || hour > 18
@@ -343,8 +343,8 @@ struct ForecastView: View {
     }
     
     // Process hourly forecast data
-    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyData] {
-        var forecasts: [HourlyData] = []
+    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyWeatherData] {
+        var forecasts: [HourlyWeatherData] = []
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
         
@@ -353,11 +353,11 @@ struct ForecastView: View {
         timeFormatter.amSymbol = "am"
         timeFormatter.pmSymbol = "pm"
         
-        for i in 0..<min(response.hourly.time.count, 24) {
+        for i in 0..<min(response.hourly.weather_code.count, 24) {
             if let date = formatter.date(from: response.hourly.time[i]) {
                 let timeString = timeFormatter.string(from: date).lowercased()
                 
-                forecasts.append(HourlyData(
+                forecasts.append(HourlyWeatherData(
                     id: i,
                     time: date,
                     timeString: timeString,
