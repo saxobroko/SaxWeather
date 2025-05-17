@@ -178,34 +178,49 @@ struct SettingsView: View {
                 Text("Weather Underground")
                     .font(.headline)
                 
+                #if os(iOS)
+                APIKeyTextField(
+                    text: $wuApiKey,
+                    placeholder: "API Key",
+                    isFocused: focusedField == .wuApiKey,
+                    onDone: { focusedField = nil }
+                )
+                .frame(height: 36)
+                #else
                 TextField("API Key", text: $wuApiKey)
                     .textFieldStyle(.roundedBorder)
-                    #if os(iOS)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .focused($focusedField, equals: .wuApiKey)
-                    #endif
+                #endif
                 
+                #if os(iOS)
+                APIKeyTextField(
+                    text: $stationID,
+                    placeholder: "Station ID",
+                    isFocused: focusedField == .stationID,
+                    onDone: { focusedField = nil }
+                )
+                .frame(height: 36)
+                #else
                 TextField("Station ID", text: $stationID)
                     .textFieldStyle(.roundedBorder)
-                    #if os(iOS)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .focused($focusedField, equals: .stationID)
-                    #endif
+                #endif
             }
             
             VStack(alignment: .leading) {
                 Text("OpenWeatherMap")
                     .font(.headline)
                 
+                #if os(iOS)
+                APIKeyTextField(
+                    text: $owmApiKey,
+                    placeholder: "API Key",
+                    isFocused: focusedField == .owmApiKey,
+                    onDone: { focusedField = nil }
+                )
+                .frame(height: 36)
+                #else
                 TextField("API Key", text: $owmApiKey)
                     .textFieldStyle(.roundedBorder)
-                    #if os(iOS)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .focused($focusedField, equals: .owmApiKey)
-                    #endif
+                #endif
             }
             
             Button("Save API Keys") {
@@ -704,6 +719,67 @@ struct CoordinateTextField: UIViewRepresentable {
     private func returnWithToolbar(_ textField: UITextField, toolbar: UIToolbar) -> UITextField {
         textField.inputAccessoryView = toolbar
         return textField
+    }
+}
+
+struct APIKeyTextField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var isFocused: Bool
+    var onDone: (() -> Void)? = nil
+
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: APIKeyTextField
+        weak var textField: UITextField?
+        init(_ parent: APIKeyTextField) { self.parent = parent }
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+        }
+        @objc func doneTapped() {
+            textField?.resignFirstResponder()
+            parent.onDone?()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        context.coordinator.textField = textField
+        textField.placeholder = placeholder
+        textField.autocapitalizationType = .none
+        textField.autocorrectionType = .no
+        textField.spellCheckingType = .no
+        textField.smartInsertDeleteType = .no
+        textField.delegate = context.coordinator
+        textField.text = text
+        textField.borderStyle = .roundedRect
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textFieldDidChangeSelection(_:)), for: .editingChanged)
+        // Remove inputAssistantItem (the 3 blank boxes)
+        let inputAssistant = textField.inputAssistantItem
+        inputAssistant.leadingBarButtonGroups = []
+        inputAssistant.trailingBarButtonGroups = []
+        // Add Done button above keyboard
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: "Done", style: .done, target: context.coordinator, action: #selector(Coordinator.doneTapped))
+        toolbar.items = [flex, doneButton]
+        textField.inputAccessoryView = toolbar
+        return textField
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        if isFocused && !uiView.isFirstResponder {
+            uiView.becomeFirstResponder()
+        } else if !isFocused && uiView.isFirstResponder {
+            uiView.resignFirstResponder()
+        }
     }
 }
 #endif
