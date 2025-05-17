@@ -23,6 +23,7 @@ struct SettingsView: View {
     @AppStorage("unitSystem") private var unitSystem = "Metric"
     @AppStorage("colorScheme") private var colorScheme = "system"
     @AppStorage("forecastDays") private var forecastDays = 7
+    @AppStorage("displayMode") private var displayMode = "Summary"
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
@@ -55,6 +56,7 @@ struct SettingsView: View {
     private let unitSystems = ["Metric", "Imperial", "UK"]
     private let colorSchemes = ["system", "light", "dark"]
     private let forecastDayOptions = [3, 5, 7, 10, 14]
+    private let displayModes = ["Summary", "Detailed"]
     
     var body: some View {
         #if os(macOS)
@@ -124,16 +126,13 @@ struct SettingsView: View {
                 Section(header: Text("Weather Sources")) {
                     weatherSourcesSection
                 }
-                
                 Section(header: Text("Units & Display")) {
                     unitsAndDisplaySection
                 }
-                
                 Section(header: Text("Appearance")) {
                     BackgroundSettingsButton()
                         .environmentObject(storeManager)
                 }
-                
                 Section(header: Text("About")) {
                     aboutSection
                 }
@@ -146,9 +145,6 @@ struct SettingsView: View {
                 addLocationSheet
             }
         }
-        #if os(iOS)
-        .hideKeyboardOnTap()
-        #endif
         #endif
     }
     
@@ -266,6 +262,14 @@ struct SettingsView: View {
                     await weatherService.fetchForecasts()
                 }
             }
+            Picker("Display Mode", selection: $displayMode) {
+                ForEach(displayModes, id: \.self) { mode in
+                    Text(mode).tag(mode)
+                }
+            }
+            #if os(macOS)
+            .pickerStyle(.radioGroup)
+            #endif
         }
     }
     

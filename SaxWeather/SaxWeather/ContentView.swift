@@ -6,12 +6,12 @@
 //
 
 import SwiftUI
-#if os(iOS)
-import UIKit
-#endif
 import CoreLocation
 import StoreKit
 import MapKit
+#if os(iOS)
+import UIKit
+#endif
 
 // MARK: - Popup Environment
 struct PopupData {
@@ -40,6 +40,7 @@ struct ContentView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
+    @AppStorage("displayMode") private var displayMode: String = "Summary"
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var weatherAlertManager = WeatherAlertManager()
     @State private var activePopup: PopupData?
@@ -148,8 +149,11 @@ struct ContentView: View {
             Color.black.opacity(0.28)
                 .blur(radius: 8)
                 .ignoresSafeArea()
-                .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)
-            contentLayer
+            if displayMode == "Detailed" {
+                DetailedWeatherView(weatherService: weatherService)
+            } else {
+                contentLayer
+            }
         }
         .onAppear {
             Task {
