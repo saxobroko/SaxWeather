@@ -162,15 +162,15 @@ struct Weather: Codable {
         let hum = self.humidity ?? 0
         
         if temp > 30 || uv > 5 {
-            self.cachedCondition = "sunny"
+            self.cachedCondition = "Sunny"
         } else if temp < 0 {
-            self.cachedCondition = "snowy"
+            self.cachedCondition = "Snowy"
         } else if wind > 20 {
-            self.cachedCondition = "windy"
+            self.cachedCondition = "Windy"
         } else if hum > 80 {
-            self.cachedCondition = "rainy"
+            self.cachedCondition = "Rainy"
         } else {
-            self.cachedCondition = "default"
+            self.cachedCondition = "Partly Cloudy"
         }
         
         if let temp = self.temperature,

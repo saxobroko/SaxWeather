@@ -2,27 +2,57 @@ import SwiftUI
 #if os(iOS)
 import UIKit
 import UserNotifications
+import BackgroundTasks
 #endif
 
 #if os(iOS)
 class AppDelegate: NSObject, UIApplicationDelegate {
+    static let backgroundTaskIdentifier = "com.saxobroko.SaxWeather.refresh"
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        application.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
+        // Register background task
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundTaskIdentifier, using: nil) { task in
+            self.handleAppRefresh(task: task as! BGAppRefreshTask)
+        }
+        
         // Request notification permissions
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
         return true
     }
     
-    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    func handleAppRefresh(task: BGAppRefreshTask) {
+        // Schedule the next background refresh
+        scheduleAppRefresh()
+        
+        // Create a background task
+        task.expirationHandler = {
+            // Clean up any ongoing tasks
+            task.setTaskCompleted(success: false)
+        }
+        
         // Get location from UserDefaults
         let lat = Double(UserDefaults.standard.string(forKey: "latitude") ?? "") ?? 0
         let lon = Double(UserDefaults.standard.string(forKey: "longitude") ?? "") ?? 0
+        
         guard lat != 0, lon != 0 else {
-            completionHandler(.failed)
+            task.setTaskCompleted(success: false)
             return
         }
+        
+        // Fetch weather alerts in background
         WeatherAlertManager.shared.fetchAlertsInBackground(latitude: lat, longitude: lon) { rainExpected in
-            completionHandler(rainExpected ? .newData : .noData)
+            task.setTaskCompleted(success: true)
+        }
+    }
+    
+    func scheduleAppRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: Self.backgroundTaskIdentifier)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes from now
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+        } catch {
+            print("Could not schedule app refresh: \(error)")
         }
     }
 }
@@ -68,6 +98,11 @@ struct SaxWeatherApp: App {
                         await weatherService.fetchWeather()
                         await weatherService.fetchForecasts()
                     }
+                    
+                    #if os(iOS)
+                    // Schedule background refresh
+                    appDelegate.scheduleAppRefresh()
+                    #endif
                 }
         }
     }

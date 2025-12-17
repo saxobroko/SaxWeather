@@ -10,6 +10,9 @@ import CoreLocation
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
@@ -126,6 +129,8 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self.weather = weatherData
                 self.isLoading = false
                 self.updateBackgroundCondition()
+                // Save weather data for widgets
+                self.saveWeatherDataForWidget(weatherData)
             }
             
             // Always fetch forecast data after weather data is loaded
@@ -136,6 +141,62 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self.isLoading = false
             }
         }
+    }
+    
+    // MARK: - Widget Data Sharing
+    private func saveWeatherDataForWidget(_ weather: Weather) {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
+        
+        // Create a simple structure to encode with proper nil handling
+        var widgetData: [String: Any] = [
+            "lastUpdate": Date().timeIntervalSince1970,
+            "unitSystem": unitSystem
+        ]
+        
+        if let temp = weather.temperature {
+            widgetData["temperature"] = temp
+        }
+        if let feelsLike = weather.feelsLike {
+            widgetData["feelsLike"] = feelsLike
+        }
+        if let high = weather.high {
+            widgetData["high"] = high
+        }
+        if let low = weather.low {
+            widgetData["low"] = low
+        }
+        if let humidity = weather.humidity {
+            widgetData["humidity"] = humidity
+        }
+        if let windSpeed = weather.windSpeed {
+            widgetData["windSpeed"] = windSpeed
+        }
+        if let uvIndex = weather.uvIndex {
+            widgetData["uvIndex"] = uvIndex
+        }
+        if let pressure = weather.pressure {
+            widgetData["pressure"] = pressure
+        }
+        
+        widgetData["condition"] = weather.condition
+        
+        if let jsonData = try? JSONSerialization.data(withJSONObject: widgetData, options: []) {
+            sharedDefaults?.set(jsonData, forKey: "latestWeather")
+            
+            #if DEBUG
+            print("✅ Saved weather data to widget:")
+            print("   - Temperature: \(weather.temperature ?? 0)°")
+            print("   - High: \(weather.high ?? 0)°")
+            print("   - Low: \(weather.low ?? 0)°")
+            print("   - Condition: \(weather.condition)")
+            print("   - Unit System: \(unitSystem)")
+            #endif
+        }
+        
+        // Also reload widget timelines
+        #if canImport(WidgetKit)
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
     
     private func fetchWeatherData() async throws -> Weather {

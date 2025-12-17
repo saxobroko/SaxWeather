@@ -400,7 +400,15 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Add Location")
+            #if os(iOS)
             .navigationBarItems(leading: Button("Cancel") { showingAddLocationSheet = false })
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showingAddLocationSheet = false }
+                }
+            }
+            #endif
             .sheet(item: $addLocationMode) { mode in
                 switch mode {
                 case .manual:
