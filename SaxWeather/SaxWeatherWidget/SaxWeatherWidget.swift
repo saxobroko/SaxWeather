@@ -133,6 +133,12 @@ struct SaxWeatherWidgetEntryView : View {
             mediumWidgetView
         case .systemLarge:
             largeWidgetView
+        case .accessoryCircular:
+            accessoryCircularView
+        case .accessoryRectangular:
+            accessoryRectangularView
+        case .accessoryInline:
+            accessoryInlineView
         default:
             smallWidgetView
         }
@@ -485,6 +491,99 @@ struct SaxWeatherWidgetEntryView : View {
         .padding(18)
     }
     
+    // MARK: - Lock Screen Widgets (Accessory)
+    
+    private var accessoryCircularView: some View {
+        VStack(spacing: 0) {
+            if let temp = entry.temperature {
+                Text(weatherSymbol(for: entry.condition))
+                    .font(.system(size: 14))
+                Text("\(String(format: "%.0f", temp))°")
+                    .font(.system(size: 20, weight: .heavy))
+                    .minimumScaleFactor(0.7)
+                if let high = entry.high, let low = entry.low {
+                    HStack(spacing: 2) {
+                        Text("\(String(format: "%.0f", high))°")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text("/")
+                            .font(.system(size: 8, weight: .regular))
+                            .foregroundStyle(.tertiary)
+                        Text("\(String(format: "%.0f", low))°")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                }
+            } else {
+                Image(systemName: "cloud.fill")
+                    .font(.system(size: 20))
+            }
+        }
+    }
+    
+    private var accessoryRectangularView: some View {
+        HStack(spacing: 8) {
+            if let temp = entry.temperature {
+                Text(weatherSymbol(for: entry.condition))
+                    .font(.system(size: 28))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(String(format: "%.0f", temp))°")
+                        .font(.system(size: 24, weight: .heavy))
+                    
+                    if let high = entry.high, let low = entry.low {
+                        HStack(spacing: 4) {
+                            HStack(spacing: 1) {
+                                Text("↑")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.red.opacity(0.9))
+                                Text("\(String(format: "%.0f", high))°")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            HStack(spacing: 1) {
+                                Text("↓")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.blue.opacity(0.9))
+                                Text("\(String(format: "%.0f", low))°")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                        }
+                    } else if let condition = entry.condition {
+                        Text(condition)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+            } else {
+                Text("No Data")
+                    .font(.caption2)
+            }
+        }
+    }
+    
+    private var accessoryInlineView: some View {
+        Group {
+            if let temp = entry.temperature {
+                HStack(spacing: 4) {
+                    Text(weatherSymbol(for: entry.condition))
+                    Text("\(String(format: "%.0f", temp))°")
+                    if let high = entry.high, let low = entry.low {
+                        Text("H:\(String(format: "%.0f", high))° L:\(String(format: "%.0f", low))°")
+                    } else if let condition = entry.condition {
+                        Text(condition)
+                    }
+                }
+            } else {
+                Text("No Weather Data")
+            }
+        }
+    }
+    
     private func weatherSymbol(for condition: String?) -> String {
         guard let condition = condition?.lowercased() else { return "☀️" }
         
@@ -598,7 +697,14 @@ struct SaxWeatherWidget: Widget {
         }
         .configurationDisplayName("SaxWeather")
         .description("Shows the latest weather from SaxWeather app.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemLarge,
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
     }
 }
 
@@ -622,4 +728,25 @@ struct SaxWeatherWidget: Widget {
 } timeline: {
     WeatherWidgetEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8, humidity: 62.0, feelsLike: 29.5, windSpeed: 15.0, uvIndex: 8, pressure: 1015.0)
     WeatherWidgetEntry(date: .now, temperature: 5.2, condition: "Snowy", high: 7.1, low: 2.3, humidity: 92.0, feelsLike: 2.8, windSpeed: 35.5, uvIndex: 1, pressure: 998.0)
+}
+
+#Preview(as: .accessoryCircular) {
+    SaxWeatherWidget()
+} timeline: {
+    WeatherWidgetEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8, humidity: 62.0, feelsLike: 29.5, windSpeed: 15.0, uvIndex: 8, pressure: 1015.0)
+    WeatherWidgetEntry(date: .now, temperature: -3.7, condition: "Snowy", high: -1.2, low: -6.5, humidity: 92.0, feelsLike: -8.2, windSpeed: 32.0, uvIndex: 1, pressure: 995.0)
+}
+
+#Preview(as: .accessoryRectangular) {
+    SaxWeatherWidget()
+} timeline: {
+    WeatherWidgetEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8, humidity: 62.0, feelsLike: 29.5, windSpeed: 15.0, uvIndex: 8, pressure: 1015.0)
+    WeatherWidgetEntry(date: .now, temperature: 15.6, condition: "Rainy", high: 17.8, low: 12.4, humidity: 88.0, feelsLike: 14.2, windSpeed: 25.0, uvIndex: 2, pressure: 1005.0)
+}
+
+#Preview(as: .accessoryInline) {
+    SaxWeatherWidget()
+} timeline: {
+    WeatherWidgetEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8, humidity: 62.0, feelsLike: 29.5, windSpeed: 15.0, uvIndex: 8, pressure: 1015.0)
+    WeatherWidgetEntry(date: .now, temperature: 15.6, condition: "Rainy", high: 17.8, low: 12.4, humidity: 88.0, feelsLike: 14.2, windSpeed: 25.0, uvIndex: 2, pressure: 1005.0)
 }
