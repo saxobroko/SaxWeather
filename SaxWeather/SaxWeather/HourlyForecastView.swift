@@ -10,12 +10,20 @@ import Foundation
 
 struct HourlyForecastView: View {
     @ObservedObject var weatherService: WeatherService
-    @State private var hourlyData: [HourlyData] = []
+    @State private var hourlyData: [HourlyWeatherData] = []
     @State private var conditionSummary: String = "Loading hourly forecast..."
     @State private var isLoading = true
     @State private var error: String?
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
+    
+    private var backgroundFillColor: Color {
+        #if os(iOS)
+        return Color(UIColor.systemGray6)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor)
+        #endif
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -54,7 +62,7 @@ struct HourlyForecastView: View {
         }
     }
     
-    private func hourlyForecastItem(_ forecast: HourlyData) -> some View {
+    private func hourlyForecastItem(_ forecast: HourlyWeatherData) -> some View {
         VStack(spacing: 8) {
             // Hour (12h format)
             Text(forecast.timeString)
@@ -75,9 +83,7 @@ struct HourlyForecastView: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(colorScheme == .dark ? backgroundFillColor : Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
         )
         .frame(width: 75)
@@ -113,9 +119,7 @@ struct HourlyForecastView: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ?
-                      Color(UIColor.systemGray6) :
-                      Color.white)
+                .fill(colorScheme == .dark ? backgroundFillColor : Color.white)
         )
         .frame(width: 75)
         .redacted(reason: .placeholder)
@@ -189,8 +193,8 @@ struct HourlyForecastView: View {
         return (0.0, 0.0)
     }
     
-    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyData] {
-        var forecasts: [HourlyData] = []
+    private func processHourlyForecast(_ response: HourlyAPIResponse) -> [HourlyWeatherData] {
+        var forecasts: [HourlyWeatherData] = []
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
         
@@ -199,14 +203,14 @@ struct HourlyForecastView: View {
         timeFormatter.amSymbol = "am"
         timeFormatter.pmSymbol = "pm"
         
-        for i in 0..<min(response.hourly.time.count, 24) {
+        for i in 0..<min(response.hourly.weather_code.count, 24) {
             if let date = formatter.date(from: response.hourly.time[i]) {
                 let timeString = timeFormatter.string(from: date).lowercased()
                 
-                forecasts.append(HourlyData(
+                forecasts.append(HourlyWeatherData(
                     id: i,
-                    time: date,
-                    timeString: timeString,
+                    time: /* conversion logic here */ Date(),
+                    timeString: response.hourly.time[i],
                     temperature: response.hourly.temperature_2m[i],
                     weatherCode: response.hourly.weather_code[i],
                     windSpeed: response.hourly.wind_speed_10m[i],

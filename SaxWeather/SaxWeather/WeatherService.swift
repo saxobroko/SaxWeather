@@ -7,7 +7,12 @@
 
 import Foundation
 import CoreLocation
+#if canImport(UIKit)
 import UIKit
+#endif
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
@@ -18,6 +23,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var _unitSystem: String
     @Published var showLocationAlert = false
     @Published var currentBackgroundCondition: String = "default"
+    @Published var hourlyData: [HourlyWeatherData] = [] // Renamed from HourlyData
     
     let locationManager: CLLocationManager
     
@@ -123,6 +129,8 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self.weather = weatherData
                 self.isLoading = false
                 self.updateBackgroundCondition()
+                // Save weather data for widgets
+                self.saveWeatherDataForWidget(weatherData)
             }
             
             // Always fetch forecast data after weather data is loaded
@@ -133,6 +141,62 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self.isLoading = false
             }
         }
+    }
+    
+    // MARK: - Widget Data Sharing
+    private func saveWeatherDataForWidget(_ weather: Weather) {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
+        
+        // Create a simple structure to encode with proper nil handling
+        var widgetData: [String: Any] = [
+            "lastUpdate": Date().timeIntervalSince1970,
+            "unitSystem": unitSystem
+        ]
+        
+        if let temp = weather.temperature {
+            widgetData["temperature"] = temp
+        }
+        if let feelsLike = weather.feelsLike {
+            widgetData["feelsLike"] = feelsLike
+        }
+        if let high = weather.high {
+            widgetData["high"] = high
+        }
+        if let low = weather.low {
+            widgetData["low"] = low
+        }
+        if let humidity = weather.humidity {
+            widgetData["humidity"] = humidity
+        }
+        if let windSpeed = weather.windSpeed {
+            widgetData["windSpeed"] = windSpeed
+        }
+        if let uvIndex = weather.uvIndex {
+            widgetData["uvIndex"] = uvIndex
+        }
+        if let pressure = weather.pressure {
+            widgetData["pressure"] = pressure
+        }
+        
+        widgetData["condition"] = weather.condition
+        
+        if let jsonData = try? JSONSerialization.data(withJSONObject: widgetData, options: []) {
+            sharedDefaults?.set(jsonData, forKey: "latestWeather")
+            
+            #if DEBUG
+            print("✅ Saved weather data to widget:")
+            print("   - Temperature: \(weather.temperature ?? 0)°")
+            print("   - High: \(weather.high ?? 0)°")
+            print("   - Low: \(weather.low ?? 0)°")
+            print("   - Condition: \(weather.condition)")
+            print("   - Unit System: \(unitSystem)")
+            #endif
+        }
+        
+        // Also reload widget timelines
+        #if canImport(WidgetKit)
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
     
     private func fetchWeatherData() async throws -> Weather {
@@ -153,9 +217,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             // If GPS is enabled but location is nil, or if no saved coordinates, request location
             if (useGPS && locationManager.location == nil) || (latitude.isEmpty || longitude.isEmpty) {
-#if DEBUG
+                #if DEBUG
                 print("⚠️ No valid coordinates available for weather data, requesting location")
-#endif
+                #endif
                 requestLocation()
                 
                 // Wait a moment for location to update
@@ -176,32 +240,69 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         let lat = latitude
         let lon = longitude
         
-        async let wuObservation = (!wuApiKey.isEmpty && !stationID.isEmpty) ?
-        fetchWUWeather(apiKey: wuApiKey, stationID: stationID) :
-        nil
+        // Try Weather Underground first if configured
+        if !wuApiKey.isEmpty && !stationID.isEmpty {
+            do {
+                if let wuData = try await fetchWUWeather(apiKey: wuApiKey, stationID: stationID) {
+                    var weather = Weather(
+                        wuObservation: wuData,
+                        owmCurrent: nil,
+                        owmDaily: nil,
+                        unitSystem: unitSystem
+                    )
+                    
+                    if unitSystem != "Metric" {
+                        weather.convertUnits(from: "Metric", to: unitSystem)
+                    }
+                    
+                    return weather
+                }
+            } catch {
+                #if DEBUG
+                print("⚠️ Weather Underground fetch failed, falling back to OpenWeatherMap: \(error.localizedDescription)")
+                #endif
+            }
+        }
         
-        async let owmWeather = !owmApiKey.isEmpty ?
-        fetchOWMWeather(
-            apiKey: owmApiKey,
-            latitude: lat,  // Using immutable copy
-            longitude: lon,  // Using immutable copy
-            unitSystem: unitSystem
-        ) :
-        (nil, nil)
+        // Try OpenWeatherMap if configured
+        if !owmApiKey.isEmpty {
+            do {
+                let (owmCurrent, owmDaily) = try await fetchOWMWeather(
+                    apiKey: owmApiKey,
+                    latitude: lat,
+                    longitude: lon,
+                    unitSystem: unitSystem
+                )
+                
+                var weather = Weather(
+                    wuObservation: nil,
+                    owmCurrent: owmCurrent,
+                    owmDaily: owmDaily,
+                    unitSystem: unitSystem
+                )
+                
+                if unitSystem != "Metric" {
+                    weather.convertUnits(from: "Metric", to: unitSystem)
+                }
+                
+                return weather
+            } catch {
+                #if DEBUG
+                print("⚠️ OpenWeatherMap fetch failed, falling back to OpenMeteo: \(error.localizedDescription)")
+                #endif
+            }
+        }
         
-        async let openMeteoWeather = (wuApiKey.isEmpty || stationID.isEmpty) && owmApiKey.isEmpty ?
-        fetchOpenMeteoWeather(
-            latitude: lat,  // Using immutable copy
-            longitude: lon  // Using immutable copy
-        ) :
-        (nil, nil)
-        
-        let (wuData, (owmCurrent, owmDaily), (openMeteoCurrent, openMeteoDaily)) = try await (wuObservation, owmWeather, openMeteoWeather)
+        // Fallback to OpenMeteo as last resort
+        let (openMeteoCurrent, openMeteoDaily) = try await fetchOpenMeteoWeather(
+            latitude: lat,
+            longitude: lon
+        )
         
         var weather = Weather(
-            wuObservation: wuData,
-            owmCurrent: owmCurrent ?? openMeteoCurrent,
-            owmDaily: owmDaily ?? openMeteoDaily,
+            wuObservation: nil,
+            owmCurrent: openMeteoCurrent,
+            owmDaily: openMeteoDaily,
             unitSystem: unitSystem
         )
         
@@ -493,9 +594,11 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func openSettings() {
+        #if os(iOS)
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
         }
+        #endif
     }
     
     func hasValidDataSources() -> Bool {
@@ -513,7 +616,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         var hasValidLocation = false
         if useGPS {
             let status = locationManager.authorizationStatus
-            hasValidLocation = status == .authorizedWhenInUse || status == .authorizedAlways
+            hasValidLocation = hasValidLocationStatus(status)
         } else {
             if let lat = Double(latitude), let lon = Double(longitude) {
                 hasValidLocation = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
@@ -525,6 +628,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         // 2. Valid OWM config with location
         // 3. Valid location (for OpenMeteo fallback)
         return hasWUConfig || (hasOWMConfig && hasValidLocation) || hasValidLocation
+    }
+    
+    private func hasValidLocationStatus(_ status: CLAuthorizationStatus) -> Bool {
+        #if os(iOS)
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+        #else
+        return status == .authorized
+        #endif
     }
     
     private func weatherTypeFor(code: Int) -> String {

@@ -10,13 +10,41 @@
 		781254722D7C0730003ACF0B /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 781254712D7C0730003ACF0B /* Lottie */; };
 		78147F792DB6738200839E00 /* XMLCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 78147F782DB6738200839E00 /* XMLCoder */; };
 		7859BEB32D7C217300FC7230 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7859BEB22D7C217300FC7230 /* KeychainSwift */; };
+		7899C5F52DD9242C00A698C9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7899C5F42DD9242C00A698C9 /* WidgetKit.framework */; };
+		7899C5F72DD9242C00A698C9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7899C5F62DD9242C00A698C9 /* SwiftUI.framework */; };
+		7899C6062DD92D2200A698C9 /* SaxWeatherWidgetExtension.appex in Embed App Extension */ = {isa = PBXBuildFile; fileRef = 7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		7899C6052DD92CE000A698C9 /* Embed App Extension */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7899C6062DD92D2200A698C9 /* SaxWeatherWidgetExtension.appex in Embed App Extension */,
+			);
+			name = "Embed App Extension";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SaxWeatherWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7899C5F42DD9242C00A698C9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		7899C5F62DD9242C00A698C9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		7899C6042DD9251F00A698C9 /* SaxWeatherWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SaxWeatherWidgetExtension.entitlements; sourceTree = "<group>"; };
 		78C666C62D5F732E00A7281A /* SaxWeather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SaxWeather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7899C6002DD9242D00A698C9 /* Exceptions for "SaxWeatherWidget" folder in "SaxWeatherWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */;
+		};
 		78C667002D600B2E00A7281A /* Exceptions for "SaxWeather" folder in "SaxWeather" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -27,6 +55,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		7899C5F82DD9242C00A698C9 /* SaxWeatherWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7899C6002DD9242D00A698C9 /* Exceptions for "SaxWeatherWidget" folder in "SaxWeatherWidgetExtension" target */,
+			);
+			path = SaxWeatherWidget;
+			sourceTree = "<group>";
+		};
 		78C666C82D5F732E00A7281A /* SaxWeather */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -38,6 +74,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		7899C5EF2DD9242C00A698C9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7899C5F72DD9242C00A698C9 /* SwiftUI.framework in Frameworks */,
+				7899C5F52DD9242C00A698C9 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		78C666C32D5F732E00A7281A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -51,10 +96,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7899C5F32DD9242C00A698C9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7899C5F42DD9242C00A698C9 /* WidgetKit.framework */,
+				7899C5F62DD9242C00A698C9 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		78C666BD2D5F732E00A7281A = {
 			isa = PBXGroup;
 			children = (
+				7899C6042DD9251F00A698C9 /* SaxWeatherWidgetExtension.entitlements */,
 				78C666C82D5F732E00A7281A /* SaxWeather */,
+				7899C5F82DD9242C00A698C9 /* SaxWeatherWidget */,
+				7899C5F32DD9242C00A698C9 /* Frameworks */,
 				78C666C72D5F732E00A7281A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -63,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				78C666C62D5F732E00A7281A /* SaxWeather.app */,
+				7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +128,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7899C6012DD9242D00A698C9 /* Build configuration list for PBXNativeTarget "SaxWeatherWidgetExtension" */;
+			buildPhases = (
+				7899C5EE2DD9242C00A698C9 /* Sources */,
+				7899C5EF2DD9242C00A698C9 /* Frameworks */,
+				7899C5F02DD9242C00A698C9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				7899C5F82DD9242C00A698C9 /* SaxWeatherWidget */,
+			);
+			name = SaxWeatherWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = SaxWeatherWidgetExtension;
+			productReference = 7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		78C666C52D5F732E00A7281A /* SaxWeather */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 78C666EA2D5F732F00A7281A /* Build configuration list for PBXNativeTarget "SaxWeather" */;
@@ -77,6 +157,7 @@
 				78C666C22D5F732E00A7281A /* Sources */,
 				78C666C32D5F732E00A7281A /* Frameworks */,
 				78C666C42D5F732E00A7281A /* Resources */,
+				7899C6052DD92CE000A698C9 /* Embed App Extension */,
 			);
 			buildRules = (
 			);
@@ -102,9 +183,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1630;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					7899C5F12DD9242C00A698C9 = {
+						CreatedOnToolsVersion = 16.3;
+					};
 					78C666C52D5F732E00A7281A = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -130,11 +214,19 @@
 			projectRoot = "";
 			targets = (
 				78C666C52D5F732E00A7281A /* SaxWeather */,
+				7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		7899C5F02DD9242C00A698C9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		78C666C42D5F732E00A7281A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -145,6 +237,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		7899C5EE2DD9242C00A698C9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		78C666C22D5F732E00A7281A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -155,6 +254,78 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		7899C6022DD9242D00A698C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = SaxWeatherWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F2AHYWP9BX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SaxWeatherWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SaxWeatherWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather.SaxWeatherWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		7899C6032DD9242D00A698C9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = SaxWeatherWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F2AHYWP9BX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SaxWeatherWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SaxWeatherWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather.SaxWeatherWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
 		78C666E82D5F732F00A7281A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -214,6 +385,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -271,6 +443,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -282,6 +455,7 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SaxWeather/SaxWeather.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -289,8 +463,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SaxWeather/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SaxWeather;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to provide weather updates for your area.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide weather updates for your area.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SaxWeather needs your location to show weather for your current location and center the radar map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -303,13 +479,16 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,3,4,6,7";
@@ -322,6 +501,7 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SaxWeather/SaxWeather.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -329,8 +509,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SaxWeather/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SaxWeather;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We need your location to provide weather updates for your area.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to provide weather updates for your area.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "SaxWeather needs your location to show weather for your current location and center the radar map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -343,13 +525,16 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,3,4,6,7";
@@ -359,6 +544,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		7899C6012DD9242D00A698C9 /* Build configuration list for PBXNativeTarget "SaxWeatherWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7899C6022DD9242D00A698C9 /* Debug */,
+				7899C6032DD9242D00A698C9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		78C666C12D5F732E00A7281A /* Build configuration list for PBXProject "SaxWeather" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

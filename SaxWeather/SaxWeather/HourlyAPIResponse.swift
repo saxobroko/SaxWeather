@@ -24,12 +24,22 @@ struct HourlyAPIResponse: Decodable {
 }
 
 // MARK: - Hourly Data Model
-struct HourlyData: Identifiable {
-    let id: Int
-    let time: Date
-    let timeString: String
-    let temperature: Double
-    let weatherCode: Int
-    let windSpeed: Double
-    let windGust: Double
+public struct HourlyWeatherData: Identifiable {
+    public let id: Int
+    public let time: Date
+    public let timeString: String
+    public let temperature: Double
+    public let weatherCode: Int
+    public let windSpeed: Double
+    public let windGust: Double
+    
+    public init(id: Int, time: Date, timeString: String, temperature: Double, weatherCode: Int, windSpeed: Double, windGust: Double) {
+        self.id = id
+        self.time = time
+        self.timeString = timeString
+        self.temperature = temperature
+        self.weatherCode = weatherCode
+        self.windSpeed = windSpeed
+        self.windGust = windGust
+    }
 }
