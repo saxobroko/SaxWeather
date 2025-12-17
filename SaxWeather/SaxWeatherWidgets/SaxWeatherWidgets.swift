@@ -156,57 +156,74 @@ struct SaxWeatherWidgetsEntryView : View {
     private var accessoryWidgetView: some View {
         switch widgetFamily {
         case .accessoryCircular:
-            ZStack {
-                AccessoryWidgetBackground()
-                VStack(spacing: -2) {
-                    if let temp = entry.temperature {
-                        Text(weatherSymbol(for: entry.condition))
-                            .font(.system(size: 14))
-                        // Match main app temperature style
-                        Text("\(String(format: "%.1f", temp))°")
-                            .font(.system(size: 18, weight: .heavy))
-                            .minimumScaleFactor(0.7)
-                    } else {
-                        Image(systemName: "cloud.fill")
-                            .font(.system(size: 20))
+            VStack(spacing: 0) {
+                if let temp = entry.temperature {
+                    Text(weatherSymbol(for: entry.condition))
+                        .font(.system(size: 14))
+                    // Match main app temperature style
+                    Text("\(String(format: "%.0f", temp))°")
+                        .font(.system(size: 20, weight: .heavy))
+                        .minimumScaleFactor(0.7)
+                    // Add compact high/low display
+                    if let high = entry.high, let low = entry.low {
+                        HStack(spacing: 2) {
+                            Text("\(String(format: "%.0f", high))°")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text("/")
+                                .font(.system(size: 8, weight: .regular))
+                                .foregroundStyle(.tertiary)
+                            Text("\(String(format: "%.0f", low))°")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     }
+                } else {
+                    Image(systemName: "cloud.fill")
+                        .font(.system(size: 20))
                 }
             }
             
         case .accessoryRectangular:
             HStack(spacing: 8) {
-                if let temp = entry.temperature, let condition = entry.condition {
+                if let temp = entry.temperature {
                     Text(weatherSymbol(for: entry.condition))
-                        .font(.system(size: 26))
+                        .font(.system(size: 28))
                     
-                    VStack(alignment: .leading, spacing: 1) {
-                        // Match main app temperature style
-                        Text("\(String(format: "%.1f", temp))°")
-                            .font(.system(size: 22, weight: .heavy))
-                        Text(condition)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        // Match main app temperature style - current temp
+                        Text("\(String(format: "%.0f", temp))°")
+                            .font(.system(size: 24, weight: .heavy))
+                        
+                        // Show high/low on second line
+                        if let high = entry.high, let low = entry.low {
+                            HStack(spacing: 4) {
+                                HStack(spacing: 1) {
+                                    Text("↑")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundStyle(.red.opacity(0.9))
+                                    Text("\(String(format: "%.0f", high))°")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                HStack(spacing: 1) {
+                                    Text("↓")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundStyle(.blue.opacity(0.9))
+                                    Text("\(String(format: "%.0f", low))°")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                            }
+                        } else if let condition = entry.condition {
+                            Text(condition)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                     
                     Spacer()
-                    
-                    if let high = entry.high, let low = entry.low {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            HStack(spacing: 2) {
-                                Image(systemName: "arrow.up")
-                                    .font(.system(size: 8))
-                                Text("H:\(String(format: "%.1f", high))°")
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                            HStack(spacing: 2) {
-                                Image(systemName: "arrow.down")
-                                    .font(.system(size: 8))
-                                Text("L:\(String(format: "%.1f", low))°")
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                        }
-                    }
                 } else {
                     Text("No Data")
                         .font(.caption2)
@@ -217,8 +234,10 @@ struct SaxWeatherWidgetsEntryView : View {
             if let temp = entry.temperature {
                 HStack(spacing: 4) {
                     Text(weatherSymbol(for: entry.condition))
-                    Text("\(String(format: "%.1f", temp))°")
-                    if let condition = entry.condition {
+                    Text("\(String(format: "%.0f", temp))°")
+                    if let high = entry.high, let low = entry.low {
+                        Text("H:\(String(format: "%.0f", high))° L:\(String(format: "%.0f", low))°")
+                    } else if let condition = entry.condition {
                         Text(condition)
                     }
                 }
@@ -340,6 +359,13 @@ struct SaxWeatherWidgets: Widget {
 }
 
 #Preview(as: .accessoryRectangular) {
+    SaxWeatherWidgets()
+} timeline: {
+    WeatherEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8)
+    WeatherEntry(date: .now, temperature: 15.6, condition: "Rainy", high: 17.8, low: 12.4)
+}
+
+#Preview(as: .accessoryInline) {
     SaxWeatherWidgets()
 } timeline: {
     WeatherEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8)
