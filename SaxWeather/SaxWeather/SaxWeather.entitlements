@@ -6,5 +6,7 @@
 	<array>
 		<string>group.com.saxobroko.SaxWeather</string>
 	</array>
+	<key>com.apple.developer.weatherkit</key>
+	<true/>
 </dict>
 </plist>

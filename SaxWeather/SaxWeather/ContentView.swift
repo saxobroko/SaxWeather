@@ -35,15 +35,56 @@ extension EnvironmentValues {
 struct ContentView: View {
     @EnvironmentObject var storeManager: StoreManager
     @StateObject private var weatherService = WeatherService()
+    @StateObject private var locationsManager = SavedLocationsManager()
     @State private var showSettings = false
-    @State private var isRefreshing = false
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @AppStorage("displayMode") private var displayMode: String = "Summary"
+    @AppStorage("disableAPIKeys") private var disableAPIKeys = false
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var weatherAlertManager = WeatherAlertManager()
     @State private var activePopup: PopupData?
+    
+    // Computed property to check if we should show location text
+    private var shouldShowLocationText: Bool {
+        // Show location text when:
+        // 1. API keys are disabled (using Apple Weather/Open-Meteo with custom locations), OR
+        // 2. Using GPS or custom saved locations (not Weather Underground station)
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        let hasWeatherUnderground = !wuApiKey.isEmpty && !stationID.isEmpty
+        
+        // Hide when using Weather Underground station (it's location-specific already)
+        if hasWeatherUnderground && !disableAPIKeys {
+            return false
+        }
+        
+        // Show for GPS and custom locations
+        return true
+    }
+    
+    // Computed property for location display
+    private var currentLocationText: String {
+        if weatherService.useGPS {
+            return "Current Location"
+        } else if let selectedLocation = locationsManager.selectedLocation, !selectedLocation.isCurrentLocation {
+            return selectedLocation.name
+        } else {
+            // Fallback to coordinates
+            let lat = UserDefaults.standard.string(forKey: "latitude") ?? ""
+            let lon = UserDefaults.standard.string(forKey: "longitude") ?? ""
+            if !lat.isEmpty && !lon.isEmpty {
+                return "\(formatCoordinate(lat)), \(formatCoordinate(lon))"
+            }
+            return "Unknown Location"
+        }
+    }
+    
+    private func formatCoordinate(_ value: String) -> String {
+        guard let doubleValue = Double(value) else { return value }
+        return String(format: "%.4f", doubleValue)
+    }
     
     var body: some View {
         ZStack {
@@ -82,7 +123,7 @@ struct ContentView: View {
                             Label("Settings", systemImage: "gear")
                         }
                         
-                        #if os(iOS)
+                        #if DEBUG
                         NavigationStack {
                             LottieDebugView()
                         }
@@ -94,7 +135,7 @@ struct ContentView: View {
                     .preferredColorScheme(selectedColorScheme)
                     .onAppear {
                         Task {
-                            await weatherService.fetchWeather()
+                            await weatherService.fetchWeather(calledFrom: "TabView.onAppear")
                         }
                     }
                 }
@@ -155,11 +196,7 @@ struct ContentView: View {
                 contentLayer
             }
         }
-        .onAppear {
-            Task {
-                await weatherService.fetchWeather()
-            }
-        }
+        // Removed duplicate .onAppear - already handled by TabView
     }
     
     private var backgroundLayer: some View {
@@ -182,8 +219,10 @@ struct ContentView: View {
             ScrollView {
                 VStack {
                     weatherContent
-                    refreshButton
                 }
+            }
+            .refreshable {
+                await weatherService.fetchWeather(calledFrom: "PullToRefresh")
             }
             footerView
         }
@@ -194,6 +233,15 @@ struct ContentView: View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
                 VStack(spacing: 8) {
+                    // Location label - only show when appropriate
+                    if shouldShowLocationText {
+                        Text("Weather for \(currentLocationText)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .padding(.top, 20)
+                    }
+                    
                     #if os(macOS)
                     Spacer().frame(height: 48)
                     LottieView(name: getAnimationName(for: weather.condition))
@@ -202,7 +250,7 @@ struct ContentView: View {
                     #else
                     LottieView(name: getAnimationName(for: weather.condition))
                         .frame(width: 150, height: 150)
-                        .padding(.top, 20)
+                        .padding(.top, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
                     #endif
                     
@@ -265,7 +313,7 @@ struct ContentView: View {
                     
                     Button("Try Again") {
                         Task {
-                            await weatherService.fetchWeather()
+                            await weatherService.fetchWeather(calledFrom: "TryAgainButton")
                         }
                     }
                     .padding()
@@ -350,35 +398,20 @@ struct ContentView: View {
         return hour < 6 || hour > 18
     }
     
-    private var refreshButton: some View {
-        Button {
-            Task {
-                isRefreshing = true
-                await weatherService.fetchWeather()
-                isRefreshing = false
-            }
-        } label: {
-            HStack {
-                if isRefreshing {
-                    ProgressView()
-                        .tint(systemColorScheme == .dark ? .white : .blue)
-                }
-                Text("Refresh")
-            }
-            .padding()
-            .background(systemColorScheme == .dark ? Color.blue.opacity(0.6) : Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-        .padding()
-        .disabled(isRefreshing)
-    }
-    
     private var footerView: some View {
-        Text("Made by Saxon")
-            .font(.caption)
-            .foregroundColor(.primary)
-            .padding(.bottom, 10)
+        VStack(spacing: 4) {
+            // Weather data attribution (required for legal compliance)
+            WeatherAttributionView(
+                dataSource: weatherService.currentDataSource,
+                stationID: UserDefaults.standard.string(forKey: "stationID")
+            )
+            
+            // App credit
+            Text("Made by Saxon")
+                .font(.caption)
+                .foregroundColor(.primary)
+                .padding(.bottom, 10)
+        }
     }
     
     private var temperatureUnit: String {
@@ -527,24 +560,81 @@ struct WeatherDetailsView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            ForEach(weatherMetrics, id: \.title) { metric in
-                if let value = metric.value {
-                    WeatherRowView(title: metric.title, value: value)
+        if #available(iOS 26.2, *) {
+            // iOS 26+ Glass Aesthetic - Transparent with Subtle Dark Tint
+            VStack(spacing: 12) {
+                ForEach(weatherMetrics, id: \.title) { metric in
+                    if let value = metric.value {
+                        WeatherRowView(title: metric.title, value: value)
+                    }
                 }
             }
+            .padding(.vertical, 20)
+            .padding(.horizontal, 16)
+            .background {
+                ZStack {
+                    // More transparent blur effect
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.6)  // Increased transparency
+                    
+                    // Subtle dark tint overlay
+                    LinearGradient(
+                        colors: colorScheme == .dark ? [
+                            Color.black.opacity(0.2),      // Subtle dark tint
+                            Color.black.opacity(0.1),      // Even lighter
+                            Color.clear
+                        ] : [
+                            Color.white.opacity(0.15),     // Light mode stays neutral
+                            Color.white.opacity(0.05),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))  // Ensure proper rounding
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: colorScheme == .dark ? [
+                                Color.white.opacity(0.2),      // Subtle white border
+                                Color.white.opacity(0.1)
+                            ] : [
+                                Color.white.opacity(0.25),     // Light mode border
+                                Color.white.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .black.opacity(0.12), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 20)
+        } else {
+            // Fallback for iOS 25 and earlier
+            VStack(spacing: 16) {
+                ForEach(weatherMetrics, id: \.title) { metric in
+                    if let value = metric.value {
+                        WeatherRowView(title: metric.title, value: value)
+                    }
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    #if os(iOS)
+                    .fill(Color(UIColor.systemBackground))
+                    #elseif os(macOS)
+                    .fill(Color(NSColor.windowBackgroundColor))
+                    #endif
+                    .shadow(radius: 5)
+            )
+            .padding(.horizontal)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                #if os(iOS)
-                .fill(Color(UIColor.systemBackground))
-                #elseif os(macOS)
-                .fill(Color(NSColor.windowBackgroundColor))
-                #endif
-                .shadow(radius: 5)
-        )
-        .padding(.horizontal)
     }
     
     private var weatherMetrics: [(title: String, value: String?)] {
@@ -628,23 +718,79 @@ struct WeatherRowView: View {
     }
     
     var body: some View {
-        HStack {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.blue)
-            Spacer()
-            Text(value)
-                .font(.body)
-                .foregroundColor(colorScheme == .dark ? .white : .black)
+        if #available(iOS 26.2, *) {
+            // iOS 26+ style with subtle dark tint and glass effect
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(colorScheme == .dark ? 
+                            Color.white.opacity(0.6) : 
+                            Color.black.opacity(0.5)
+                        )
+                        .frame(width: 24)
+                    
+                    Text(title)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.8) :
+                            Color.black.opacity(0.7)
+                        )
+                }
+                
+                Spacer()
+                
+                Text(value)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.9) :
+                        Color.black.opacity(0.8)
+                    )
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                popupState.wrappedValue = PopupData(
+                    title: title,
+                    value: value,
+                    description: description
+                )
+            }
+        } else {
+            // Fallback for iOS 25 and earlier
+            HStack {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                Spacer()
+                Text(value)
+                    .font(.body)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+            }
+            .padding(.horizontal)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                popupState.wrappedValue = PopupData(
+                    title: title,
+                    value: value,
+                    description: description
+                )
+            }
         }
-        .padding(.horizontal)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            popupState.wrappedValue = PopupData(
-                title: title,
-                value: value,
-                description: description
-            )
+    }
+    
+    // Icon mapping for each weather metric
+    private var iconName: String {
+        switch title {
+        case "Humidity": return "humidity.fill"
+        case "Dew Point": return "drop.fill"
+        case "Pressure": return "gauge.with.dots.needle.bottom.50percent"
+        case "Wind Speed": return "wind"
+        case "Wind Gust": return "wind.snow"
+        case "UV Index": return "sun.max.fill"
+        case "Solar Radiation": return "sun.and.horizon.fill"
+        default: return "questionmark.circle.fill"
         }
     }
 }

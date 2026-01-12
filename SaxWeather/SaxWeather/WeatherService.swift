@@ -26,6 +26,11 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var hourlyData: [HourlyWeatherData] = [] // Renamed from HourlyData
     
     let locationManager: CLLocationManager
+    private var locationTimeoutWorkItem: DispatchWorkItem?
+    var currentDataSource: String = "unknown" // Track which service provided current weather data
+    var forecastDataSource: String = "unknown" // Track which service provided forecast data
+    private var fetchTask: Task<Void, Never>? = nil // Track current fetch task
+    private var lastFetchTime: Date? = nil // Track last fetch time for debouncing
     
     var unitSystem: String {
         get { _unitSystem }
@@ -34,7 +39,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self._unitSystem = newValue
                 UserDefaults.standard.set(newValue, forKey: "unitSystem")
                 Task {
-                    await self.fetchWeather()
+                    await self.fetchWeather(calledFrom: "unitSystem.setter")
                 }
             }
         }
@@ -81,7 +86,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             // Refresh weather data when GPS setting changes
             Task {
-                await fetchWeather()
+                await fetchWeather(calledFrom: "useGPS.setter")
             }
         }
     }
@@ -117,34 +122,105 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     // MARK: - Weather Methods
-    func fetchWeather() async {
-        await MainActor.run {
-            self.isLoading = true
-            self.error = nil
+    @MainActor
+    func fetchWeather(calledFrom: String = "unknown") async {
+        // Debounce: Skip if last fetch was less than 2 seconds ago
+        if let lastFetch = lastFetchTime, Date().timeIntervalSince(lastFetch) < 2.0 {
+            print("⏭️  Skipping fetch from \(calledFrom) - too soon since last request (\(String(format: "%.1f", Date().timeIntervalSince(lastFetch)))s ago)")
+            return
         }
         
-        do {
-            let weatherData = try await fetchWeatherData()
-            await MainActor.run {
-                self.weather = weatherData
-                self.isLoading = false
-                self.updateBackgroundCondition()
-                // Save weather data for widgets
-                self.saveWeatherDataForWidget(weatherData)
+        print("📍 Fetch initiated from: \(calledFrom)")
+        
+        // Cancel any existing fetch task
+        if let existingTask = fetchTask {
+            print("⏸️  Cancelling previous fetch task")
+            existingTask.cancel()
+        }
+        
+        // Create new fetch task
+        let task = Task { @MainActor in
+            guard !Task.isCancelled else {
+                print("⏸️  Fetch cancelled - new request started")
+                return
             }
             
-            // Always fetch forecast data after weather data is loaded
-            await fetchForecasts()
-        } catch {
-            await MainActor.run {
+            self.lastFetchTime = Date()
+            self.isLoading = true
+            self.error = nil
+            
+            do {
+                let weatherData = try await self.fetchWeatherData()
+                
+                guard !Task.isCancelled else {
+                    print("⏸️  Fetch cancelled after data received")
+                    return
+                }
+                
+                self.weather = weatherData
+                print("✅ Weather data updated on main thread - Temp: \(weatherData.temperature ?? 0)°, Source: \(self.currentDataSource)")
+                self.isLoading = false
+                self.updateBackgroundCondition()
+                self.saveWeatherDataForWidget(weatherData)
+                
+                // Fetch forecast data based on the data source used
+                await self.fetchForecasts()
+            } catch {
+                guard !Task.isCancelled else { return }
+                
                 self.error = error.localizedDescription
                 self.isLoading = false
             }
         }
+        
+        fetchTask = task
+        await task.value
+    }
+    
+    // MARK: - Location Coordinates Helper
+    /// Get the correct coordinates for weather data and alerts
+    /// Returns the GPS location, custom location, or station location based on settings
+    func getCoordinates() async -> (latitude: Double, longitude: Double)? {
+        // Check if API keys are disabled
+        let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
+        
+        // If using Weather Underground or OpenWeatherMap (and API keys not disabled),
+        // those services use their own station/location, so we use saved coordinates
+        let wuApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "wu") ?? "")
+        let stationID = disableAPIKeys ? "" : (UserDefaults.standard.string(forKey: "stationID") ?? "")
+        let owmApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "owm") ?? "")
+        
+        let hasWU = !wuApiKey.isEmpty && !stationID.isEmpty
+        let hasOWM = !owmApiKey.isEmpty
+        
+        // Priority 1: GPS location (if enabled and no API keys override)
+        if useGPS, let location = locationManager.location, !hasWU && !hasOWM {
+            return (location.coordinate.latitude, location.coordinate.longitude)
+        }
+        
+        // Priority 2: Saved coordinates (custom location or API key location)
+        if let latStr = UserDefaults.standard.string(forKey: "latitude"),
+           let lonStr = UserDefaults.standard.string(forKey: "longitude"),
+           let lat = Double(latStr),
+           let lon = Double(lonStr) {
+            return (lat, lon)
+        }
+        
+        // Priority 3: Request GPS location if enabled but not available
+        if useGPS {
+            requestLocation()
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // Wait 2 seconds
+            
+            if let location = locationManager.location {
+                return (location.coordinate.latitude, location.coordinate.longitude)
+            }
+        }
+        
+        return nil
     }
     
     // MARK: - Widget Data Sharing
-    private func saveWeatherDataForWidget(_ weather: Weather) {
+    func saveWeatherDataForWidget(_ weather: Weather) {
         let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
         
         // Create a simple structure to encode with proper nil handling
@@ -159,12 +235,18 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         if let feelsLike = weather.feelsLike {
             widgetData["feelsLike"] = feelsLike
         }
-        if let high = weather.high {
+        
+        // Get high/low from today's forecast if available (Weather Underground doesn't provide these)
+        if let forecast = self.forecast, let today = forecast.daily.first {
+            widgetData["high"] = today.tempMax
+            widgetData["low"] = today.tempMin
+        } else if let high = weather.high {
             widgetData["high"] = high
         }
-        if let low = weather.low {
+        if let low = weather.low, widgetData["low"] == nil {
             widgetData["low"] = low
         }
+        
         if let humidity = weather.humidity {
             widgetData["humidity"] = humidity
         }
@@ -186,10 +268,11 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             #if DEBUG
             print("✅ Saved weather data to widget:")
             print("   - Temperature: \(weather.temperature ?? 0)°")
-            print("   - High: \(weather.high ?? 0)°")
-            print("   - Low: \(weather.low ?? 0)°")
+            print("   - High: \(widgetData["high"] as? Double ?? 0)°")
+            print("   - Low: \(widgetData["low"] as? Double ?? 0)°")
             print("   - Condition: \(weather.condition)")
             print("   - Unit System: \(unitSystem)")
+            print("   - Source: \(forecast != nil ? "Forecast data" : "Weather data")")
             #endif
         }
         
@@ -200,17 +283,27 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func fetchWeatherData() async throws -> Weather {
-        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
-        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
-        let owmApiKey = KeychainService.shared.getApiKey(forService: "owm") ?? ""
+        // Check if API keys are disabled
+        let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
+        
+        // Only load API keys if they're not disabled
+        let wuApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "wu") ?? "")
+        let stationID = disableAPIKeys ? "" : (UserDefaults.standard.string(forKey: "stationID") ?? "")
+        let owmApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "owm") ?? "")
+        
+        print("\n🌤️  CURRENT WEATHER DATA SOURCE")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        if disableAPIKeys {
+            print("🔒 API Keys are DISABLED - skipping Weather Underground and OpenWeatherMap")
+        }
         
         // Get location coordinates
         var latitude = ""
         var longitude = ""
         
-        if useGPS && locationManager.location != nil {
-            latitude = "\(locationManager.location!.coordinate.latitude)"
-            longitude = "\(locationManager.location!.coordinate.longitude)"
+        if useGPS, let location = locationManager.location {
+            latitude = "\(location.coordinate.latitude)"
+            longitude = "\(location.coordinate.longitude)"
         } else {
             latitude = UserDefaults.standard.string(forKey: "latitude") ?? ""
             longitude = UserDefaults.standard.string(forKey: "longitude") ?? ""
@@ -242,8 +335,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Try Weather Underground first if configured
         if !wuApiKey.isEmpty && !stationID.isEmpty {
+            print("📍 Priority 1: Attempting Weather Underground (Station ID: \(stationID))")
             do {
                 if let wuData = try await fetchWUWeather(apiKey: wuApiKey, stationID: stationID) {
+                    print("✅ SUCCESS: Using Weather Underground for current conditions")
+                    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                    
+                    currentDataSource = "weatherunderground"
+                    
                     var weather = Weather(
                         wuObservation: wuData,
                         owmCurrent: nil,
@@ -258,14 +357,14 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                     return weather
                 }
             } catch {
-                #if DEBUG
-                print("⚠️ Weather Underground fetch failed, falling back to OpenWeatherMap: \(error.localizedDescription)")
-                #endif
+                print("❌ FAILED: Weather Underground unavailable (\(error.localizedDescription))")
+                print("   → Falling back to next source...")
             }
         }
         
         // Try OpenWeatherMap if configured
         if !owmApiKey.isEmpty {
+            print("📍 Priority 2: Attempting OpenWeatherMap")
             do {
                 let (owmCurrent, owmDaily) = try await fetchOWMWeather(
                     apiKey: owmApiKey,
@@ -273,6 +372,11 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                     longitude: lon,
                     unitSystem: unitSystem
                 )
+                
+                print("✅ SUCCESS: Using OpenWeatherMap for current conditions")
+                print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                
+                currentDataSource = "openweathermap"
                 
                 var weather = Weather(
                     wuObservation: nil,
@@ -287,17 +391,49 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 
                 return weather
             } catch {
-                #if DEBUG
-                print("⚠️ OpenWeatherMap fetch failed, falling back to OpenMeteo: \(error.localizedDescription)")
-                #endif
+                print("❌ FAILED: OpenWeatherMap unavailable (\(error.localizedDescription))")
+                print("   → Falling back to next source...")
             }
         }
         
-        // Fallback to OpenMeteo as last resort
+        // Check user preference for default data source
+        let useOpenMeteo = UserDefaults.standard.bool(forKey: "useOpenMeteoAsDefault")
+        
+        // Try WeatherKit as default (iOS 16+, macOS 13+) unless user prefers OpenMeteo
+        if !useOpenMeteo {
+            if #available(iOS 16.0, macOS 13.0, *) {
+                print("📍 Priority 3: Attempting Apple WeatherKit (Default)")
+                do {
+                    let weather = try await fetchWeatherKitWeather(latitude: lat, longitude: lon)
+                    print("✅ SUCCESS: Using Apple WeatherKit for current conditions")
+                    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                    
+                    currentDataSource = "weatherkit"
+                    
+                    return weather
+                } catch {
+                    print("❌ FAILED: WeatherKit unavailable (\(error.localizedDescription))")
+                    print("   → Falling back to OpenMeteo...")
+                }
+            } else {
+                print("⚠️  SKIPPED: WeatherKit (Requires iOS 16.0+ / macOS 13.0+)")
+            }
+        } else {
+            print("⚙️  SKIPPED: WeatherKit (User preference: OpenMeteo as default)")
+        }
+        
+        // Fallback to OpenMeteo
+        print("📍 Priority 4: Using OpenMeteo (Fallback)")
+        
+        currentDataSource = "openmeteo"
+        
         let (openMeteoCurrent, openMeteoDaily) = try await fetchOpenMeteoWeather(
             latitude: lat,
             longitude: lon
         )
+        
+        print("✅ SUCCESS: Using OpenMeteo for current conditions")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
         
         var weather = Weather(
             wuObservation: nil,
@@ -472,13 +608,24 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("📍 Location updated: \(locations.first?.coordinate ?? CLLocationCoordinate2D())")
 #endif
         
+        // Cancel the timeout work item since we got a location
+        locationTimeoutWorkItem?.cancel()
+        locationTimeoutWorkItem = nil
+        
+        // Save last known location for widgets to use
+        if let location = locations.first {
+            let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
+            sharedDefaults?.set("\(location.coordinate.latitude)", forKey: "lastKnownLatitude")
+            sharedDefaults?.set("\(location.coordinate.longitude)", forKey: "lastKnownLongitude")
+        }
+        
         // Stop updating location after we get a reading - only need one update
         locationManager.stopUpdatingLocation()
         
         if useGPS {
             Task { [weak self] in
                 guard let self = self else { return }
-                await self.fetchWeather()
+                await self.fetchWeather(calledFrom: "locationManager.didUpdateLocations")
             }
         }
     }
@@ -508,18 +655,23 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             // Request a location update
             locationManager.startUpdatingLocation()
             
+            // Cancel any existing timeout
+            locationTimeoutWorkItem?.cancel()
+            
             // Add a timer to stop location updates after a short period
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            let timeoutItem = DispatchWorkItem { [weak self] in
 #if DEBUG
                 print("⏱️ Stopping location updates after timeout")
 #endif
                 self?.locationManager.stopUpdatingLocation()
             }
+            locationTimeoutWorkItem = timeoutItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeoutItem)
             
             // Refresh weather data with new location permissions
             Task { [weak self] in
                 guard let self = self else { return }
-                await self.fetchWeather()
+                await self.fetchWeather(calledFrom: "locationManagerDidChangeAuthorization")
             }
         case .denied, .restricted:
 #if DEBUG
@@ -560,13 +712,18 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             // Use startUpdatingLocation with a timeout instead of requestLocation
             locationManager.startUpdatingLocation()
             
+            // Cancel any existing timeout
+            locationTimeoutWorkItem?.cancel()
+            
             // Add a timer to stop location updates after a short period
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            let timeoutItem = DispatchWorkItem { [weak self] in
 #if DEBUG
                 print("⏱️ Stopping location updates after timeout")
 #endif
                 self?.locationManager.stopUpdatingLocation()
             }
+            locationTimeoutWorkItem = timeoutItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeoutItem)
         case .denied, .restricted:
 #if DEBUG
             print("⚠️ Location access denied or restricted")
@@ -699,29 +856,4 @@ struct CurrentWeatherResponse: Codable {
     let main: Main
     let wind: Wind
     let clouds: Clouds
-}
-
-extension WeatherService {
-    enum WeatherError: Error {
-        case invalidURL
-        case invalidAPIKey
-        case apiError(String)
-        case decodingError(String)
-        case noData
-        
-        var localizedDescription: String {
-            switch self {
-            case .invalidURL:
-                return "Invalid URL"
-            case .invalidAPIKey:
-                return "Invalid API key"
-            case .apiError(let message):
-                return "API error: \(message)"
-            case .decodingError(let message):
-                return "Failed to decode response: \(message)"
-            case .noData:
-                return "No weather data available"
-            }
-        }
-    }
 }

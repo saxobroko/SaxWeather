@@ -338,9 +338,73 @@ extension WeatherService {
     // MARK: - Forecast Methods
     @MainActor
     func fetchForecasts() async {
+        print("\n📅 FORECAST DATA SOURCE")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
+        // Check if API keys are disabled
+        let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
+        
+        // Check user's forecast source preference
+        let preferOpenMeteo = UserDefaults.standard.bool(forKey: "useOpenMeteoAsDefault")
+        
+        if disableAPIKeys {
+            print("🔒 API Keys are DISABLED - using only Apple Weather or Open-Meteo for forecasts")
+        }
+        
+        // If WeatherKit was used for current weather, forecasts are already included
+        if currentDataSource == "weatherkit" {
+            if #available(iOS 16.0, macOS 13.0, *) {
+                print("📍 Using Apple WeatherKit for forecasts (matches current weather source)")
+                print("✅ SUCCESS: WeatherKit already provided forecast data with current conditions")
+                print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                return
+            }
+        }
+        
+        // If using WU or OWM for current weather, choose forecast source based on user preference
+        if currentDataSource == "weatherunderground" || currentDataSource == "openweathermap" {
+            if preferOpenMeteo {
+                print("⚙️  Current weather from \(currentDataSource.uppercased()), using OpenMeteo for forecasts (user preference)")
+            } else {
+                // User prefers WeatherKit, try to use it for forecasts
+                if #available(iOS 16.0, macOS 13.0, *) {
+                    print("⚙️  Current weather from \(currentDataSource.uppercased()), attempting WeatherKit for forecasts (user preference)")
+                    
+                    var lat = ""
+                    var lon = ""
+                    
+                    if useGPS && locationManager.location != nil {
+                        lat = String(locationManager.location!.coordinate.latitude)
+                        lon = String(locationManager.location!.coordinate.longitude)
+                    } else {
+                        lat = UserDefaults.standard.string(forKey: "latitude") ?? ""
+                        lon = UserDefaults.standard.string(forKey: "longitude") ?? ""
+                    }
+                    
+                    if !lat.isEmpty && !lon.isEmpty {
+                        do {
+                            let _ = try await fetchWeatherKitWeather(latitude: lat, longitude: lon)
+                            print("✅ SUCCESS: Using WeatherKit for forecasts (user preference)")
+                            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                            return
+                        } catch {
+                            print("❌ FAILED: WeatherKit forecast unavailable (\(error.localizedDescription))")
+                            print("   → Falling back to OpenMeteo")
+                        }
+                    } else {
+                        print("❌ No coordinates available for WeatherKit forecast, falling back to OpenMeteo")
+                    }
+                } else {
+                    print("⚠️  User prefers WeatherKit but it's unavailable (iOS 16+ required)")
+                    print("   → Using OpenMeteo for forecasts instead")
+                }
+            }
+        }
+        
         #if DEBUG
         print("🔄 Fetching forecast data...")
         print("📱 GPS enabled: \(useGPS)")
+        print("🎯 Current weather source: \(currentDataSource)")
         #endif
         
         // Get location coordinates either from GPS or stored values
@@ -399,14 +463,25 @@ extension WeatherService {
         
         do {
             // Use the forecast-only helper
+            print("📍 Fetching forecast data from OpenMeteo")
             self.forecast = try await fetchOpenMeteoForecast(
                 latitude: latitude,
                 longitude: longitude
             )
+            self.forecastDataSource = "openmeteo" // Track forecast source
+            print("✅ SUCCESS: Using OpenMeteo for \(forecastDays)-day forecast")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
             #if DEBUG
             print("✅ Forecast data processing complete")
             #endif
+            
+            // Update widget with high/low from today's forecast
+            if let weather = self.weather {
+                self.saveWeatherDataForWidget(weather)
+            }
         } catch {
+            print("❌ FAILED: OpenMeteo forecast unavailable (\(error.localizedDescription))")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
             #if DEBUG
             print("❌ Failed to fetch forecasts: \(error.localizedDescription)")
             #endif

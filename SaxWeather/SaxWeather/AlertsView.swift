@@ -46,10 +46,17 @@ struct AlertsView: View {
                     if alertManager.authorizationStatus != .authorized {
                         notificationPermissionView
                     }
+                    
+                    // Weather alert attribution (required for legal compliance)
+                    WeatherAttributionView(
+                        dataSource: alertManager.alertDataSource,
+                        stationID: nil,
+                        useAlertSource: true
+                    )
+                    .padding(.top, 16)
                 }
                 .padding()
             }
-            .navigationTitle("Weather Alerts")
             .refreshable {
                 await refreshData()
             }
@@ -166,8 +173,11 @@ struct AlertsView: View {
             .padding(.top, 8)
         }
         .padding()
-        .background(secondarySystemBackgroundColor)
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(secondarySystemBackgroundColor)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
     }
 
     /// Formats a minutes value as "X minutes", "1 hour", "2 hours", "1 day", or "1 day 2 hours"
@@ -292,18 +302,32 @@ struct AlertsView: View {
     private var alertsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Weather Alerts")
-                .font(.headline)
+                .font(.largeTitle)
+                .fontWeight(.bold)
                 .padding(.horizontal)
-
+            
             if alertManager.alerts.isEmpty {
-                Text("No weather alerts for your location")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
-                    .background(secondarySystemBackgroundColor)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.green)
+                    
+                    Text("No Active Alerts")
+                        .font(.headline)
+                    
+                    Text("No weather alerts for your location")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .padding(.horizontal)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(secondarySystemBackgroundColor)
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                )
+                .padding(.horizontal)
             } else {
                 ForEach(alertManager.alerts) { alert in
                     alertView(for: alert)
@@ -313,35 +337,99 @@ struct AlertsView: View {
     }
 
     private func alertView(for alert: WeatherAlert) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        let content = VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Circle()
                     .fill(alertSeverityColor(alert.severity))
-                    .frame(width: 12, height: 12)
+                    .frame(width: 16, height: 16)
+                    .padding(.top, 2)
 
-                Text(alert.type)
-                    .font(.headline)
-
-                Spacer()
-
-                Text(alert.severity.rawValue)
-                    .font(.subheadline)
-                    .foregroundColor(alertSeverityColor(alert.severity))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(alert.type)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(nil)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(alertSeverityColor(alert.severity))
+                        
+                        Text(alert.severity.rawValue.uppercased())
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(alertSeverityColor(alert.severity))
+                    }
+                }
+                
+                Spacer(minLength: 0)
+                
+                // Show chevron icon if URL is available
+                if alert.detailsURL != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
-            Text(alert.description)
-                .font(.body)
-                .padding(.top, 4)
-
-            Text(formatDate(alert.date))
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.top, 4)
+            if !alert.description.isEmpty && alert.description != alert.type {
+                Text(alert.description)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(5)
+                    .padding(.leading, 28)
+            }
+            
+            HStack(spacing: 8) {
+                Image(systemName: "clock")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(alert.date, style: .relative)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                // Show "Tap for details" hint if URL is available
+                if alert.detailsURL != nil {
+                    Spacer()
+                    Text("Tap for details")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.leading, 28)
         }
-        .padding()
-        .background(secondarySystemBackgroundColor)
-        .cornerRadius(12)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(secondarySystemBackgroundColor)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(alertSeverityColor(alert.severity).opacity(0.3), lineWidth: 2)
+        )
         .padding(.horizontal)
+        
+        // Wrap in button if URL is available
+        if let url = alert.detailsURL {
+            return AnyView(
+                Button(action: {
+                    #if os(iOS)
+                    UIApplication.shared.open(url)
+                    #elseif os(macOS)
+                    NSWorkspace.shared.open(url)
+                    #endif
+                }) {
+                    content
+                }
+                .buttonStyle(PlainButtonStyle())
+            )
+        } else {
+            return AnyView(content)
+        }
     }
 
     private func alertSeverityColor(_ severity: WeatherAlert.AlertSeverity) -> Color {
@@ -367,29 +455,49 @@ struct AlertsView: View {
     // MARK: - Notifications Permission View
 
     private var notificationPermissionView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Stay Updated")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.orange)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Stay Updated")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    Text("Get notified about weather changes")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
 
             Text("Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 alertManager.requestNotificationPermissions()
             } label: {
-                Text("Enable Notifications")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                HStack {
+                    Image(systemName: "bell.fill")
+                    Text("Enable Notifications")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(12)
             }
         }
-        .padding()
-        .background(secondarySystemBackgroundColor)
-        .cornerRadius(12)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(secondarySystemBackgroundColor)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
         .padding(.horizontal)
     }
 
@@ -398,20 +506,9 @@ struct AlertsView: View {
     private func refreshData() async {
         isRefreshing = true
 
-        var latitude = 0.0
-        var longitude = 0.0
-
-        if weatherService.useGPS, let location = weatherService.locationManager.location {
-            latitude = location.coordinate.latitude
-            longitude = location.coordinate.longitude
-        } else if let lat = Double(UserDefaults.standard.string(forKey: "latitude") ?? ""),
-                  let lon = Double(UserDefaults.standard.string(forKey: "longitude") ?? "") {
-            latitude = lat
-            longitude = lon
-        }
-
-        if latitude != 0.0 && longitude != 0.0 {
-            await alertManager.fetchAlerts(latitude: latitude, longitude: longitude)
+        // Use WeatherService's coordinate helper to respect API key settings
+        if let coords = await weatherService.getCoordinates() {
+            await alertManager.fetchAlerts(latitude: coords.latitude, longitude: coords.longitude)
         }
 
         isRefreshing = false
