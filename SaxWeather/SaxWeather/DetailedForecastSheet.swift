@@ -53,11 +53,11 @@ struct DetailedForecastSheet: View {
                                 .font(.system(size: 80))
                                 .minimumScaleFactor(0.7)
                         } else {
-                            let isNight = WeatherAnimationHelper.isNighttime(sunrise: day.sunrise, sunset: day.sunset)
+                            // For daily forecasts, always use daytime animations (represents the whole day)
                             LottieView(
                                 name: WeatherAnimationHelper.animationNameFromCode(
                                     for: day.weatherCode,
-                                    isNight: isNight
+                                    isNight: false
                                 ),
                                 loadingFailed: $loadingFailed
                             )

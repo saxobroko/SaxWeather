@@ -104,11 +104,76 @@ struct Weather: Codable {
         return saturationVaporPressure * humidityDecimal
     }
     
+    private func calculateHeatIndex(temperatureC: Double, humidity: Double) -> Double {
+        // Convert to Fahrenheit for the formula
+        let T = temperatureC * 9/5 + 32
+        let RH = humidity
+        
+        // Rothfusz regression (used by US National Weather Service)
+        let c1 = -42.379
+        let c2 = 2.04901523
+        let c3 = 10.14333127
+        let c4 = -0.22475541
+        let c5 = -0.00683783
+        let c6 = -0.05481717
+        let c7 = 0.00122874
+        let c8 = 0.00085282
+        let c9 = -0.00000199
+        
+        let HI = c1 + (c2 * T) + (c3 * RH) + (c4 * T * RH) + (c5 * T * T) + 
+                 (c6 * RH * RH) + (c7 * T * T * RH) + (c8 * T * RH * RH) + 
+                 (c9 * T * T * RH * RH)
+        
+        // Convert back to Celsius
+        return (HI - 32) * 5/9
+    }
+    
+    private func calculateWindChill(temperatureC: Double, windSpeedMS: Double) -> Double {
+        // Convert wind speed from m/s to km/h for the formula
+        let windSpeedKMH = windSpeedMS * 3.6
+        
+        // Wind chill formula (Environment Canada / US National Weather Service)
+        // Only valid for temperatures <= 10°C and wind speeds >= 4.8 km/h
+        guard windSpeedKMH >= 4.8 else {
+            return temperatureC // Not enough wind for wind chill effect
+        }
+        
+        let windChill = 13.12 + 0.6215 * temperatureC - 11.37 * pow(windSpeedKMH, 0.16) + 
+                       0.3965 * temperatureC * pow(windSpeedKMH, 0.16)
+        
+        return windChill
+    }
+    
     private func calculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double) -> Double {
-        let vaporPressure = calculateVaporPressure(temperature: temperature, relativeHumidity: humidity)
-        // AT = Ta + 0.33E - 0.70WS - 4.00
-        let apparentTemperature = temperature + 0.33 * vaporPressure - 0.70 * windSpeed - 4.00
-        return apparentTemperature
+        // Use different formulas based on temperature:
+        // - Hot weather (>= 27°C): Heat Index (accounts for humidity making it feel hotter)
+        // - Cold weather (<= 10°C): Wind Chill (accounts for wind making it feel colder)
+        // - Moderate weather: Australian Apparent Temperature
+        
+        let feelsLike: Double
+        let method: String
+        
+        if temperature >= 27.0 {
+            // Hot weather - use Heat Index
+            feelsLike = calculateHeatIndex(temperatureC: temperature, humidity: humidity)
+            method = "Heat Index"
+        } else if temperature <= 10.0 {
+            // Cold weather - use Wind Chill
+            feelsLike = calculateWindChill(temperatureC: temperature, windSpeedMS: windSpeed)
+            method = "Wind Chill"
+        } else {
+            // Moderate weather - use Australian Apparent Temperature
+            let vaporPressure = calculateVaporPressure(temperature: temperature, relativeHumidity: humidity)
+            // AT = Ta + 0.33E - 0.70WS - 4.00
+            feelsLike = temperature + 0.33 * vaporPressure - 0.70 * windSpeed - 4.00
+            method = "Apparent Temp"
+        }
+        
+        #if DEBUG
+        print("🌡️ Feels Like Calculation: temp=\(String(format: "%.1f", temperature))°C, humidity=\(String(format: "%.0f", humidity))%, wind=\(String(format: "%.1f", windSpeed))m/s → feels=\(String(format: "%.1f", feelsLike))°C (using \(method))")
+        #endif
+        
+        return feelsLike
     }
     
     private func ensureMetricAndCalculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double, currentUnit: String) -> Double {

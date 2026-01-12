@@ -26,7 +26,7 @@ struct WeatherAnimationHelper {
         case _ where conditionLower.contains("rain") || conditionLower.contains("shower"):
             return "rainy"
         case _ where conditionLower.contains("snow") || conditionLower.contains("sleet") || conditionLower.contains("ice"):
-            return "rainy"
+            return isNight ? "snowy-night" : "snowy-day"
         case _ where conditionLower.contains("thunder") || conditionLower.contains("lightning"):
             return "thunderstorm"
         default:
@@ -36,31 +36,38 @@ struct WeatherAnimationHelper {
     
     /// Maps OpenMeteo WMO weather codes to animation names
     static func animationNameFromCode(for weatherCode: Int, isNight: Bool = false) -> String {
+        let animationName: String
         switch weatherCode {
         // Clear
         case 0:
-            return isNight ? "clear-night" : "clear-day"
+            animationName = isNight ? "clear-night" : "clear-day"
         // Mainly clear, partly cloudy
         case 1, 2:
-            return isNight ? "partly-cloudy-night" : "partly-cloudy"
+            animationName = isNight ? "partly-cloudy-night" : "partly-cloudy"
         // Overcast
         case 3:
-            return "cloudy"
+            animationName = "cloudy"
         // Fog
         case 45, 48:
-            return "foggy"
+            animationName = "foggy"
         // All rain types
         case 51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82:
-            return "rainy"
+            animationName = "rainy"
         // Snow
         case 71, 73, 75, 77, 85, 86:
-            return "rainy"
+            animationName = isNight ? "snowy-night" : "snowy-day"
         // Thunderstorm
         case 95, 96, 99:
-            return "thunderstorm"
+            animationName = "thunderstorm"
         default:
-            return isNight ? "clear-night" : "clear-day"
+            animationName = isNight ? "clear-night" : "clear-day"
         }
+        
+        #if DEBUG
+        print("🎬 WeatherAnimationHelper: weatherCode=\(weatherCode), isNight=\(isNight) → animation='\(animationName)'")
+        #endif
+        
+        return animationName
     }
     
     /// Determine if it's nighttime based on current time and sunrise/sunset

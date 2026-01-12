@@ -7,7 +7,10 @@
 
 import SwiftUI
 import Foundation
-import Lottie // Make sure to import Lottie
+import CoreLocation
+#if canImport(WeatherKit)
+import WeatherKit
+#endif
 
 struct ForecastView: View {
     @ObservedObject var weatherService: WeatherService
@@ -17,6 +20,7 @@ struct ForecastView: View {
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
     
+    // Unified card styling
     private var cardBackgroundColor: Color {
         #if os(iOS)
         return colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white
@@ -24,9 +28,11 @@ struct ForecastView: View {
         return colorScheme == .dark ? Color(NSColor.windowBackgroundColor) : Color.white
         #endif
     }
+    
     private var cardShadowColor: Color {
         return colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.15)
     }
+    
     private var cardFillColor: Color {
         #if os(iOS)
         return Color(UIColor.systemGray5).opacity(0.9)
@@ -34,6 +40,7 @@ struct ForecastView: View {
         return Color(NSColor.windowBackgroundColor).opacity(0.9)
         #endif
     }
+    
     private var cardFillColor6: Color {
         #if os(iOS)
         return Color(UIColor.systemGray6)
@@ -80,7 +87,7 @@ struct ForecastView: View {
                         HStack {
                             Image(systemName: "clock")
                                 .font(.title3)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.accentColor)
                             
                             Text("Hourly Forecast")
                                 .font(.headline)
@@ -170,6 +177,14 @@ struct ForecastView: View {
                         .padding(.horizontal)
                         .redacted(reason: .placeholder)
                     }
+                    
+                    // Weather data attribution (required for legal compliance)
+                    WeatherAttributionView(
+                        dataSource: weatherService.forecastDataSource,
+                        stationID: UserDefaults.standard.string(forKey: "stationID"),
+                        useForecastSource: true
+                    )
+                    .padding(.top, 16)
                 }
                 .padding(.vertical)
             }
@@ -199,6 +214,15 @@ struct ForecastView: View {
         let hour = Calendar.current.component(.hour, from: forecast.time)
         let isNight = hour < 6 || hour > 18
         
+        let animationName = WeatherAnimationHelper.animationNameFromCode(for: forecast.weatherCode, isNight: isNight)
+        
+        #if DEBUG
+        // Log the first few forecast items to debug
+        if forecast.id < 3 {
+            print("🎨 Hourly Forecast Item #\(forecast.id): time=\(forecast.timeString), weatherCode=\(forecast.weatherCode), isNight=\(isNight), animation='\(animationName)'")
+        }
+        #endif
+        
         return VStack(spacing: 12) {
             // Hour (12h format)
             Text(forecast.timeString)
@@ -206,7 +230,7 @@ struct ForecastView: View {
                 .foregroundColor(.secondary)
             
             // Weather Lottie animation - using your existing LottieView and WeatherAnimationHelper
-            LottieView(name: WeatherAnimationHelper.animationNameFromCode(for: forecast.weatherCode, isNight: isNight))
+            LottieView(name: animationName)
                 .frame(width: 40, height: 40)
             
             // Temperature
@@ -292,21 +316,22 @@ struct ForecastView: View {
                     return
                 }
                 
-                // Fetch hourly forecast data
-                let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m&forecast_hours=24&timezone=auto")!
-                
-                let (data, _) = try await URLSession.shared.data(from: url)
-                let decoder = JSONDecoder()
-                let response = try decoder.decode(HourlyAPIResponse.self, from: data)
-                
-                // Process the data
-                let forecast = processHourlyForecast(response)
-                let summary = generateConditionSummary(response)
-                
-                await MainActor.run {
-                    self.hourlyData = forecast
-                    self.conditionSummary = summary
-                    self.isLoadingHourly = false
+                // Check if WeatherKit is available and being used
+                if #available(iOS 16.0, macOS 13.0, *),
+                   weatherService.forecastDataSource == "weatherkit" {
+                    // Fetch from WeatherKit for consistency
+                    #if DEBUG
+                    print("🌍 Using WeatherKit for hourly forecast (matches daily forecast source)")
+                    #endif
+                    
+                    try await fetchWeatherKitHourlyForecast(latitude: latitude, longitude: longitude)
+                } else {
+                    // Fetch from OpenMeteo
+                    #if DEBUG
+                    print("🌍 Using OpenMeteo for hourly forecast")
+                    #endif
+                    
+                    try await fetchOpenMeteoHourlyForecast(latitude: latitude, longitude: longitude)
                 }
             } catch {
                 await MainActor.run {
@@ -315,6 +340,92 @@ struct ForecastView: View {
                     print("Error fetching hourly forecast: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+    @available(iOS 16.0, macOS 13.0, *)
+    private func fetchWeatherKitHourlyForecast(latitude: Double, longitude: Double) async throws {
+        #if canImport(WeatherKit)
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        let weather = try await WeatherKit.WeatherService.shared.weather(for: location)
+        
+        let hourlyForecast = weather.hourlyForecast
+        
+        var forecasts: [HourlyWeatherData] = []
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "ha"
+        timeFormatter.amSymbol = "am"
+        timeFormatter.pmSymbol = "pm"
+        
+        #if DEBUG
+        print("🌤️ Processing \(hourlyForecast.forecast.count) hourly forecasts from WeatherKit")
+        #endif
+        
+        for (i, hour) in hourlyForecast.forecast.prefix(24).enumerated() {
+            let timeString = timeFormatter.string(from: hour.date).lowercased()
+            let weatherCode = mapWeatherKitConditionToWMOCode(hour.condition)
+            
+            #if DEBUG
+            if i < 5 {
+                print("🌤️ Hour \(i): time=\(timeString), temp=\(hour.temperature.value)°, condition=\(hour.condition), mappedCode=\(weatherCode)")
+            }
+            #endif
+            
+            forecasts.append(HourlyWeatherData(
+                id: i,
+                time: hour.date,
+                timeString: timeString,
+                temperature: hour.temperature.value,
+                weatherCode: weatherCode,
+                windSpeed: hour.wind.speed.value * 3.6, // m/s to km/h
+                windGust: hour.wind.gust?.value ?? 0.0
+            ))
+        }
+        
+        let summary = generateWeatherKitConditionSummary(hourlyForecast)
+        
+        await MainActor.run {
+            self.hourlyData = forecasts
+            self.conditionSummary = summary
+            self.isLoadingHourly = false
+        }
+        #endif
+    }
+    
+    private func fetchOpenMeteoHourlyForecast(latitude: Double, longitude: Double) async throws {
+        // Fetch hourly forecast data
+        let url = URL(string: "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m&forecast_hours=24&timezone=auto")!
+        
+        #if DEBUG
+        print("🌍 Fetching hourly forecast from: \(url)")
+        #endif
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        #if DEBUG
+        // Log raw JSON response to debug weather codes
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("📡 Raw API Response (first 500 chars):")
+            print(String(jsonString.prefix(500)))
+        }
+        #endif
+        
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(HourlyAPIResponse.self, from: data)
+        
+        #if DEBUG
+        print("📊 Decoded response: \(response.hourly.weather_code.count) weather codes")
+        print("📊 First 5 weather codes: \(Array(response.hourly.weather_code.prefix(5)))")
+        #endif
+        
+        // Process the data
+        let forecast = processHourlyForecast(response)
+        let summary = generateConditionSummary(response)
+        
+        await MainActor.run {
+            self.hourlyData = forecast
+            self.conditionSummary = summary
+            self.isLoadingHourly = false
         }
     }
     
@@ -353,16 +464,27 @@ struct ForecastView: View {
         timeFormatter.amSymbol = "am"
         timeFormatter.pmSymbol = "pm"
         
+        #if DEBUG
+        print("🌤️ Processing \(response.hourly.weather_code.count) hourly forecasts")
+        #endif
+        
         for i in 0..<min(response.hourly.weather_code.count, 24) {
             if let date = formatter.date(from: response.hourly.time[i]) {
                 let timeString = timeFormatter.string(from: date).lowercased()
+                let weatherCode = response.hourly.weather_code[i]
+                
+                #if DEBUG
+                if i < 5 {  // Only log first 5 to avoid spam
+                    print("🌤️ Hour \(i): time=\(timeString), temp=\(response.hourly.temperature_2m[i])°, weatherCode=\(weatherCode)")
+                }
+                #endif
                 
                 forecasts.append(HourlyWeatherData(
                     id: i,
                     time: date,
                     timeString: timeString,
                     temperature: response.hourly.temperature_2m[i],
-                    weatherCode: response.hourly.weather_code[i],
+                    weatherCode: weatherCode,
                     windSpeed: response.hourly.wind_speed_10m[i],
                     windGust: response.hourly.wind_gusts_10m[i]
                 ))
@@ -450,6 +572,103 @@ struct ForecastView: View {
         default: return "Changing conditions"
         }
     }
+    
+    // MARK: - WeatherKit Helper Functions
+    
+    @available(iOS 16.0, macOS 13.0, *)
+    private func mapWeatherKitConditionToWMOCode(_ condition: WeatherCondition) -> Int {
+        switch condition {
+        case .clear: return 0
+        case .partlyCloudy, .mostlyClear: return 2
+        case .cloudy, .mostlyCloudy: return 3
+        case .foggy, .haze, .smoky: return 45
+        case .drizzle: return 51
+        case .rain, .heavyRain: return 61
+        case .isolatedThunderstorms, .scatteredThunderstorms, .strongStorms, .thunderstorms: return 95
+        case .freezingRain, .sleet: return 66
+        case .snow, .heavySnow, .flurries, .blowingSnow: return 71
+        case .frigid: return 71
+        case .blizzard: return 75
+        case .wintryMix: return 66
+        case .breezy, .windy: return 3
+        case .hot, .hurricane, .tropicalStorm: return 3
+        case .sunFlurries: return 85
+        case .sunShowers: return 80
+        @unknown default: return 0
+        }
+    }
+    
+    @available(iOS 16.0, macOS 13.0, *)
+    private func generateWeatherKitConditionSummary(_ hourlyForecast: Forecast<HourWeather>) -> String {
+        let now = Date()
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: now)
+        
+        let timeOfDay: String
+        let nextPeriod: String
+        
+        if hour >= 5 && hour < 12 {
+            timeOfDay = "this morning"
+            nextPeriod = "afternoon"
+        } else if hour >= 12 && hour < 17 {
+            timeOfDay = "this afternoon"
+            nextPeriod = "evening"
+        } else if hour >= 17 && hour < 22 {
+            timeOfDay = "this evening"
+            nextPeriod = "overnight"
+        } else {
+            timeOfDay = "tonight"
+            nextPeriod = "morning"
+        }
+        
+        var conditions: [WeatherCondition: Int] = [:]
+        var maxWindGust = 0.0
+        
+        for hour in hourlyForecast.forecast.prefix(24) {
+            conditions[hour.condition, default: 0] += 1
+            if let gust = hour.wind.gust?.value {
+                maxWindGust = max(maxWindGust, gust)
+            }
+        }
+        
+        let dominantCondition = conditions.max(by: { $0.value < $1.value })?.key ?? .clear
+        let weatherDescription = weatherKitConditionToDescription(dominantCondition)
+        
+        let adjustedMaxWindGust = maxWindGust * 3.6 // m/s to km/h
+        let windUnit = weatherService.unitSystem == "Metric" ? "km/h" : "mph"
+        
+        let windInfo = adjustedMaxWindGust >= 10 ? "Wind gusts up to \(Int(adjustedMaxWindGust)) \(windUnit)." : ""
+        
+        return "\(weatherDescription) \(timeOfDay), continuing through the \(nextPeriod). \(windInfo)".trimmingCharacters(in: .whitespaces)
+    }
+    
+    @available(iOS 16.0, macOS 13.0, *)
+    private func weatherKitConditionToDescription(_ condition: WeatherCondition) -> String {
+        switch condition {
+        case .clear: return "Clear conditions"
+        case .mostlyClear: return "Mainly clear"
+        case .partlyCloudy: return "Partly cloudy"
+        case .cloudy, .mostlyCloudy: return "Overcast"
+        case .foggy, .haze, .smoky: return "Foggy conditions"
+        case .drizzle: return "Light drizzle"
+        case .rain: return "Rainy conditions"
+        case .heavyRain: return "Heavy rain"
+        case .freezingRain, .sleet: return "Freezing rain"
+        case .snow, .flurries: return "Snowfall"
+        case .heavySnow: return "Heavy snow"
+        case .blowingSnow, .blizzard: return "Blizzard conditions"
+        case .wintryMix: return "Mixed precipitation"
+        case .isolatedThunderstorms, .scatteredThunderstorms: return "Scattered thunderstorms"
+        case .strongStorms, .thunderstorms: return "Thunderstorm"
+        case .sunShowers: return "Passing showers"
+        case .sunFlurries: return "Passing flurries"
+        case .breezy, .windy: return "Windy conditions"
+        case .hot: return "Hot weather"
+        case .frigid: return "Frigid conditions"
+        case .hurricane, .tropicalStorm: return "Severe weather"
+        @unknown default: return "Changing conditions"
+        }
+    }
 }
 
 struct ForecastDayCard: View {
@@ -466,6 +685,17 @@ struct ForecastDayCard: View {
         #endif
     }
     
+    private var animationName: String {
+        let name = WeatherAnimationHelper.animationNameFromCode(
+            for: day.weatherCode,
+            isNight: false
+        )
+        #if DEBUG
+        print("📅 ForecastDayCard: date=\(day.date), weatherCode=\(day.weatherCode), animation='\(name)'")
+        #endif
+        return name
+    }
+    
     var body: some View {
         HStack(spacing: 20) {
             // Left: Weather Lottie animation and temperatures
@@ -477,13 +707,9 @@ struct ForecastDayCard: View {
                         .frame(width: 44, height: 44)
                         .minimumScaleFactor(0.7)
                 } else {
-                    // Get proper day/night animation based on time
-                    let isNight = WeatherAnimationHelper.isNighttime(sunrise: day.sunrise, sunset: day.sunset)
+                    // For daily forecasts, always use daytime animations (represents the whole day)
                     LottieView(
-                        name: WeatherAnimationHelper.animationNameFromCode(
-                            for: day.weatherCode,
-                            isNight: isNight
-                        ),
+                        name: animationName,
                         loadingFailed: $loadingFailed
                     )
                     .frame(width: 44, height: 44)
@@ -569,3 +795,4 @@ struct WeatherDataColumn: View {
         .frame(minWidth: 45)
     }
 }
+

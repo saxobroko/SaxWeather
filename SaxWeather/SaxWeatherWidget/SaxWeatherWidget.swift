@@ -66,22 +66,203 @@ struct Provider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WeatherWidgetEntry>) -> ()) {
-        let entry = loadWeatherEntry() ?? WeatherWidgetEntry(
+        #if DEBUG
+        print("📱 Widget: getTimeline called at \(Date())")
+        #endif
+        
+        // Fetch fresh weather data asynchronously
+        Task {
+            let entry = await fetchFreshWeatherEntry() ?? loadWeatherEntry() ?? WeatherWidgetEntry(
+                date: Date(),
+                temperature: nil,
+                condition: nil,
+                high: nil,
+                low: nil,
+                humidity: nil,
+                feelsLike: nil,
+                windSpeed: nil,
+                uvIndex: nil,
+                pressure: nil
+            )
+            
+            #if DEBUG
+            print("✅ Widget: Timeline entry created with temp: \(entry.temperature?.description ?? "nil")")
+            #endif
+            
+            // Schedule next update in 5 minutes (reduced from 15 minutes)
+            // This allows the widget to refresh more frequently without needing the app open
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date().addingTimeInterval(300)
+            
+            #if DEBUG
+            print("📱 Widget: Next update scheduled for \(nextUpdate)")
+            #endif
+            
+            // Use .after policy with 5-minute intervals for frequent updates
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+        }
+    }
+    
+    private func fetchFreshWeatherEntry() async -> WeatherWidgetEntry? {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
+        
+        // Get location from shared UserDefaults
+        let useGPS = sharedDefaults?.bool(forKey: "useGPS") ?? false
+        var latitude: Double = 0
+        var longitude: Double = 0
+        
+        #if DEBUG
+        print("📱 Widget: Fetching fresh weather data...")
+        print("📱 Widget: Use GPS = \(useGPS)")
+        #endif
+        
+        if useGPS {
+            // Use last known GPS location
+            if let lat = sharedDefaults?.string(forKey: "lastKnownLatitude"),
+               let lon = sharedDefaults?.string(forKey: "lastKnownLongitude"),
+               let latDouble = Double(lat),
+               let lonDouble = Double(lon) {
+                latitude = latDouble
+                longitude = lonDouble
+                #if DEBUG
+                print("📱 Widget: Using GPS location: \(latitude), \(longitude)")
+                #endif
+            } else {
+                // Fallback to manual coordinates
+                if let lat = sharedDefaults?.string(forKey: "latitude"),
+                   let lon = sharedDefaults?.string(forKey: "longitude"),
+                   let latDouble = Double(lat),
+                   let lonDouble = Double(lon) {
+                    latitude = latDouble
+                    longitude = lonDouble
+                    #if DEBUG
+                    print("📱 Widget: Using manual fallback: \(latitude), \(longitude)")
+                    #endif
+                }
+            }
+        } else {
+            // Use manual coordinates
+            if let lat = sharedDefaults?.string(forKey: "latitude"),
+               let lon = sharedDefaults?.string(forKey: "longitude"),
+               let latDouble = Double(lat),
+               let lonDouble = Double(lon) {
+                latitude = latDouble
+                longitude = lonDouble
+                #if DEBUG
+                print("📱 Widget: Using manual location: \(latitude), \(longitude)")
+                #endif
+            }
+        }
+        
+        // Validate coordinates
+        guard latitude != 0, longitude != 0 else {
+            #if DEBUG
+            print("❌ Widget: Invalid coordinates")
+            #endif
+            return nil
+        }
+        
+        let unitSystem = sharedDefaults?.string(forKey: "unitSystem") ?? "Metric"
+        
+        do {
+            let weatherData = try await fetchOpenMeteoWeather(
+                latitude: latitude,
+                longitude: longitude,
+                unitSystem: unitSystem
+            )
+            #if DEBUG
+            print("✅ Widget: Successfully fetched weather data")
+            #endif
+            return weatherData
+        } catch {
+            #if DEBUG
+            print("❌ Widget: Error fetching weather: \(error)")
+            #endif
+            return nil
+        }
+    }
+    
+    private func fetchOpenMeteoWeather(
+        latitude: Double,
+        longitude: Double,
+        unitSystem: String
+    ) async throws -> WeatherWidgetEntry {
+        let urlString = "https://api.open-meteo.com/v1/forecast?" +
+            "latitude=\(latitude)" +
+            "&longitude=\(longitude)" +
+            "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,pressure_msl,uv_index,weather_code" +
+            "&daily=temperature_2m_max,temperature_2m_min,weather_code" +
+            "&timezone=auto" +
+            "&forecast_days=1"
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(OpenMeteoWidgetResponse.self, from: data)
+        
+        guard let current = response.current else {
+            throw URLError(.cannotParseResponse)
+        }
+        
+        let daily = response.daily
+        
+        // Convert temperature based on unit system
+        var temp = current.temperature2m
+        var feelsLike = current.apparentTemperature
+        var high = daily.temperature2mMax.first ?? temp
+        var low = daily.temperature2mMin.first ?? temp
+        var windSpeed = current.windSpeed10m
+        var pressure = current.pressureMsl
+        
+        if unitSystem == "Imperial" {
+            temp = temp * 9/5 + 32
+            feelsLike = feelsLike * 9/5 + 32
+            high = high * 9/5 + 32
+            low = low * 9/5 + 32
+            windSpeed = windSpeed * 0.621371
+            pressure = pressure * 0.02953
+        } else if unitSystem == "UK" {
+            windSpeed = windSpeed * 0.621371
+        }
+        
+        let condition = mapWeatherCodeToCondition(current.weatherCode)
+        
+        return WeatherWidgetEntry(
             date: Date(),
-            temperature: nil,
-            condition: nil,
-            high: nil,
-            low: nil,
-            humidity: nil,
-            feelsLike: nil,
-            windSpeed: nil,
-            uvIndex: nil,
-            pressure: nil
+            temperature: temp,
+            condition: condition,
+            high: high,
+            low: low,
+            humidity: current.relativeHumidity2m,
+            feelsLike: feelsLike,
+            windSpeed: windSpeed,
+            uvIndex: Int(current.uvIndex),
+            pressure: pressure
         )
-        // Update every 15 minutes
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        completion(timeline)
+    }
+    
+    private func mapWeatherCodeToCondition(_ code: Int) -> String {
+        switch code {
+        case 0: return "Clear"
+        case 1: return "Mainly Clear"
+        case 2: return "Partly Cloudy"
+        case 3: return "Overcast"
+        case 45, 48: return "Foggy"
+        case 51, 53, 55: return "Drizzle"
+        case 56, 57: return "Freezing Drizzle"
+        case 61, 63, 65: return "Rain"
+        case 66, 67: return "Freezing Rain"
+        case 71, 73, 75: return "Snow"
+        case 77: return "Snow Grains"
+        case 80, 81, 82: return "Rain Showers"
+        case 85, 86: return "Snow Showers"
+        case 95: return "Thunderstorm"
+        case 96, 99: return "Thunderstorm with Hail"
+        default: return "Unknown"
+        }
     }
 
     private func loadWeatherEntry() -> WeatherWidgetEntry? {
@@ -686,6 +867,233 @@ struct SaxWeatherWidgetEntryView : View {
     }
 }
 
+// MARK: - Daily Forecast Widget
+
+struct ForecastEntry: TimelineEntry {
+    let date: Date
+    let highTemp: Double?
+    let lowTemp: Double?
+    let condition: String?
+}
+
+struct ForecastProvider: TimelineProvider {
+    func placeholder(in context: Context) -> ForecastEntry {
+        ForecastEntry(date: Date(), highTemp: 24.0, lowTemp: 18.0, condition: "Partly Cloudy")
+    }
+    
+    func getSnapshot(in context: Context, completion: @escaping (ForecastEntry) -> ()) {
+        let entry = ForecastEntry(date: Date(), highTemp: 24.0, lowTemp: 18.0, condition: "Partly Cloudy")
+        completion(entry)
+    }
+    
+    func getTimeline(in context: Context, completion: @escaping (Timeline<ForecastEntry>) -> ()) {
+        #if DEBUG
+        print("📱 Forecast Widget: getTimeline called at \(Date())")
+        #endif
+        
+        Task {
+            let entry = await fetchFreshForecastEntry() ?? ForecastEntry(
+                date: Date(),
+                highTemp: nil,
+                lowTemp: nil,
+                condition: nil
+            )
+            
+            #if DEBUG
+            print("✅ Forecast Widget: Timeline entry created with high: \(entry.highTemp?.description ?? "nil")")
+            #endif
+            
+            // Use .atEnd policy for aggressive updates
+            let timeline = Timeline(entries: [entry], policy: .atEnd)
+            completion(timeline)
+        }
+    }
+    
+    private func fetchFreshForecastEntry() async -> ForecastEntry? {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
+        
+        let useGPS = sharedDefaults?.bool(forKey: "useGPS") ?? false
+        var latitude: Double = 0
+        var longitude: Double = 0
+        
+        #if DEBUG
+        print("📱 Forecast Widget: Fetching fresh forecast data...")
+        #endif
+        
+        if useGPS {
+            if let lat = sharedDefaults?.string(forKey: "lastKnownLatitude"),
+               let lon = sharedDefaults?.string(forKey: "lastKnownLongitude"),
+               let latDouble = Double(lat),
+               let lonDouble = Double(lon) {
+                latitude = latDouble
+                longitude = lonDouble
+            } else {
+                if let lat = sharedDefaults?.string(forKey: "latitude"),
+                   let lon = sharedDefaults?.string(forKey: "longitude"),
+                   let latDouble = Double(lat),
+                   let lonDouble = Double(lon) {
+                    latitude = latDouble
+                    longitude = lonDouble
+                }
+            }
+        } else {
+            if let lat = sharedDefaults?.string(forKey: "latitude"),
+               let lon = sharedDefaults?.string(forKey: "longitude"),
+               let latDouble = Double(lat),
+               let lonDouble = Double(lon) {
+                latitude = latDouble
+                longitude = lonDouble
+            }
+        }
+        
+        guard latitude != 0, longitude != 0 else {
+            #if DEBUG
+            print("❌ Forecast Widget: Invalid coordinates")
+            #endif
+            return nil
+        }
+        
+        let unitSystem = sharedDefaults?.string(forKey: "unitSystem") ?? "Metric"
+        let tempUnit = unitSystem == "Imperial" ? "fahrenheit" : "celsius"
+        
+        let urlString = "https://api.open-meteo.com/v1/forecast?" +
+            "latitude=\(latitude)" +
+            "&longitude=\(longitude)" +
+            "&daily=temperature_2m_max,temperature_2m_min,weather_code" +
+            "&temperature_unit=\(tempUnit)" +
+            "&timezone=auto"
+        
+        guard let url = URL(string: urlString) else { return nil }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(OpenMeteoWidgetResponse.self, from: data)
+            
+            let high = response.daily.temperature2mMax.first
+            let low = response.daily.temperature2mMin.first
+            let weatherCode = response.daily.weatherCode.first ?? 0
+            let condition = weatherCodeToCondition(weatherCode)
+            
+            #if DEBUG
+            print("✅ Forecast Widget: Successfully fetched forecast data")
+            #endif
+            
+            return ForecastEntry(
+                date: Date(),
+                highTemp: high,
+                lowTemp: low,
+                condition: condition
+            )
+        } catch {
+            #if DEBUG
+            print("❌ Forecast Widget: Error fetching forecast: \(error)")
+            #endif
+            return nil
+        }
+    }
+    
+    private func weatherCodeToCondition(_ code: Int) -> String {
+        switch code {
+        case 0: return "Clear"
+        case 1, 2, 3: return "Partly Cloudy"
+        case 45, 48: return "Foggy"
+        case 51, 53, 55: return "Drizzle"
+        case 61, 63, 65: return "Rain"
+        case 71, 73, 75: return "Snow"
+        case 80, 81, 82: return "Rain Showers"
+        case 95, 96, 99: return "Thunderstorm"
+        default: return "Unknown"
+        }
+    }
+}
+
+struct SaxWeatherForecastEntryView: View {
+    var entry: ForecastEntry
+    @Environment(\.widgetFamily) var family
+    
+    var body: some View {
+        switch family {
+        case .accessoryRectangular:
+            accessoryRectangularView
+        default:
+            lockScreenCircularView
+        }
+    }
+    
+    private var lockScreenCircularView: some View {
+        VStack(spacing: 2) {
+            if let high = entry.highTemp {
+                Text("\(Int(high.rounded()))°")
+                    .font(.system(size: 20, weight: .bold))
+            } else {
+                Text("--°")
+                    .font(.system(size: 20, weight: .bold))
+            }
+            
+            Image(systemName: weatherIcon(for: entry.condition))
+                .font(.system(size: 16))
+            
+            if let low = entry.lowTemp {
+                Text("\(Int(low.rounded()))°")
+                    .font(.system(size: 14))
+                    .opacity(0.7)
+            } else {
+                Text("--°")
+                    .font(.system(size: 14))
+                    .opacity(0.7)
+            }
+        }
+    }
+    
+    private var accessoryRectangularView: some View {
+        HStack(spacing: 12) {
+            Image(systemName: weatherIcon(for: entry.condition))
+                .font(.system(size: 24))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                if let high = entry.highTemp {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 10))
+                        Text("\(Int(high.rounded()))°")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                }
+                
+                if let low = entry.lowTemp {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 10))
+                        Text("\(Int(low.rounded()))°")
+                            .font(.system(size: 14))
+                            .opacity(0.8)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func weatherIcon(for condition: String?) -> String {
+        guard let condition = condition?.lowercased() else { return "questionmark" }
+        
+        if condition.contains("clear") || condition.contains("sunny") {
+            return "sun.max.fill"
+        } else if condition.contains("partly cloudy") || condition.contains("cloudy") {
+            return "cloud.sun.fill"
+        } else if condition.contains("rain") {
+            return "cloud.rain.fill"
+        } else if condition.contains("snow") {
+            return "cloud.snow.fill"
+        } else if condition.contains("thunder") || condition.contains("storm") {
+            return "cloud.bolt.rain.fill"
+        } else if condition.contains("fog") {
+            return "cloud.fog.fill"
+        }
+        
+        return "cloud.fill"
+    }
+}
+
 @main
 struct SaxWeatherWidget: Widget {
     let kind: String = "SaxWeatherWidget"
@@ -696,7 +1104,7 @@ struct SaxWeatherWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("SaxWeather")
-        .description("Shows the latest weather from SaxWeather app.")
+        .description("Shows current weather with detailed information. Works with all APIs: Weather Underground, OpenWeatherMap, and OpenMeteo.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
@@ -705,6 +1113,45 @@ struct SaxWeatherWidget: Widget {
             .accessoryRectangular,
             .accessoryInline
         ])
+    }
+}
+
+
+// MARK: - OpenMeteo Response Models for Widgets
+struct OpenMeteoWidgetResponse: Codable {
+    let current: OpenMeteoCurrentWidget?
+    let daily: OpenMeteoDailyWidget
+}
+
+struct OpenMeteoCurrentWidget: Codable {
+    let temperature2m: Double
+    let relativeHumidity2m: Double
+    let apparentTemperature: Double
+    let windSpeed10m: Double
+    let pressureMsl: Double
+    let uvIndex: Double
+    let weatherCode: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case temperature2m = "temperature_2m"
+        case relativeHumidity2m = "relative_humidity_2m"
+        case apparentTemperature = "apparent_temperature"
+        case windSpeed10m = "wind_speed_10m"
+        case pressureMsl = "pressure_msl"
+        case uvIndex = "uv_index"
+        case weatherCode = "weather_code"
+    }
+}
+
+struct OpenMeteoDailyWidget: Codable {
+    let temperature2mMax: [Double]
+    let temperature2mMin: [Double]
+    let weatherCode: [Int]
+    
+    enum CodingKeys: String, CodingKey {
+        case temperature2mMax = "temperature_2m_max"
+        case temperature2mMin = "temperature_2m_min"
+        case weatherCode = "weather_code"
     }
 }
 

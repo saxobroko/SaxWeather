@@ -3,7 +3,7 @@
 //  SaxWeather
 //
 //  Created by saxobroko on 2025-03-10
-//  Last modified: 2025-03-10 11:02:41 UTC
+//  Last modified: 2026-01-11
 //
 
 #if os(iOS)
@@ -13,11 +13,36 @@ import Lottie
 import UniformTypeIdentifiers
 import os.log
 import KeychainSwift
-import UserNotifications // Import UserNotifications
+import UserNotifications
+import WeatherKit
 
 private struct DebugMessage: Identifiable, Hashable {
     let id = UUID()
     let message: String
+    let timestamp: Date
+    let type: MessageType
+    
+    enum MessageType {
+        case info, success, warning, error
+        
+        var icon: String {
+            switch self {
+            case .info: return "info.circle.fill"
+            case .success: return "checkmark.circle.fill"
+            case .warning: return "exclamationmark.triangle.fill"
+            case .error: return "xmark.circle.fill"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .info: return .blue
+            case .success: return .green
+            case .warning: return .orange
+            case .error: return .red
+            }
+        }
+    }
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -37,10 +62,12 @@ struct LottieDebugView: View {
     @State private var exportFilename = ""
     @State private var previewFailed = false
     @State private var refreshID = UUID()
-    @State private var sessionStartTime = "2025-03-10 11:02:41"
-    @State private var currentUser = "saxobroko"
+    @State private var sessionStartTime = Date()
+    @State private var selectedTab = 0
+    @State private var autoScroll = true
+    @State private var showSystemInfo = false
     
-    private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
+    private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "Debug")
     private let keychainService = KeychainService.shared
     
     // Known services for API keys
@@ -54,495 +81,939 @@ struct LottieDebugView: View {
         "cloudy", "rainy", "thunderstorm", "foggy"
     ]
     
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }
+    
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Session info section
-                    VStack(alignment: .leading) {
-                        Text("Session Information")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("User: \(currentUser)")
-                                .font(.system(.body, design: .monospaced))
-                            Text("Session started: \(sessionStartTime) UTC")
-                                .font(.system(.body, design: .monospaced))
+            VStack(spacing: 0) {
+                // Tab Picker
+                Picker("Debug Section", selection: $selectedTab) {
+                    Text("Animations").tag(0)
+                    Text("API Keys").tag(1)
+                    Text("System").tag(2)
+                    Text("Console").tag(3)
+                }
+                .pickerStyle(.segmented)
+                .padding()
+                
+                // Content based on selected tab
+                ScrollView {
+                    VStack(spacing: 20) {
+                        switch selectedTab {
+                        case 0:
+                            animationsSection
+                        case 1:
+                            apiKeysSection
+                        case 2:
+                            systemInfoSection
+                        case 3:
+                            consoleSection
+                        default:
+                            EmptyView()
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
                     }
-                    
-                    // Animation selection
-                    Picker("Animation", selection: $selectedAnimation) {
-                        ForEach(availableAnimations, id: \.self) { name in
-                            Text(name).tag(name)
+                    .padding()
+                }
+            }
+            .navigationTitle("🐞 Developer Debug")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: { exportDebugLog() }) {
+                            Label("Export Debug Log", systemImage: "square.and.arrow.up")
                         }
-                    }
-                    .pickerStyle(.menu)
-                    .padding(.horizontal)
-                    .onChange(of: selectedAnimation) { newValue in
-                        previewFailed = false
-                        refreshID = UUID()
-                        setDebugMessages(["Selected animation: \(newValue)"])
-                        logger.debug("Selected animation: \(newValue)")
-                    }
-                    
-                    // Preview section with refresh button
-                    VStack {
-                        HStack {
-                            Text("Animation Preview")
-                                .font(.headline)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                refreshID = UUID()
-                                previewFailed = false
-                                logger.debug("Refreshing animation preview")
-                            }) {
-                                Image(systemName: "arrow.clockwise")
-                            }
-                            .buttonStyle(.bordered)
+                        Button(action: { clearDebugLog() }) {
+                            Label("Clear Console", systemImage: "trash")
                         }
-                        .padding(.horizontal)
-                        
-                        ZStack {
-                            Color.secondary.opacity(0.1)
-                                .cornerRadius(8)
-                            
-                            if previewFailed {
-                                VStack {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.orange)
-                                    Text("Preview Failed")
-                                        .foregroundColor(.secondary)
-                                }
-                            } else {
-                                AnimationPreviewView(
-                                    animationName: selectedAnimation,
-                                    onFailure: {
-                                        previewFailed = true
-                                        logger.error("Animation preview failed for \(selectedAnimation)")
-                                    }
-                                )
-                                .id(refreshID)
-                            }
-                        }
-                        .frame(height: 200)
-                        .padding(.horizontal)
-                    }
-                    
-                    // Animation Control buttons
-                    HStack(spacing: 16) {
-                        Button("Check File") {
-                            checkFileExists()
-                            logger.debug("Check file button pressed")
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Button("Deep Inspect") {
-                            deepInspectFile()
-                            logger.debug("Deep inspect button pressed")
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Button("List All Files") {
-                            listAllFiles()
-                            logger.debug("List all files button pressed")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.horizontal)
-                    
-                    // Keychain Debug Section
-                    VStack(alignment: .leading) {
-                        Text("Keychain Debug")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        Text("Keys are synchronized across devices via iCloud Keychain")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        
-                        // Service selector and API key input
-                        HStack {
-                            Picker("Service", selection: $selectedService) {
-                                ForEach(knownServices, id: \.self) { service in
-                                    Text(service.uppercased()).tag(service)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            
-                            TextField("API Key", text: $apiKeyInput)
-                                .textFieldStyle(.roundedBorder)
-                            
-                            Button("Save") {
-                                saveApiKey()
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        .padding(.horizontal)
-                        
-                        // Keychain debug controls
-                        HStack(spacing: 16) {
-                            Button("Check Keys") {
-                                checkKeychainItems()
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button("Migrate from UserDefaults") {
-                                migrateFromUserDefaults()
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button("Clear All Keys") {
-                                clearKeychain()
-                            }
-                            .buttonStyle(.bordered)
-                            .foregroundColor(.red)
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    // Debug messages section
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Debug Information")
-                                .font(.headline)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                let allMessages = debugMessages.map { $0.message }.joined(separator: "\n")
-                                UIPasteboard.general.string = allMessages
-                                
-                                addDebugMessage("\n✅ Debug log copied to clipboard")
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    if let last = debugMessages.last,
-                                       last.message == "✅ Debug log copied to clipboard" {
-                                        debugMessages.removeLast()
-                                    }
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "doc.on.doc")
-                                    Text("Copy All")
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        .padding(.horizontal)
-                        
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ForEach(debugMessages) { message in
-                                    Text(message.message)
-                                        .font(.system(.body, design: .monospaced))
-                                        .padding(.horizontal)
-                                        .textSelection(.enabled)
-                                        .contextMenu {
-                                            Button(action: {
-                                                UIPasteboard.general.string = message.message
-                                            }) {
-                                                Text("Copy Message")
-                                                Image(systemName: "doc.on.doc")
-                                            }
-                                        }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 8)
-                        }
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
-                        .frame(height: 200)
-                        .padding(.horizontal)
-                    }
-                    
-                    // Notification Debug Section
-                    VStack(alignment: .leading) {
-                        Text("Notification Debug")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        HStack(spacing: 16) {
-                            Button("Schedule Rain Notification") {
-                                scheduleNotification(title: "Rain Alert", body: "Rain expected to start soon", inSeconds: 60)
-                                logger.debug("Scheduled rain notification in 1 minute")
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button("Schedule Severe Weather Notification") {
-                                scheduleNotification(title: "Severe Weather Alert", body: "Severe weather expected soon", inSeconds: 60)
-                                logger.debug("Scheduled severe weather notification in 1 minute")
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        .padding(.horizontal)
+                        Divider()
+                        Toggle("Auto-scroll Console", isOn: $autoScroll)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
-                .navigationTitle("Lottie Debug")
-                .sheet(isPresented: $showingFileExport) {
-                    if let data = exportData {
-                        DocumentExporterView(data: data, filename: exportFilename)
-                    }
+            }
+            .sheet(isPresented: $showingFileExport) {
+                if let data = exportData {
+                    DocumentExporterView(data: data, filename: exportFilename)
                 }
             }
         }
         .onAppear {
-            setDebugMessages([
-                "Debug Session Started",
-                "Time: \(sessionStartTime) UTC",
-                "User: \(currentUser)",
-                "---"
-            ])
-            checkFileExists()
-            logger.debug("LottieDebugView appeared")
+            addDebugMessage("Debug session started", type: .info)
+            performInitialSystemCheck()
         }
+    }
+    
+    // MARK: - Animations Section
+    
+    private var animationsSection: some View {
+        VStack(spacing: 16) {
+            // Header Card
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.purple)
+                    Text("Animation Testing")
+                        .font(.title2.bold())
+                }
+                Text("Test and debug Lottie animations")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color.purple.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Animation Selection
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Select Animation")
+                    .font(.headline)
+                
+                Picker("Animation", selection: $selectedAnimation) {
+                    ForEach(availableAnimations, id: \.self) { name in
+                        HStack {
+                            Image(systemName: getAnimationIcon(name))
+                            Text(name)
+                        }.tag(name)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selectedAnimation) { newValue in
+                    previewFailed = false
+                    refreshID = UUID()
+                    addDebugMessage("Selected animation: \(newValue)", type: .info)
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            
+            // Preview Card
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Live Preview")
+                        .font(.headline)
+                    Spacer()
+                    Button(action: {
+                        refreshID = UUID()
+                        previewFailed = false
+                        addDebugMessage("Refreshed preview", type: .info)
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.body.bold())
+                    }
+                    .buttonStyle(.bordered)
+                }
+                
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray5))
+                    
+                    if previewFailed {
+                        VStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.orange)
+                            Text("Preview Failed")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text("Check console for details")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        AnimationPreviewView(
+                            animationName: selectedAnimation,
+                            onFailure: {
+                                previewFailed = true
+                                addDebugMessage("Animation preview failed for \(selectedAnimation)", type: .error)
+                            }
+                        )
+                        .id(refreshID)
+                    }
+                }
+                .frame(height: 250)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+            
+            // Action Buttons
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    debugActionButton(
+                        title: "Check File",
+                        icon: "doc.text.magnifyingglass",
+                        color: .blue
+                    ) {
+                        checkFileExists()
+                    }
+                    
+                    debugActionButton(
+                        title: "Deep Inspect",
+                        icon: "scope",
+                        color: .purple
+                    ) {
+                        deepInspectFile()
+                    }
+                }
+                
+                debugActionButton(
+                    title: "List All Animations",
+                    icon: "list.bullet.rectangle",
+                    color: .green
+                ) {
+                    listAllFiles()
+                }
+            }
+        }
+    }
+    
+    // MARK: - API Keys Section
+    
+    private var apiKeysSection: some View {
+        VStack(spacing: 16) {
+            // Header Card
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "key.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                    Text("API Key Management")
+                        .font(.title2.bold())
+                }
+                Text("Manage API keys stored in Keychain")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Keychain Info
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "checkmark.shield.fill")
+                        .foregroundColor(.green)
+                    Text("Secure Storage")
+                        .font(.subheadline.bold())
+                }
+                Text("API keys are encrypted and synchronized via iCloud Keychain across your devices.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.green.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Add/Edit API Key
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Add or Update Key")
+                    .font(.headline)
+                
+                HStack(spacing: 12) {
+                    Picker("Service", selection: $selectedService) {
+                        ForEach(knownServices, id: \.self) { service in
+                            Text(service.uppercased()).tag(service)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 100)
+                    
+                    SecureField("API Key", text: $apiKeyInput)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    Button(action: { saveApiKey() }) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(apiKeyInput.isEmpty)
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            
+            // Stored Keys
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Stored API Keys")
+                    .font(.headline)
+                
+                ForEach(knownServices, id: \.self) { service in
+                    apiKeyRow(service: service)
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            
+            // Quick Actions
+            HStack(spacing: 12) {
+                debugActionButton(
+                    title: "Test Keychain",
+                    icon: "stethoscope",
+                    color: .blue
+                ) {
+                    checkKeychainItems()
+                }
+                
+                debugActionButton(
+                    title: "Migrate from UserDefaults",
+                    icon: "arrow.triangle.2.circlepath",
+                    color: .orange
+                ) {
+                    migrateFromUserDefaults()
+                }
+            }
+            
+            debugActionButton(
+                title: "Clear All Keys",
+                icon: "trash.fill",
+                color: .red
+            ) {
+                clearKeychain()
+            }
+        }
+    }
+    
+    // MARK: - System Info Section
+    
+    private var systemInfoSection: some View {
+        VStack(spacing: 16) {
+            // Header Card
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.green)
+                    Text("System Information")
+                        .font(.title2.bold())
+                }
+                Text("App and device diagnostics")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color.green.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Session Info
+            infoCard(
+                title: "Session",
+                icon: "clock.fill",
+                color: .blue,
+                items: [
+                    ("Started", sessionStartTime.formatted(date: .abbreviated, time: .standard)),
+                    ("Duration", formatDuration(from: sessionStartTime)),
+                    ("User", NSUserName())
+                ]
+            )
+            
+            // App Info
+            infoCard(
+                title: "Application",
+                icon: "app.fill",
+                color: .purple,
+                items: [
+                    ("Version", Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"),
+                    ("Build", Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"),
+                    ("Bundle ID", Bundle.main.bundleIdentifier ?? "Unknown")
+                ]
+            )
+            
+            // Device Info
+            infoCard(
+                title: "Device",
+                icon: "iphone",
+                color: .orange,
+                items: [
+                    ("Model", UIDevice.current.model),
+                    ("iOS Version", UIDevice.current.systemVersion),
+                    ("Name", UIDevice.current.name)
+                ]
+            )
+            
+            // Storage Info
+            infoCard(
+                title: "Storage",
+                icon: "internaldrive.fill",
+                color: .pink,
+                items: getStorageInfo()
+            )
+            
+            // Notification Settings
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "bell.fill")
+                        .foregroundColor(.indigo)
+                    Text("Notifications")
+                        .font(.headline)
+                }
+                
+                Button("Check Authorization Status") {
+                    checkNotificationSettings()
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Schedule Test Notification") {
+                    scheduleTestNotification()
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Console Section
+    
+    private var consoleSection: some View {
+        VStack(spacing: 16) {
+            // Header Card
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "terminal.fill")
+                        .font(.title2)
+                        .foregroundColor(.green)
+                    Text("Debug Console")
+                        .font(.title2.bold())
+                    Spacer()
+                    
+                    // Message count badge
+                    Text("\(debugMessages.count)")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                Text("Real-time logging and debug output")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color.green.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Filter Buttons
+            HStack(spacing: 8) {
+                filterButton(icon: "info.circle.fill", color: .blue, label: "Info")
+                filterButton(icon: "checkmark.circle.fill", color: .green, label: "Success")
+                filterButton(icon: "exclamationmark.triangle.fill", color: .orange, label: "Warning")
+                filterButton(icon: "xmark.circle.fill", color: .red, label: "Error")
+            }
+            
+            // Console Output
+            VStack(spacing: 0) {
+                if debugMessages.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "terminal")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text("No messages yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Debug messages will appear here")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
+                } else {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 8) {
+                                ForEach(debugMessages) { message in
+                                    consoleMessageRow(message: message)
+                                        .id(message.id)
+                                }
+                            }
+                            .padding()
+                        }
+                        .frame(height: 400)
+                        .onChange(of: debugMessages.count) { _ in
+                            if autoScroll, let lastMessage = debugMessages.last {
+                                withAnimation {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .background(Color.black.opacity(0.05))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+            )
+            
+            // Quick Actions
+            HStack(spacing: 12) {
+                debugActionButton(
+                    title: "Copy All",
+                    icon: "doc.on.doc",
+                    color: .blue
+                ) {
+                    copyConsoleToClipboard()
+                }
+                
+                debugActionButton(
+                    title: "Export Log",
+                    icon: "square.and.arrow.up",
+                    color: .purple
+                ) {
+                    exportDebugLog()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Views
+    
+    private func debugActionButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.bordered)
+        .tint(color)
+    }
+    
+    private func infoCard(title: String, icon: String, color: Color, items: [(String, String)]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.headline)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(items, id: \.0) { item in
+                    HStack {
+                        Text(item.0)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(item.1)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func apiKeyRow(service: String) -> some View {
+        HStack {
+            Image(systemName: "key.fill")
+                .foregroundColor(.blue)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(service.uppercased())
+                    .font(.subheadline.bold())
+                
+                if let apiKey = keychainService.getApiKey(forService: service) {
+                    Text(maskApiKey(apiKey))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Not configured")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+            
+            Spacer()
+            
+            if keychainService.getApiKey(forService: service) != nil {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(.orange)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+    }
+    
+    private func consoleMessageRow(message: DebugMessage) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: message.type.icon)
+                .font(.body)
+                .foregroundColor(message.type.color)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(dateFormatter.string(from: message.timestamp))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                }
+                
+                Text(message.message)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
+            }
+        }
+        .padding(.vertical, 8)
+        .contextMenu {
+            Button(action: {
+                UIPasteboard.general.string = message.message
+            }) {
+                Label("Copy Message", systemImage: "doc.on.doc")
+            }
+        }
+    }
+    
+    private func filterButton(icon: String, color: Color, label: String) -> some View {
+        Button(action: {
+            // Filter functionality can be added here
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption)
+                Text(label)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.bordered)
+        .tint(color)
     }
     
     // MARK: - Helper Methods
     
-    private func addDebugMessage(_ message: String) {
-        debugMessages.append(DebugMessage(message: message))
+    private func addDebugMessage(_ message: String, type: DebugMessage.MessageType) {
+        debugMessages.append(DebugMessage(message: message, timestamp: Date(), type: type))
+        logger.debug("\(message)")
     }
     
-    private func setDebugMessages(_ messages: [String]) {
-        debugMessages = messages.map { DebugMessage(message: $0) }
+    private func setDebugMessages(_ messages: [String], type: DebugMessage.MessageType = .info) {
+        debugMessages = messages.map { DebugMessage(message: $0, timestamp: Date(), type: type) }
+    }
+    
+    private func clearDebugLog() {
+        debugMessages.removeAll()
+        addDebugMessage("Console cleared", type: .info)
+    }
+    
+    private func exportDebugLog() {
+        let logText = debugMessages.map { message in
+            "[\(dateFormatter.string(from: message.timestamp))] \(message.message)"
+        }.joined(separator: "\n")
+        
+        exportData = logText.data(using: .utf8)
+        exportFilename = "saxweather-debug-\(Date().ISO8601Format()).txt"
+        showingFileExport = true
+        addDebugMessage("Exporting debug log", type: .info)
+    }
+    
+    private func copyConsoleToClipboard() {
+        let allMessages = debugMessages.map { message in
+            "[\(dateFormatter.string(from: message.timestamp))] \(message.message)"
+        }.joined(separator: "\n")
+        
+        UIPasteboard.general.string = allMessages
+        addDebugMessage("Copied \(debugMessages.count) messages to clipboard", type: .success)
+    }
+    
+    private func performInitialSystemCheck() {
+        addDebugMessage("System: iOS \(UIDevice.current.systemVersion)", type: .info)
+        addDebugMessage("Device: \(UIDevice.current.model)", type: .info)
+        
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            addDebugMessage("App Version: \(version)", type: .info)
+        }
+    }
+    
+    private func getAnimationIcon(_ name: String) -> String {
+        switch name {
+        case "clear-day": return "sun.max.fill"
+        case "clear-night": return "moon.stars.fill"
+        case "partly-cloudy", "partly-cloudy-night": return "cloud.sun.fill"
+        case "cloudy": return "cloud.fill"
+        case "rainy": return "cloud.rain.fill"
+        case "thunderstorm": return "cloud.bolt.fill"
+        case "foggy": return "cloud.fog.fill"
+        default: return "photo"
+        }
+    }
+    
+    private func formatDuration(from startDate: Date) -> String {
+        let duration = Date().timeIntervalSince(startDate)
+        let minutes = Int(duration / 60)
+        let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private func getStorageInfo() -> [(String, String)] {
+        do {
+            let fileURL = URL(fileURLWithPath: NSHomeDirectory())
+            let values = try fileURL.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey])
+            
+            let available = values.volumeAvailableCapacity ?? 0
+            let total = values.volumeTotalCapacity ?? 0
+            let used = total - available
+            
+            return [
+                ("Total", ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .file)),
+                ("Used", ByteCountFormatter.string(fromByteCount: Int64(used), countStyle: .file)),
+                ("Available", ByteCountFormatter.string(fromByteCount: Int64(available), countStyle: .file))
+            ]
+        } catch {
+            return [("Error", error.localizedDescription)]
+        }
+    }
+    
+    private func checkNotificationSettings() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .authorized:
+                    addDebugMessage("Notifications: ✅ Authorized", type: .success)
+                case .denied:
+                    addDebugMessage("Notifications: ❌ Denied", type: .error)
+                case .notDetermined:
+                    addDebugMessage("Notifications: ⚠️ Not determined", type: .warning)
+                case .provisional:
+                    addDebugMessage("Notifications: ⚠️ Provisional", type: .warning)
+                case .ephemeral:
+                    addDebugMessage("Notifications: ⚠️ Ephemeral", type: .warning)
+                @unknown default:
+                    addDebugMessage("Notifications: ❓ Unknown", type: .warning)
+                }
+            }
+        }
+    }
+    
+    private func scheduleTestNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "SaxWeather Debug"
+        content.body = "Test notification scheduled at \(Date().formatted(date: .omitted, time: .standard))"
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    addDebugMessage("Failed to schedule notification: \(error.localizedDescription)", type: .error)
+                } else {
+                    addDebugMessage("Test notification scheduled for 5 seconds", type: .success)
+                }
+            }
+        }
     }
     
     // MARK: - Debug Functions
     
     private func checkFileExists() {
-        addDebugMessage("Checking for \(selectedAnimation)...")
+        addDebugMessage("Checking for \(selectedAnimation)...", type: .info)
         
         // Check .lottie file
         if let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "lottie") {
-            addDebugMessage("✅ \(selectedAnimation).lottie exists at:")
-            addDebugMessage(url.path)
-            logger.debug("\(selectedAnimation).lottie exists at: \(url.path)")
+            addDebugMessage("✅ \(selectedAnimation).lottie exists", type: .success)
+            addDebugMessage("Path: \(url.path)", type: .info)
             
             do {
                 let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
                 if let fileSize = attributes[.size] as? Int {
-                    addDebugMessage("File size: \(fileSize) bytes")
-                    logger.debug("File size: \(fileSize) bytes")
+                    addDebugMessage("Size: \(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file))", type: .info)
                 }
             } catch {
-                addDebugMessage("Error getting file attributes: \(error.localizedDescription)")
-                logger.error("Error getting file attributes: \(error.localizedDescription)")
+                addDebugMessage("Error getting file attributes: \(error.localizedDescription)", type: .error)
             }
         } else {
-            addDebugMessage("❌ \(selectedAnimation).lottie not found")
-            logger.error("\(selectedAnimation).lottie not found")
+            addDebugMessage("❌ \(selectedAnimation).lottie not found", type: .error)
         }
         
         // Check JSON file
         if Bundle.main.url(forResource: selectedAnimation, withExtension: "json") != nil {
-            addDebugMessage("✅ \(selectedAnimation).json exists")
-            logger.debug("\(selectedAnimation).json exists")
+            addDebugMessage("✅ \(selectedAnimation).json exists", type: .success)
         } else {
-            addDebugMessage("❌ \(selectedAnimation).json not found")
-            logger.error("\(selectedAnimation).json not found")
+            addDebugMessage("⚠️ \(selectedAnimation).json not found", type: .warning)
         }
     }
     
     private func deepInspectFile() {
-        setDebugMessages(["Deep inspecting \(selectedAnimation).lottie..."])
+        addDebugMessage("Deep inspecting \(selectedAnimation).lottie...", type: .info)
         
         guard let url = Bundle.main.url(forResource: selectedAnimation, withExtension: "lottie") else {
-            addDebugMessage("❌ File not found")
-            logger.error("\(selectedAnimation).lottie file not found")
+            addDebugMessage("❌ File not found", type: .error)
             return
         }
         
         do {
             let data = try Data(contentsOf: url)
-            addDebugMessage("File size: \(data.count) bytes")
-            logger.debug("File size: \(data.count) bytes")
+            addDebugMessage("File size: \(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file))", type: .info)
             
             // Check if it's a ZIP file
             let isZip = data.prefix(4).map { $0 } == [0x50, 0x4B, 0x03, 0x04]
-            addDebugMessage("Is ZIP file: \(isZip)")
-            logger.debug("Is ZIP file: \(isZip)")
+            addDebugMessage("Is ZIP file: \(isZip ? "Yes" : "No")", type: .info)
             
             if !isZip {
                 // Try to parse as JSON
                 if let jsonString = String(data: data, encoding: .utf8) {
-                    addDebugMessage("Content appears to be text/JSON")
-                    logger.debug("Content appears to be text/JSON")
-                    if jsonString.count > 100 {
-                        addDebugMessage("First 100 chars: \(jsonString.prefix(100))...")
-                        logger.debug("First 100 chars: \(jsonString.prefix(100))...")
-                    } else {
-                        addDebugMessage("Content: \(jsonString)")
-                        logger.debug("Content: \(jsonString)")
-                    }
+                    addDebugMessage("Content appears to be text/JSON", type: .info)
                     
                     do {
                         let json = try JSONSerialization.jsonObject(with: data)
-                        addDebugMessage("✅ Valid JSON structure")
-                        logger.debug("Valid JSON structure")
+                        addDebugMessage("✅ Valid JSON structure", type: .success)
                         
                         // Check for critical Lottie properties
                         if let dict = json as? [String: Any] {
                             let hasVersion = dict["v"] != nil
                             let hasLayers = dict["layers"] != nil
-                            addDebugMessage("Has version: \(hasVersion)")
-                            addDebugMessage("Has layers: \(hasLayers)")
-                            logger.debug("Has version: \(hasVersion)")
-                            logger.debug("Has layers: \(hasLayers)")
+                            addDebugMessage("Has version: \(hasVersion ? "Yes" : "No")", type: hasVersion ? .success : .warning)
+                            addDebugMessage("Has layers: \(hasLayers ? "Yes" : "No")", type: hasLayers ? .success : .warning)
                             
                             if hasVersion && hasLayers {
-                                addDebugMessage("✅ File appears to be valid Lottie JSON")
-                                logger.debug("File appears to be valid Lottie JSON")
+                                addDebugMessage("✅ Valid Lottie JSON", type: .success)
                             } else {
-                                addDebugMessage("❌ Missing essential Lottie properties")
-                                logger.error("Missing essential Lottie properties")
+                                addDebugMessage("❌ Missing essential Lottie properties", type: .error)
                             }
                         }
                     } catch {
-                        addDebugMessage("❌ Invalid JSON: \(error.localizedDescription)")
-                        logger.error("Invalid JSON: \(error.localizedDescription)")
+                        addDebugMessage("❌ Invalid JSON: \(error.localizedDescription)", type: .error)
                     }
                 } else {
-                    addDebugMessage("❌ Not valid UTF-8 text")
-                    addDebugMessage("First 10 bytes: \(data.prefix(10).map { String(format: "%02X", $0) }.joined(separator: " "))")
-                    logger.error("Not valid UTF-8 text")
+                    addDebugMessage("❌ Not valid UTF-8 text", type: .error)
                 }
             }
         } catch {
-            addDebugMessage("❌ Error reading file: \(error.localizedDescription)")
-            logger.error("Error reading file: \(error.localizedDescription)")
+            addDebugMessage("❌ Error reading file: \(error.localizedDescription)", type: .error)
         }
     }
     
     private func listAllFiles() {
-        setDebugMessages(["Listing all animation files in bundle:"])
-        logger.debug("Listing all animation files in bundle")
+        addDebugMessage("Listing all animation files...", type: .info)
         
         let lottieFiles = Bundle.main.paths(forResourcesOfType: "lottie", inDirectory: nil)
-        addDebugMessage("\n📂 .lottie files (\(lottieFiles.count) found):")
-        logger.debug(".lottie files (\(lottieFiles.count) found):")
+        addDebugMessage("📂 Found \(lottieFiles.count) .lottie files", type: .info)
         for path in lottieFiles {
             let filename = URL(fileURLWithPath: path).lastPathComponent
-            addDebugMessage("- \(filename)")
-            logger.debug("- \(filename)")
+            addDebugMessage("  • \(filename)", type: .info)
         }
         
         let jsonFiles = Bundle.main.paths(forResourcesOfType: "json", inDirectory: nil)
-        addDebugMessage("\n📂 .json files (\(jsonFiles.count) found):")
-        logger.debug(".json files (\(jsonFiles.count) found):")
+        addDebugMessage("📂 Found \(jsonFiles.count) .json files", type: .info)
         for path in jsonFiles {
             let filename = URL(fileURLWithPath: path).lastPathComponent
-            addDebugMessage("- \(filename)")
-            logger.debug("- \(filename)")
+            addDebugMessage("  • \(filename)", type: .info)
         }
         
         if lottieFiles.isEmpty && jsonFiles.isEmpty {
-            addDebugMessage("No animation files found in bundle")
-            logger.debug("No animation files found in bundle")
+            addDebugMessage("⚠️ No animation files found in bundle", type: .warning)
         }
     }
     
     private func checkKeychainItems() {
-        setDebugMessages(["Checking Keychain Items..."])
-        logger.debug("Checking keychain items")
+        addDebugMessage("Checking Keychain items...", type: .info)
         
-        addDebugMessage("Keychain Configuration:")
-        addDebugMessage("✓ Synchronization enabled")
-        addDebugMessage("✓ iCloud Keychain sharing supported")
+        addDebugMessage("Keychain: iCloud sync enabled ✓", type: .info)
         
         // Test keychain accessibility
         let testKey = "debugTestKey"
         let testValue = "debugTestValue"
         
-        addDebugMessage("\nKeychain Accessibility Test:")
         if keychainService.keychain.set(testValue, forKey: testKey) {
-            addDebugMessage("✅ Can write to keychain")
+            addDebugMessage("✅ Can write to keychain", type: .success)
             if keychainService.keychain.get(testKey) != nil {
-                addDebugMessage("✅ Can read from keychain")
+                addDebugMessage("✅ Can read from keychain", type: .success)
                 if keychainService.keychain.delete(testKey) {
-                    addDebugMessage("✅ Can delete from keychain")
+                    addDebugMessage("✅ Can delete from keychain", type: .success)
                 } else {
-                    addDebugMessage("❌ Cannot delete from keychain")
+                    addDebugMessage("❌ Cannot delete from keychain", type: .error)
                 }
             } else {
-                addDebugMessage("❌ Cannot read from keychain")
+                addDebugMessage("❌ Cannot read from keychain", type: .error)
             }
         } else {
-            addDebugMessage("❌ Cannot write to keychain")
-            addDebugMessage("Error code: \(keychainService.keychain.lastResultCode)")
+            addDebugMessage("❌ Cannot write to keychain", type: .error)
+            addDebugMessage("Error code: \(keychainService.keychain.lastResultCode)", type: .error)
         }
         
-        addDebugMessage("\nStored API Keys:")
+        addDebugMessage("Stored API Keys:", type: .info)
         for service in knownServices {
             if let apiKey = keychainService.getApiKey(forService: service) {
                 let maskedKey = maskApiKey(apiKey)
-                addDebugMessage("✅ \(service.uppercased()): \(maskedKey)")
-                logger.debug("Found API key for service: \(service)")
+                addDebugMessage("✅ \(service.uppercased()): \(maskedKey)", type: .success)
             } else {
-                addDebugMessage("❌ \(service.uppercased()): Not found")
-                logger.debug("No API key found for service: \(service)")
+                addDebugMessage("⚠️ \(service.uppercased()): Not configured", type: .warning)
             }
         }
     }
     
     private func saveApiKey() {
         guard !apiKeyInput.isEmpty else {
-            setDebugMessages(["❌ Please enter an API key"])
+            addDebugMessage("❌ Please enter an API key", type: .error)
             return
         }
         
-        setDebugMessages(["Saving API key for \(selectedService.uppercased())..."])
-        logger.debug("Saving API key for service: \(selectedService)")
+        addDebugMessage("Saving API key for \(selectedService.uppercased())...", type: .info)
         
         if keychainService.saveApiKey(apiKeyInput, forService: selectedService) {
-            addDebugMessage("✅ API key saved successfully")
-            addDebugMessage("Service: \(selectedService.uppercased())")
-            addDebugMessage("Key: \(maskApiKey(apiKeyInput))")
-            logger.debug("API key saved successfully for service: \(selectedService)")
+            addDebugMessage("✅ API key saved successfully", type: .success)
+            addDebugMessage("Service: \(selectedService.uppercased())", type: .info)
+            addDebugMessage("Key: \(maskApiKey(apiKeyInput))", type: .info)
         } else {
-            addDebugMessage("❌ Failed to save API key")
-            logger.error("Failed to save API key for service: \(selectedService)")
+            addDebugMessage("❌ Failed to save API key", type: .error)
         }
         
         apiKeyInput = ""
     }
     
     private func clearKeychain() {
-        setDebugMessages(["Clearing API keys..."])
-        logger.debug("Clearing API keys")
+        addDebugMessage("Clearing API keys...", type: .warning)
         
         var allCleared = true
         for service in knownServices {
             if keychainService.deleteApiKey(forService: service) {
-                addDebugMessage("✅ Cleared \(service.uppercased()) API key")
-                logger.debug("Cleared API key for service: \(service)")
+                addDebugMessage("✅ Cleared \(service.uppercased())", type: .success)
             } else {
-                addDebugMessage("❌ Failed to clear \(service.uppercased()) API key")
-                logger.error("Failed to clear API key for service: \(service)")
+                addDebugMessage("❌ Failed to clear \(service.uppercased())", type: .error)
                 allCleared = false
             }
         }
         
         if allCleared {
-            addDebugMessage("\n✅ All API keys cleared successfully")
+            addDebugMessage("✅ All API keys cleared", type: .success)
         } else {
-            addDebugMessage("\n⚠️ Some API keys could not be cleared")
+            addDebugMessage("⚠️ Some keys could not be cleared", type: .warning)
         }
     }
     
     private func migrateFromUserDefaults() {
-        setDebugMessages(["Starting migration from UserDefaults..."])
-        logger.debug("Starting migration from UserDefaults")
-        
+        addDebugMessage("Starting migration from UserDefaults...", type: .info)
         keychainService.migrateApiKeysFromUserDefaults()
+        addDebugMessage("Migration complete", type: .success)
         checkKeychainItems()
     }
     
@@ -551,34 +1022,12 @@ struct LottieDebugView: View {
         return String(key.prefix(3)) + "..." + String(key.suffix(3))
     }
     
-    // MARK: - Notification Scheduling
-    
-    private func scheduleNotification(title: String, body: String, inSeconds seconds: TimeInterval) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                addDebugMessage("❌ Error scheduling notification: \(error.localizedDescription)")
-                logger.error("Error scheduling notification: \(error.localizedDescription)")
-            } else {
-                addDebugMessage("✅ Notification scheduled: \(title) in \(Int(seconds)) seconds")
-                logger.debug("Notification scheduled: \(title) in \(Int(seconds)) seconds")
-            }
-        }
-    }
-    
     // MARK: - Animation Preview Component
     
     struct AnimationPreviewView: UIViewRepresentable {
         var animationName: String
         var onFailure: () -> Void
-        private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "LottieDebug")
+        private let logger = Logger(subsystem: "com.saxobroko.saxweather", category: "Debug")
         
         func makeUIView(context: Context) -> UIView {
             let containerView = UIView()

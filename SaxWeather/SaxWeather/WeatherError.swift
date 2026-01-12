@@ -12,5 +12,23 @@ enum WeatherError: Error {
     case invalidResponse
     case invalidAPIKey
     case apiError(String)
+    case decodingError(String)
     case noData
+    
+    var localizedDescription: String {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .invalidAPIKey:
+            return "Invalid API key"
+        case .apiError(let message):
+            return "API error: \(message)"
+        case .decodingError(let message):
+            return "Failed to decode response: \(message)"
+        case .noData:
+            return "No weather data available"
+        }
+    }
 }
