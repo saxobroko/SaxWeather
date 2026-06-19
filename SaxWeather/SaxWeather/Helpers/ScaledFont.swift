@@ -67,6 +67,7 @@ extension View {
     ///   - design: design before the user's `typography` override.
     ///   - registry: registry to read from. Defaults to
     ///     `CustomisationRegistry.shared`.
+    @MainActor
     func scaledFont(
         size: CGFloat,
         weight: Font.Weight = .regular,

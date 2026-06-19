@@ -104,6 +104,7 @@ extension View {
     ///
     /// - Parameter registry: registry to read from. Defaults to
     ///   `CustomisationRegistry.shared`.
+    @MainActor
     func styledCard(registry: CustomisationRegistry = .shared) -> some View {
         modifier(StyledCardModifier(registry: registry))
     }
