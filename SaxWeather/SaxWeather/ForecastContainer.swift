@@ -17,29 +17,41 @@ struct ForecastContainer: View {
                 VStack(spacing: 0) { // Zero spacing for seamless integration
                     // Unified container for both sections with integrated styling
                     VStack(spacing: 16) {
-                        // Hourly forecast section
+                        // Hourly forecast section.
+                        // Fades in once the forecast is available
+                        // so the page doesn't render an empty slot.
                         if weatherService.forecast != nil {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Today's Weather")
                                     .font(.headline)
                                     .fontWeight(.bold)
-                                
+
                                 HourlyForecastView(weatherService: weatherService)
                             }
+                            .transition(
+                                .opacity.combined(with: .move(edge: .top))
+                            )
                         }
                         
-                        // Main forecast content
+                        // Main forecast content.
+                        // Each branch (loading / error / empty /
+                        // populated) crossfades so the container
+                        // never snaps abruptly between states.
                         if let forecast = weatherService.forecast {
                             if forecast.daily.isEmpty {
                                 emptyForecastView
+                                    .transition(.opacity)
                             } else {
                                 // Pass weatherService to ForecastView
                                 ForecastView(weatherService: weatherService)
+                                    .transition(.opacity)
                             }
                         } else if let error = weatherService.error {
                             errorView(weatherError: error)
+                                .transition(.opacity)
                         } else {
                             loadingView
+                                .transition(.opacity)
                         }
                     }
                     .padding(.horizontal)
@@ -51,6 +63,14 @@ struct ForecastContainer: View {
                             Color.blue.opacity(0.1)
                     )
                     .cornerRadius(0) // No rounded corners for seamless appearance
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: weatherService.forecast?.daily.count
+                    )
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: weatherService.error?.localizedDescription
+                    )
                 }
             }
             .edgesIgnoringSafeArea(.bottom) // Extend to bottom edge

@@ -27,35 +27,75 @@ struct HourlyForecastView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Section title with condition summary
-            if !conditionSummary.isEmpty {
-                Text(conditionSummary)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
+            // Section title with condition summary.
+            // While loading we show an animated skeleton bar so
+            // the slot doesn't pop in abruptly when the real
+            // text arrives — matches ForecastView treatment.
+            Group {
+                if isLoading {
+                    SkeletonView(cornerRadius: 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: 16)
+                        .transition(.opacity)
+                } else if !conditionSummary.isEmpty {
+                    Text(conditionSummary)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .transition(
+                            .opacity.combined(with: .move(edge: .top))
+                        )
+                }
             }
-            
-            // Hourly forecast scrollable container
+            .animation(
+                .easeInOut(duration: 0.35),
+                value: isLoading
+            )
+            .animation(
+                .easeInOut(duration: 0.35),
+                value: conditionSummary
+            )
+
+            // Hourly forecast scrollable container.
+            // Skeletons stay in place while loading, then we
+            // crossfade to the real items once data arrives.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     if isLoading {
                         ForEach(0..<6, id: \.self) { _ in
                             hourlyForecastItemSkeleton()
+                                .transition(.opacity)
                         }
                     } else if hourlyData.isEmpty {
                         Text("No hourly data available")
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity)
                             .padding()
+                            .transition(.opacity)
                     } else {
                         ForEach(hourlyData) { forecast in
                             hourlyForecastItem(forecast)
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .opacity
+                                            .combined(with: .scale(scale: 0.92)),
+                                        removal: .opacity
+                                    )
+                                )
                         }
                     }
                 }
                 .padding(.vertical, 8)
             }
             .frame(height: 120)  // Set fixed height to ensure scrolling works properly
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: isLoading
+            )
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: hourlyData.count
+            )
         }
         .onAppear {
             fetchHourlyForecast()
@@ -100,20 +140,21 @@ struct HourlyForecastView: View {
     }
     
     private func hourlyForecastItemSkeleton() -> some View {
+        // Animated shimmer placeholder that mirrors
+        // `hourlyForecastItem(_:)` layout so the card height
+        // stays identical between loading and loaded states.
         VStack(spacing: 8) {
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
+            // Hour label placeholder
+            SkeletonView(cornerRadius: 4)
                 .frame(width: 40, height: 14)
-                .cornerRadius(4)
-            
-            Circle()
-                .fill(Color.gray.opacity(0.3))
+
+            // Weather icon placeholder
+            SkeletonView(cornerRadius: 20)
                 .frame(width: 40, height: 40)
-            
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
+
+            // Temperature placeholder
+            SkeletonView(cornerRadius: 4)
                 .frame(width: 30, height: 16)
-                .cornerRadius(4)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 8)
@@ -122,7 +163,6 @@ struct HourlyForecastView: View {
                 .fill(colorScheme == .dark ? backgroundFillColor : Color.white)
         )
         .frame(width: 75)
-        .redacted(reason: .placeholder)
     }
     
     private func fetchHourlyForecast() {

@@ -21,7 +21,16 @@ struct DetailedForecastSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     @State private var loadingFailed: Bool = false
-    
+
+    // Shared asymmetric transition reused across the
+    // detail grid so each card fades and scales in uniformly.
+    private var cardTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.9)),
+            removal: .opacity
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -104,6 +113,7 @@ struct DetailedForecastSheet: View {
                         value: day.sunrise != nil ? formattedTime(day.sunrise!) : "N/A",
                         color: .orange
                     )
+                    .transition(cardTransition)
                     
                     // Sunset
                     WeatherDetailCard(
@@ -112,6 +122,7 @@ struct DetailedForecastSheet: View {
                         value: day.sunset != nil ? formattedTime(day.sunset!) : "N/A",
                         color: .orange
                     )
+                    .transition(cardTransition)
                     
                     // Humidity
                     WeatherDetailCard(
@@ -120,6 +131,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.humidity)))%",
                         color: .blue
                     )
+                    .transition(cardTransition)
                     
                     // UV Index
                     WeatherDetailCard(
@@ -128,6 +140,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.uvIndex)))",
                         color: .purple
                     )
+                    .transition(cardTransition)
                     
                     // Wind Speed
                     WeatherDetailCard(
@@ -136,6 +149,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
                         color: .teal
                     )
+                    .transition(cardTransition)
                     
                     // Precipitation
                     WeatherDetailCard(
@@ -144,9 +158,16 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.precipitationProbability)))%",
                         color: .blue
                     )
+                    .transition(cardTransition)
                 }
                 .padding(.horizontal)
-                
+                // Stable identity drives the transition when the
+                // sheet is re-presented for a different day.
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: day.date
+                )
+
                 Spacer(minLength: 20)
             }
         }

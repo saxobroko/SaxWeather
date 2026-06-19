@@ -17,24 +17,74 @@ struct DetailedWeatherView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // HERO SECTION
+                // HERO SECTION — fades in when the underlying
+                // weather data becomes available.
                 heroSection
                     .padding(.horizontal, 16)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .top))
+                    )
 
-                // GRID OF CARDS (2 columns)
+                // GRID OF CARDS (2 columns).
+                // Each card gets an asymmetric fade+scale
+                // transition so the grid populates smoothly
+                // instead of snapping in once data arrives.
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "-", icon: "thermometer")
-                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "-", icon: "sun.max")
-                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "-", icon: "humidity")
-                    WeatherCard(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "-", icon: "gauge")
+                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "—", icon: "thermometer")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "—", icon: "sun.max")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "—", icon: "humidity")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—", icon: "gauge")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
                 }
                 .padding(.horizontal, 16)
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.feelsLike
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.uvIndex
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.humidity
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.pressure
+                )
 
-                // WIND CARD (full width)
+                // WIND CARD (full width).
                 if let wind = weatherService.weather?.windSpeed, let gust = weatherService.weather?.windGust {
                     let direction = weatherService.forecast?.daily.first?.windDirection ?? 0
                     WindCard(wind: wind, gust: gust, direction: direction, unit: windUnit)
                         .padding(.horizontal, 16)
+                        .transition(
+                            .opacity.combined(with: .move(edge: .bottom))
+                        )
                 }
 
                 // SUNRISE/SUNSET & PRECIPITATION CARDS (side by side)
@@ -42,16 +92,29 @@ struct DetailedWeatherView: View {
                     if let day = weatherService.forecast?.daily.first {
                         if let sunrise = day.sunrise, let sunset = day.sunset {
                             SunriseCard(sunrise: sunrise, sunset: sunset)
+                                .transition(.opacity)
                         }
                         PrecipitationCard(amount: day.precipitation)
+                            .transition(.opacity)
                     }
                 }
                 .padding(.horizontal, 16)
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.forecast?.daily.first?.sunrise
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.forecast?.daily.first?.precipitation
+                )
 
                 // HOURLY FORECAST GRAPH
                 if !weatherService.hourlyData.isEmpty {
                     hourlyForecastSection
                         .padding(.horizontal, 16)
+                        .transition(
+                            .opacity.combined(with: .move(edge: .bottom))
+                        )
                 }
 
                 // DAILY FORECAST
@@ -60,18 +123,47 @@ struct DetailedWeatherView: View {
                         Text("7-Day Forecast")
                             .font(.headline)
                             .padding(.leading, 4)
+                            .transition(.opacity)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(forecast.prefix(7)) { day in
                                     ForecastPane(day: day, unitSystem: unitSystem)
+                                        .transition(
+                                            .asymmetric(
+                                                insertion: .opacity
+                                                    .combined(with: .scale(scale: 0.92)),
+                                                removal: .opacity
+                                            )
+                                        )
                                 }
                             }
                             .padding(.horizontal, 16)
                         }
+                        .animation(
+                            .easeInOut(duration: 0.4),
+                            value: forecast.count
+                        )
                     }
+                    .transition(.opacity)
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: forecast.count
+                    )
                 }
             }
             .padding(.vertical, 16)
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.weather?.temperature
+            )
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.weather?.condition
+            )
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.hourlyData.count
+            )
         }
     }
     

@@ -379,6 +379,12 @@ struct SaxWeatherApp: App {
     // Create the shared instances
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var weatherService = WeatherService()
+    // Customisation engine — single source of truth for every
+    // knob. Phase 1: model + registry + persistence only; existing
+    // `@AppStorage` reads continue to work unchanged. The registry
+    // exposes its API via `.environmentObject` so deeper views can
+    // read/write knobs in later phases without prop-drilling.
+    @StateObject private var customisationRegistry = CustomisationRegistry.shared
     @AppStorage("accentColor") private var accentColor = "blue"
     @Environment(\.scenePhase) private var scenePhase
     #if os(iOS)
@@ -410,6 +416,7 @@ struct SaxWeatherApp: App {
             ContentView()
                 .environmentObject(storeManager)
                 .environmentObject(weatherService)
+                .environmentObject(customisationRegistry)
                 .tint(accentColorValue) // Apply user's selected accent color
                 .onAppear {
                     // Bootstrap widget sync: push the current

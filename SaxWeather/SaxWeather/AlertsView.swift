@@ -34,9 +34,14 @@ struct AlertsView: View {
             // --- Foreground content ---
             ScrollView {
                 VStack(spacing: 20) {
-                    // Precipitation Timeline Section
+                    // Precipitation Timeline Section.
+                    // Fades in from the bottom when the timeline
+                    // data becomes available.
                     if let timeline = alertManager.precipitationTimeline {
                         precipitationSection(timeline)
+                            .transition(
+                                .opacity.combined(with: .move(edge: .bottom))
+                            )
                     }
 
                     // Weather Alerts Section
@@ -45,8 +50,9 @@ struct AlertsView: View {
                     // Notifications Permission Section
                     if alertManager.authorizationStatus != .authorized {
                         notificationPermissionView
+                            .transition(.opacity)
                     }
-                    
+
                     // Weather alert attribution (required for legal compliance)
                     WeatherAttributionView(
                         dataSource: alertManager.alertDataSource,
@@ -54,8 +60,21 @@ struct AlertsView: View {
                         useAlertSource: true
                     )
                     .padding(.top, 16)
+                    .transition(.opacity)
                 }
                 .padding()
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: alertManager.precipitationTimeline?.timePoints.count
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: alertManager.alerts.count
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: alertManager.authorizationStatus
+                )
             }
             .refreshable {
                 await refreshData()
@@ -331,7 +350,17 @@ struct AlertsView: View {
             } else {
                 ForEach(alertManager.alerts) { alert in
                     alertView(for: alert)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
                 }
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: alertManager.alerts.count
+                )
             }
         }
     }

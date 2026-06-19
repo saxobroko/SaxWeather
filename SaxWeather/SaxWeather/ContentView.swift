@@ -686,11 +686,21 @@ struct WeatherDetailsView: View {
     
     var body: some View {
         if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Aesthetic - Transparent with Subtle Dark Tint
+            // iOS 26+ Glass Aesthetic - Transparent with Subtle Dark Tint.
+            // Each row crossfades and slightly scales in when its
+            // underlying metric value becomes non-nil, so the
+            // list populates smoothly as extended data lands.
             VStack(spacing: 12) {
                 ForEach(weatherMetrics, id: \.title) { metric in
                     if let value = metric.value {
                         WeatherRowView(title: metric.title, value: value)
+                            .transition(
+                                .asymmetric(
+                                    insertion: .opacity
+                                        .combined(with: .scale(scale: 0.92)),
+                                    removal: .opacity
+                                )
+                            )
                     }
                 }
             }
@@ -702,7 +712,7 @@ struct WeatherDetailsView: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(.ultraThinMaterial)
                         .opacity(0.6)  // Increased transparency
-                    
+
                     // Subtle dark tint overlay
                     LinearGradient(
                         colors: colorScheme == .dark ? [
@@ -739,12 +749,23 @@ struct WeatherDetailsView: View {
             }
             .shadow(color: .black.opacity(0.12), radius: 20, x: 0, y: 10)
             .padding(.horizontal, 20)
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherMetrics.compactMap { $0.value }.count
+            )
         } else {
             // Fallback for iOS 25 and earlier
             VStack(spacing: 16) {
                 ForEach(weatherMetrics, id: \.title) { metric in
                     if let value = metric.value {
                         WeatherRowView(title: metric.title, value: value)
+                            .transition(
+                                .asymmetric(
+                                    insertion: .opacity
+                                        .combined(with: .scale(scale: 0.92)),
+                                    removal: .opacity
+                                )
+                            )
                     }
                 }
             }
@@ -759,6 +780,10 @@ struct WeatherDetailsView: View {
                     .shadow(radius: 5)
             )
             .padding(.horizontal)
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherMetrics.compactMap { $0.value }.count
+            )
         }
     }
     
@@ -791,11 +816,17 @@ struct ExtendedWeatherSection: View {
             let _ = print("   - Hourly Precip: \(weather.hourlyPrecipitation.count) items")
             #endif
 
-            // UV Index (enhanced with recommendations)
+            // UV Index (enhanced with recommendations).
+            // Each card slides up and fades in once its data
+            // becomes available, so the extended info populates
+            // smoothly rather than popping in.
             if let uvIndex = weather.uvIndex {
                 let uvData = UVIndexData(uvIndex: uvIndex)
                 UVIndexCardView(data: uvData)
                     .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
             } else {
                 #if DEBUG
                 let _ = print("❌ UV Index card NOT showing - uvIndex is nil")
@@ -806,6 +837,9 @@ struct ExtendedWeatherSection: View {
             if let airQuality = weather.airQuality {
                 AirQualityCardView(data: airQuality)
                     .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
             } else {
                 #if DEBUG
                 let _ = print("❌ Air Quality card NOT showing - airQuality is nil")
@@ -816,6 +850,9 @@ struct ExtendedWeatherSection: View {
             if let sunData = weather.sunData {
                 SunMoonCardView(data: sunData)
                     .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
             } else {
                 #if DEBUG
                 let _ = print("❌ Sun/Moon card NOT showing - sunData is nil")
@@ -826,6 +863,9 @@ struct ExtendedWeatherSection: View {
             if !weather.hourlyPrecipitation.isEmpty {
                 PrecipitationGraphView(hourlyData: weather.hourlyPrecipitation)
                     .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
             } else {
                 #if DEBUG
                 let _ = print("❌ Precipitation card NOT showing - hourlyPrecipitation is empty")
@@ -836,9 +876,34 @@ struct ExtendedWeatherSection: View {
             if let pollen = weather.pollen {
                 PollenCardView(data: pollen)
                     .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
             }
         }
-        .padding(.vertical, 12)
+        // Bind to the union of all the optional fields so any
+        // individual card arrival triggers the same animation
+        // curve used elsewhere in the app.
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.uvIndex
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.airQuality?.aqi
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.sunData?.sunrise
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.hourlyPrecipitation.count
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.pollen?.tree
+        )
     }
 }
 
