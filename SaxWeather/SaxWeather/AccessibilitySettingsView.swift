@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct AccessibilitySettingsView: View {
+    // Phase 2 bridge — customisation registry injected at the app
+    // root via `.environmentObject`. Every setting write below
+    // routes through `.onChange` to the registry.
+    @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     // MARK: - Dynamic Type
     @AppStorage("useSystemTextSize") private var useSystemTextSize = true
     @AppStorage("customTextSizeMultiplier") private var customTextSizeMultiplier = 1.0
@@ -41,6 +45,35 @@ struct AccessibilitySettingsView: View {
             }
             .navigationTitle("Accessibility")
             .navigationBarTitleDisplayMode(.inline)
+            // Phase 2 bridge — forward every accessibility setting
+            // write to the registry.
+            .onChange(of: useSystemTextSize) { newValue in
+                customisationRegistry.set(\.visual.useSystemTextSize, newValue)
+            }
+            .onChange(of: customTextSizeMultiplier) { newValue in
+                customisationRegistry.set(\.visual.fontScale, newValue)
+            }
+            .onChange(of: reduceMotion) { newValue in
+                customisationRegistry.set(\.accessibility.reduceMotion, newValue)
+            }
+            .onChange(of: disableWeatherAnimations) { newValue in
+                customisationRegistry.set(\.iconography.disableWeatherAnimations, newValue)
+            }
+            .onChange(of: increaseContrast) { newValue in
+                customisationRegistry.set(\.visual.increaseContrast, newValue)
+            }
+            .onChange(of: boldText) { newValue in
+                customisationRegistry.set(\.visual.boldText, newValue)
+            }
+            .onChange(of: enhancedVoiceOverLabels) { newValue in
+                customisationRegistry.set(\.accessibility.enhancedVoiceOverLabels, newValue)
+            }
+            .onChange(of: speakWeatherAlerts) { newValue in
+                customisationRegistry.set(\.behaviour.speakWeatherAlerts, newValue)
+            }
+            .onChange(of: enableHapticFeedback) { newValue in
+                customisationRegistry.set(\.behaviour.enableHapticFeedback, newValue)
+            }
         }
         #elseif os(macOS)
         ScrollView {

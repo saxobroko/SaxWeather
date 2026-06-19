@@ -69,10 +69,40 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - Init
 
-    /// Production init. Loads the persisted profile (or falls back
-    /// to the default) and (in DEBUG) wires a file-system watcher.
+    /// Production init.
+    ///
+    /// Boot order:
+    ///   1. Try the App Group profile file (`current.saxtheme`).
+    ///      If it exists, load + migrate and use it directly.
+    ///   2. Otherwise, seed a fresh `KnobStorage` from any values
+    ///      the user already customised via the legacy `@AppStorage`
+    ///      UI (first launch post-Phase-2 deploy).
+    ///   3. Write the resulting knobs through to `UserDefaults`
+    ///      so any `@AppStorage` reads see consistent values from
+    ///      the very first frame.
+    ///   4. Persist the seeded profile so subsequent launches
+    ///      skip step 2.
     private init() {
-        self.profile = Self.loadFromDisk() ?? CustomisationProfile.makeDefault()
+        if let loaded = Self.loadFromDisk() {
+            self.profile = loaded
+            // Re-bridge in case UserDefaults drifted (e.g. a user
+            // edited via the Settings app or an external tool).
+            ProfileToAppStorageBridge.bridge(loaded.knobs)
+        } else {
+            let seeded = ProfileToAppStorageBridge.readFromAppStorage()
+            var fresh = CustomisationProfile(
+                name: "Default",
+                builtIn: .default,
+                knobs: seeded
+            )
+            fresh.schemaVersion = ProfileMigrator.currentSchemaVersion
+            self.profile = fresh
+            // Write through so @AppStorage views see consistent
+            // values on the first frame.
+            ProfileToAppStorageBridge.bridge(fresh.knobs)
+            // Persist so step 2 doesn't repeat on next launch.
+            persist()
+        }
         recomputeHash()
         setupHotReload()
     }
@@ -98,6 +128,9 @@ final class CustomisationRegistry: ObservableObject {
         versionToken &+= 1
         recomputeHash()
         persist()
+        // Write through to UserDefaults so every existing
+        // `@AppStorage` view continues to reflect the new profile.
+        ProfileToAppStorageBridge.bridge(profile.knobs)
         reloadWidgets()
     }
 
@@ -125,6 +158,10 @@ final class CustomisationRegistry: ObservableObject {
         profile = newProfile
         recomputeHash()
         persist()
+        // Write the single changed knob (and its siblings, for
+        // simplicity) to UserDefaults so existing `@AppStorage`
+        // views see the new value on the next render pass.
+        ProfileToAppStorageBridge.bridge(profile.knobs)
         reloadWidgets()
     }
 

@@ -15,6 +15,11 @@ import UIKit
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
     @EnvironmentObject var storeManager: StoreManager
+    /// Customisation engine — Phase 2: every `@AppStorage` write
+    /// below is forwarded to the registry via `.onChange` modifiers
+    /// attached at the body root, so the registry is the single
+    /// mutation path. Reads stay as `@AppStorage` for now.
+    @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @AppStorage("wuApiKey") private var wuApiKey = ""
     @AppStorage("stationID") private var stationID = ""
     @AppStorage("owmApiKey") private var owmApiKey = ""
@@ -122,8 +127,31 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .center)
             }
             .navigationTitle("Settings")
+            // Phase 2 bridge — every bridged setting forwards its
+            // new value to the registry. The existing side effects
+            // (Task { fetch… }, etc.) are preserved.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
+                customisationRegistry.set(\.layout.forecastDays, newValue)
+            }
+            .onChange(of: unitSystem) { newValue in
+                weatherService.unitSystem = newValue
+                customisationRegistry.set(\.data.unitSystem, newValue)
+            }
+            .onChange(of: colorScheme) { newValue in
+                customisationRegistry.set(\.visual.colorScheme, newValue)
+            }
+            .onChange(of: displayMode) { newValue in
+                customisationRegistry.set(\.layout.displayMode, newValue)
+            }
+            .onChange(of: useOpenMeteoAsDefault) { newValue in
+                customisationRegistry.set(\.data.useOpenMeteoAsDefault, newValue)
+            }
+            .onChange(of: disableAPIKeys) { newValue in
+                customisationRegistry.set(\.data.disableAPIKeys, newValue)
+            }
+            .onChange(of: accentColor) { newValue in
+                customisationRegistry.set(\.visual.accentColor, newValue)
             }
             .sheet(isPresented: $showingTipJar) {
                 TipJarView()
@@ -240,8 +268,31 @@ struct SettingsView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
+            // Phase 2 bridge — iOS body. Same as the macOS body:
+            // every bridged setting forwards its new value to the
+            // registry.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
+                customisationRegistry.set(\.layout.forecastDays, newValue)
+            }
+            .onChange(of: unitSystem) { newValue in
+                weatherService.unitSystem = newValue
+                customisationRegistry.set(\.data.unitSystem, newValue)
+            }
+            .onChange(of: colorScheme) { newValue in
+                customisationRegistry.set(\.visual.colorScheme, newValue)
+            }
+            .onChange(of: displayMode) { newValue in
+                customisationRegistry.set(\.layout.displayMode, newValue)
+            }
+            .onChange(of: useOpenMeteoAsDefault) { newValue in
+                customisationRegistry.set(\.data.useOpenMeteoAsDefault, newValue)
+            }
+            .onChange(of: disableAPIKeys) { newValue in
+                customisationRegistry.set(\.data.disableAPIKeys, newValue)
+            }
+            .onChange(of: accentColor) { newValue in
+                customisationRegistry.set(\.visual.accentColor, newValue)
             }
             .sheet(isPresented: $showingTipJar) {
                 TipJarView()
