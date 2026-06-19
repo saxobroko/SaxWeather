@@ -95,36 +95,82 @@ struct ForecastView: View {
                             
                             Spacer()
                         }
+                        .padding(.top, 16)
                         .padding(.horizontal, 20)
-                        
-                        // Weather condition summary
-                        if !conditionSummary.isEmpty && !isLoadingHourly {
-                            Text(conditionSummary)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 20)
+                        .padding(.bottom, 4)
+
+                        // Weather condition summary.
+                        // While loading we render an animated skeleton
+                        // placeholder so the card height stays stable and
+                        // there's no jarring pop-in when the real text
+                        // arrives. When loaded, we crossfade in the real
+                        // string.
+                        Group {
+                            if isLoadingHourly {
+                                SkeletonView(cornerRadius: 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(height: 16)
+                                    .padding(.horizontal, 20)
+                                    .transition(.opacity)
+                            } else if !conditionSummary.isEmpty {
+                                Text(conditionSummary)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 20)
+                                    .transition(
+                                        .opacity.combined(with: .move(edge: .top))
+                                    )
+                            }
                         }
-                        
-                        // Hourly forecast scrollable container
+                        .animation(
+                            .easeInOut(duration: 0.35),
+                            value: isLoadingHourly
+                        )
+                        .animation(
+                            .easeInOut(duration: 0.35),
+                            value: conditionSummary
+                        )
+
+                        // Hourly forecast scrollable container.
+                        // Skeletons stay in place while loading, then we
+                        // crossfade to the real forecast items once the
+                        // data arrives — no abrupt swap.
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 if isLoadingHourly {
                                     ForEach(0..<6, id: \.self) { _ in
                                         hourlyForecastItemSkeleton()
+                                            .transition(.opacity)
                                     }
                                 } else if hourlyData.isEmpty {
                                     Text("No hourly data available")
                                         .foregroundColor(.secondary)
                                         .padding()
+                                        .transition(.opacity)
                                 } else {
                                     ForEach(hourlyData) { hour in
                                         hourlyForecastItem(hour)
+                                            .transition(
+                                                .asymmetric(
+                                                    insertion: .opacity
+                                                        .combined(with: .scale(scale: 0.92)),
+                                                    removal: .opacity
+                                                )
+                                            )
                                     }
                                 }
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
                         }
+                        .animation(
+                            .easeInOut(duration: 0.4),
+                            value: isLoadingHourly
+                        )
+                        .animation(
+                            .easeInOut(duration: 0.4),
+                            value: hourlyData.count
+                        )
                     }
                     .background(
                         RoundedRectangle(cornerRadius: 16)
@@ -252,17 +298,22 @@ struct ForecastView: View {
     }
     
     private func hourlyForecastItemSkeleton() -> some View {
+        // Animated shimmer placeholder that mirrors the layout
+        // of `hourlyForecastItem(_:)` so the card height and
+        // item spacing stay identical between the loading and
+        // loaded states — preventing layout shift when data
+        // arrives.
         VStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.gray.opacity(0.3))
+            // Hour label placeholder
+            SkeletonView(cornerRadius: 4)
                 .frame(width: 40, height: 14)
-            
-            Circle()
-                .fill(Color.gray.opacity(0.3))
+
+            // Weather icon placeholder
+            SkeletonView(cornerRadius: 20)
                 .frame(width: 40, height: 40)
-            
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.gray.opacity(0.3))
+
+            // Temperature placeholder
+            SkeletonView(cornerRadius: 4)
                 .frame(width: 30, height: 16)
         }
         .padding(.vertical, 12)
@@ -578,23 +629,40 @@ struct ForecastView: View {
     @available(iOS 16.0, macOS 13.0, *)
     private func mapWeatherKitConditionToWMOCode(_ condition: WeatherCondition) -> Int {
         switch condition {
-        case .clear: return 0
-        case .partlyCloudy, .mostlyClear: return 2
-        case .cloudy, .mostlyCloudy: return 3
-        case .foggy, .haze, .smoky: return 45
-        case .drizzle: return 51
-        case .rain, .heavyRain: return 61
-        case .isolatedThunderstorms, .scatteredThunderstorms, .strongStorms, .thunderstorms: return 95
-        case .freezingRain, .sleet: return 66
-        case .snow, .heavySnow, .flurries, .blowingSnow: return 71
-        case .frigid: return 71
-        case .blizzard: return 75
-        case .wintryMix: return 66
-        case .breezy, .windy: return 3
-        case .hot, .hurricane, .tropicalStorm: return 3
-        case .sunFlurries: return 85
-        case .sunShowers: return 80
-        @unknown default: return 0
+        case .clear: 
+            return 0
+        case .partlyCloudy, .mostlyClear: 
+            return 2
+        case .cloudy, .mostlyCloudy: 
+            return 3
+        case .foggy, .haze, .smoky: 
+            return 45
+        case .drizzle: 
+            return 51
+        case .rain, .heavyRain: 
+            return 61
+        case .isolatedThunderstorms, .scatteredThunderstorms, .strongStorms, .thunderstorms: 
+            return 95
+        case .freezingRain, .sleet: 
+            return 66
+        case .snow, .heavySnow, .flurries, .blowingSnow: 
+            return 71
+        case .frigid: 
+            return 71
+        case .blizzard: 
+            return 75
+        case .wintryMix: 
+            return 66
+        case .breezy, .windy: 
+            return 3
+        case .hot, .hurricane, .tropicalStorm: 
+            return 3
+        case .sunFlurries: 
+            return 85
+        case .sunShowers: 
+            return 80
+        default: 
+            return 0
         }
     }
     
@@ -645,28 +713,50 @@ struct ForecastView: View {
     @available(iOS 16.0, macOS 13.0, *)
     private func weatherKitConditionToDescription(_ condition: WeatherCondition) -> String {
         switch condition {
-        case .clear: return "Clear conditions"
-        case .mostlyClear: return "Mainly clear"
-        case .partlyCloudy: return "Partly cloudy"
-        case .cloudy, .mostlyCloudy: return "Overcast"
-        case .foggy, .haze, .smoky: return "Foggy conditions"
-        case .drizzle: return "Light drizzle"
-        case .rain: return "Rainy conditions"
-        case .heavyRain: return "Heavy rain"
-        case .freezingRain, .sleet: return "Freezing rain"
-        case .snow, .flurries: return "Snowfall"
-        case .heavySnow: return "Heavy snow"
-        case .blowingSnow, .blizzard: return "Blizzard conditions"
-        case .wintryMix: return "Mixed precipitation"
-        case .isolatedThunderstorms, .scatteredThunderstorms: return "Scattered thunderstorms"
-        case .strongStorms, .thunderstorms: return "Thunderstorm"
-        case .sunShowers: return "Passing showers"
-        case .sunFlurries: return "Passing flurries"
-        case .breezy, .windy: return "Windy conditions"
-        case .hot: return "Hot weather"
-        case .frigid: return "Frigid conditions"
-        case .hurricane, .tropicalStorm: return "Severe weather"
-        @unknown default: return "Changing conditions"
+        case .clear: 
+            return "Clear conditions"
+        case .mostlyClear: 
+            return "Mainly clear"
+        case .partlyCloudy: 
+            return "Partly cloudy"
+        case .cloudy, .mostlyCloudy: 
+            return "Overcast"
+        case .foggy, .haze, .smoky: 
+            return "Foggy conditions"
+        case .drizzle: 
+            return "Light drizzle"
+        case .rain: 
+            return "Rainy conditions"
+        case .heavyRain: 
+            return "Heavy rain"
+        case .freezingRain, .sleet: 
+            return "Freezing rain"
+        case .snow, .flurries: 
+            return "Snowfall"
+        case .heavySnow: 
+            return "Heavy snow"
+        case .blowingSnow, .blizzard: 
+            return "Blizzard conditions"
+        case .wintryMix: 
+            return "Mixed precipitation"
+        case .isolatedThunderstorms, .scatteredThunderstorms: 
+            return "Scattered thunderstorms"
+        case .strongStorms, .thunderstorms: 
+            return "Thunderstorm"
+        case .sunShowers: 
+            return "Passing showers"
+        case .sunFlurries: 
+            return "Passing flurries"
+        case .breezy, .windy: 
+            return "Windy conditions"
+        case .hot: 
+            return "Hot weather"
+        case .frigid: 
+            return "Frigid conditions"
+        case .hurricane, .tropicalStorm: 
+            return "Severe weather"
+        default: 
+            return "Changing conditions"
         }
     }
 }

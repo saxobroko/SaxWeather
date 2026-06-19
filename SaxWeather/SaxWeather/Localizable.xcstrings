@@ -1,0 +1,1648 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    " " : {
+
+    },
+    " %@" : {
+
+    },
+    "[Hourly Temperature Graph]" : {
+
+    },
+    "#%lld" : {
+
+    },
+    "%@ – re-enter a valid key to restore this source." : {
+
+    },
+    "%@ animation preview" : {
+
+    },
+    "%@ widget preview" : {
+
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld contribution%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld contribution%2$@"
+          }
+        }
+      }
+    },
+    "%lld Days" : {
+
+    },
+    "%lld more" : {
+
+    },
+    "%lld percent" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "%lld°" : {
+
+    },
+    "+15m" : {
+
+    },
+    "+30m" : {
+
+    },
+    "+60m" : {
+
+    },
+    "+120m" : {
+
+    },
+    "⚠️ First launch" : {
+
+    },
+    "✅ Completed" : {
+
+    },
+    "✅ Yes" : {
+
+    },
+    "❌ No" : {
+
+    },
+    "🐞 Developer Debug" : {
+
+    },
+    "📸 Golden Hour: %@ - %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "📸 Golden Hour: %1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "🥇" : {
+
+    },
+    "🥈" : {
+
+    },
+    "🥉" : {
+
+    },
+    "7-Day Forecast" : {
+
+    },
+    "22°" : {
+
+    },
+    "24-Hour Summary" : {
+
+    },
+    "About" : {
+
+    },
+    "Accent Color" : {
+
+    },
+    "Accessibility" : {
+
+    },
+    "Actions" : {
+
+    },
+    "Active" : {
+
+    },
+    "Active Location" : {
+
+    },
+    "Active Source" : {
+
+    },
+    "Active source: %@" : {
+
+    },
+    "Add API Keys in Settings" : {
+
+    },
+    "Add as many as you like in Settings, then Locations." : {
+
+    },
+    "Add Location" : {
+
+    },
+    "Add New Location" : {
+
+    },
+    "Add or Update Key" : {
+
+    },
+    "Add widgets from the iOS widget gallery after setup." : {
+
+    },
+    "Air Quality" : {
+
+    },
+    "Alerts" : {
+
+    },
+    "Alerts Enabled" : {
+
+    },
+    "All tweakable in Settings, then Appearance." : {
+
+    },
+    "Animation" : {
+
+    },
+    "Animation Testing" : {
+
+    },
+    "Animations" : {
+
+    },
+    "Animations adapt to the current weather and time of day." : {
+
+    },
+    "Announce Weather Alerts" : {
+
+    },
+    "API Key" : {
+
+    },
+    "API Key Management" : {
+
+    },
+    "API key needs attention" : {
+
+    },
+    "API key status: %@. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "API key status: %1$@. %2$@"
+          }
+        }
+      }
+    },
+    "API Keys" : {
+
+    },
+    "API Keys Active" : {
+
+    },
+    "API keys are enabled. Configure them in Weather Data settings." : {
+
+    },
+    "API keys are encrypted and synchronized via iCloud Keychain across your devices." : {
+
+    },
+    "API Keys Disabled" : {
+
+    },
+    "API keys for Weather Underground and OpenWeatherMap are currently disabled. Weather data will use Apple Weather, Open-Meteo, or saved locations only." : {
+
+    },
+    "App and device diagnostics" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Apple Weather" : {
+
+    },
+    "Apple Weather limits forecasts to 10 days" : {
+
+    },
+    "AQI" : {
+
+    },
+    "AQI Scale Reference" : {
+
+    },
+    "Attribution" : {
+
+    },
+    "ATTRIBUTIONS" : {
+
+    },
+    "Auto-scroll Console" : {
+
+    },
+    "Automatically announce severe weather warnings" : {
+
+    },
+    "Back" : {
+
+    },
+    "Background" : {
+
+    },
+    "Background Refresh" : {
+
+    },
+    "Background refresh allows widgets to update without opening the app. If disabled, check Settings → General → Background App Refresh." : {
+
+    },
+    "Background Refresh Status" : {
+
+    },
+    "Background Settings" : {
+
+    },
+    "Bold Text" : {
+
+    },
+    "Built-in (Default)" : {
+
+    },
+    "Built-in weather service" : {
+
+    },
+    "by Saxon" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Check Authorization Status" : {
+
+    },
+    "Check console for details" : {
+
+    },
+    "Check Status" : {
+
+    },
+    "Choose Display Name" : {
+
+    },
+    "Clear Console" : {
+
+    },
+    "Close" : {
+
+    },
+    "Configuration" : {
+
+    },
+    "Console" : {
+
+    },
+    "Contributions" : {
+
+    },
+    "Coordinates are valid" : {
+
+    },
+    "Coordinates:" : {
+
+    },
+    "Copy Message" : {
+
+    },
+    "Current Location (GPS)" : {
+
+    },
+    "Current State" : {
+
+    },
+    "Currently using: %@" : {
+
+    },
+    "Custom Background Settings" : {
+
+    },
+    "Custom Backgrounds" : {
+
+    },
+    "Custom Coordinates" : {
+
+    },
+    "Custom locations are currently overridden by Weather Underground station. To use custom locations, either disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
+
+    },
+    "Custom locations are ignored when a Weather Underground station is set. Weather data will be fetched from your station's location." : {
+
+    },
+    "Custom locations below are currently ignored because a Weather Underground station is configured. Disable API keys in Settings → Locations to use saved locations." : {
+
+    },
+    "Custom locations below won't be used while Weather Underground is configured." : {
+
+    },
+    "Custom Text Size" : {
+
+    },
+    "Dark" : {
+
+    },
+    "Data from WU Station: %@" : {
+
+    },
+    "Debug" : {
+
+    },
+    "Debug Console" : {
+
+    },
+    "Debug messages will appear here" : {
+
+    },
+    "Debug Section" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Detailed forecast data" : {
+
+    },
+    "Developer" : {
+
+    },
+    "Direction" : {
+
+    },
+    "Disable API Keys" : {
+
+    },
+    "Disable for a more minimalistic experience. You can still manage locations from Settings → Locations." : {
+
+    },
+    "Disable Weather Icon Animations" : {
+
+    },
+    "Disable Weather Icons" : {
+
+    },
+    "Display Mode" : {
+
+    },
+    "Display Name" : {
+
+    },
+    "Display Settings" : {
+
+    },
+    "Display the hamburger menu in the top-right corner of the main weather screen for quick location switching." : {
+
+    },
+    "Done" : {
+
+    },
+    "E" : {
+
+    },
+    "Enable Alerts" : {
+
+    },
+    "Enable API Keys in Locations" : {
+
+    },
+    "Enable GPS Location" : {
+
+    },
+    "Enable Location" : {
+
+    },
+    "Enable Notifications" : {
+
+    },
+    "Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events." : {
+
+    },
+    "Enables vibration feedback for interactions" : {
+
+    },
+    "End:" : {
+
+    },
+    "Enhance contrast for better readability" : {
+
+    },
+    "Enhanced VoiceOver" : {
+
+    },
+    "Enhanced VoiceOver Labels" : {
+
+    },
+    "Enter Coordinates" : {
+
+    },
+    "Enter Custom Coordinates" : {
+
+    },
+    "Enter your name" : {
+
+    },
+    "Error" : {
+
+    },
+    "error.apiKey.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One of your weather service keys is invalid or has been revoked. Open Settings to update it."
+          }
+        }
+      }
+    },
+    "error.apiKey.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API Key Issue"
+          }
+        }
+      }
+    },
+    "error.apiKeyQuota.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've used up your request quota for this service. Try again later or upgrade your plan."
+          }
+        }
+      }
+    },
+    "error.apiKeyQuota.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Limit Reached"
+          }
+        }
+      }
+    },
+    "error.generic.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We hit an unexpected problem fetching the weather. Please try again."
+          }
+        }
+      }
+    },
+    "error.generic.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something Went Wrong"
+          }
+        }
+      }
+    },
+    "error.httpAuth.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather service rejected the request. Open Settings to verify your API key."
+          }
+        }
+      }
+    },
+    "error.httpAuth.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Service Unavailable"
+          }
+        }
+      }
+    },
+    "error.httpClient.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather service rejected the request. Please try a different location or check your settings."
+          }
+        }
+      }
+    },
+    "error.httpClient.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Request Failed"
+          }
+        }
+      }
+    },
+    "error.httpNotFound.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather service couldn't find this location. Try a different one."
+          }
+        }
+      }
+    },
+    "error.httpNotFound.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not Found"
+          }
+        }
+      }
+    },
+    "error.httpRateLimited.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Too many requests — the weather service asked us to slow down. We'll try again shortly."
+          }
+        }
+      }
+    },
+    "error.httpRateLimited.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rate Limit Reached"
+          }
+        }
+      }
+    },
+    "error.httpServer.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather service is having problems right now. We'll keep retrying."
+          }
+        }
+      }
+    },
+    "error.httpServer.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Service Unavailable"
+          }
+        }
+      }
+    },
+    "error.inline.fallback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong"
+          }
+        }
+      }
+    },
+    "error.invalidResponse.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The weather service sent back something we didn't expect. Please try again in a moment."
+          }
+        }
+      }
+    },
+    "error.invalidResponse.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bad Server Response"
+          }
+        }
+      }
+    },
+    "error.locationDenied.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SaxWeather can't show weather for your current location. Enable location access in Settings to use GPS, or enter coordinates manually."
+          }
+        }
+      }
+    },
+    "error.locationDenied.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Access Denied"
+          }
+        }
+      }
+    },
+    "error.locationRestricted.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location services are restricted on this device. You can still add a location manually."
+          }
+        }
+      }
+    },
+    "error.locationRestricted.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Restricted"
+          }
+        }
+      }
+    },
+    "error.locationUnavailable.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't determine your current location. Make sure you're outdoors or near a window and try again."
+          }
+        }
+      }
+    },
+    "error.locationUnavailable.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Find You"
+          }
+        }
+      }
+    },
+    "error.noData.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no weather data to show for this location yet. Open the app to refresh."
+          }
+        }
+      }
+    },
+    "error.noData.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Weather Data"
+          }
+        }
+      }
+    },
+    "error.noNetwork.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We can't reach the weather service. Check your Wi-Fi or cellular connection and try again."
+          }
+        }
+      }
+    },
+    "error.noNetwork.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're Offline"
+          }
+        }
+      }
+    },
+    "error.staleData.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The last successful update was %lld minutes ago. Open the app to refresh."
+          }
+        }
+      }
+    },
+    "error.staleData.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weather May Be Outdated"
+          }
+        }
+      }
+    },
+    "error.timeout.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The weather service didn't respond in time. Please try again."
+          }
+        }
+      }
+    },
+    "error.timeout.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Timed Out"
+          }
+        }
+      }
+    },
+    "Export Debug Log" : {
+
+    },
+    "Feel touch feedback for actions" : {
+
+    },
+    "Follow system Dynamic Type settings" : {
+
+    },
+    "Forecast" : {
+
+    },
+    "Forecast Days" : {
+
+    },
+    "Forecast Length" : {
+
+    },
+    "Free alternative" : {
+
+    },
+    "Free weather API (CC BY 4.0)" : {
+
+    },
+    "Get notified about weather changes" : {
+
+    },
+    "Get Started" : {
+
+    },
+    "Global weather data provider" : {
+
+    },
+    "Got It" : {
+
+    },
+    "Gusts" : {
+
+    },
+    "Haptic Feedback" : {
+
+    },
+    "Health Recommendations" : {
+
+    },
+    "Hourly Breakdown" : {
+
+    },
+    "Hourly Forecast" : {
+
+    },
+    "in %@" : {
+
+    },
+    "Increase Contrast" : {
+
+    },
+    "Interface" : {
+
+    },
+    "It is currently raining. No stop time in the next 2 hours." : {
+
+    },
+    "It is currently raining. Rain expected to stop in %@." : {
+
+    },
+    "Join Leaderboard" : {
+
+    },
+    "Join Now" : {
+
+    },
+    "Join the Leaderboard" : {
+
+    },
+    "Join the Leaderboard!" : {
+
+    },
+    "Just %@" : {
+
+    },
+    "Key health" : {
+
+    },
+    "Larger" : {
+
+    },
+    "Last checked %@ ago" : {
+
+    },
+    "Last Refresh" : {
+
+    },
+    "Lat: %.4f, Lon: %.4f" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lat: %1$.4f, Lon: %2$.4f"
+          }
+        }
+      }
+    },
+    "Lat: %@, Lon: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lat: %1$@, Lon: %2$@"
+          }
+        }
+      }
+    },
+    "Latitude: -90 to 90, Longitude: -180 to 180" : {
+
+    },
+    "Leaderboard" : {
+
+    },
+    "Leaderboard Data" : {
+
+    },
+    "Leaderboard Debug" : {
+
+    },
+    "Leaderboard Settings" : {
+
+    },
+    "Leave" : {
+
+    },
+    "Leave a tip to support the app" : {
+
+    },
+    "Leave Leaderboard" : {
+
+    },
+    "Leave Leaderboard?" : {
+
+    },
+    "Light" : {
+
+    },
+    "Live Preview" : {
+
+    },
+    "Loading forecast data..." : {
+
+    },
+    "Loading weather data..." : {
+
+    },
+    "Location" : {
+
+    },
+    "Location Access Required" : {
+
+    },
+    "Location Enabled" : {
+
+    },
+    "Location Menu" : {
+
+    },
+    "Location Name" : {
+
+    },
+    "Location Required" : {
+
+    },
+    "Location:" : {
+
+    },
+    "Locations" : {
+
+    },
+    "Love SaxWeather?" : {
+
+    },
+    "Made by Saxon" : {
+
+    },
+    "Made with" : {
+
+    },
+    "Make all text heavier for improved legibility" : {
+
+    },
+    "Makes all text appear bolder" : {
+
+    },
+    "Makes text and UI elements more distinct" : {
+
+    },
+    "Manage API keys stored in Keychain" : {
+
+    },
+    "Mark Onboarding Complete" : {
+
+    },
+    "Max 20 characters. Letters, numbers, spaces, and underscores only." : {
+
+    },
+    "Maybe Later" : {
+
+    },
+    "Melbourne" : {
+
+    },
+    "Minimize UI animations and transitions" : {
+
+    },
+    "Moon Information" : {
+
+    },
+    "More rain expected again in %@." : {
+
+    },
+    "N" : {
+
+    },
+    "Next" : {
+
+    },
+    "Next %lld days" : {
+
+    },
+    "Next 24h" : {
+
+    },
+    "Next Scheduled" : {
+
+    },
+    "Next tier: %@" : {
+
+    },
+    "No Active Alerts" : {
+
+    },
+    "No forecast data available" : {
+
+    },
+    "No hourly data available" : {
+
+    },
+    "No messages yet" : {
+
+    },
+    "No rain expected for at least 2 hours after rain stops." : {
+
+    },
+    "No rain expected in the next 2 hours" : {
+
+    },
+    "No saved locations yet" : {
+
+    },
+    "No saved locations yet." : {
+
+    },
+    "No weather alerts for your location" : {
+
+    },
+    "Not configured" : {
+
+    },
+    "Not Now" : {
+
+    },
+    "Note: Pull-to-refresh haptic cannot be disabled (iOS limitation)" : {
+
+    },
+    "Notifications" : {
+
+    },
+    "Notifications are off. You can enable them any time in Settings, then Notifications, then SaxWeather." : {
+
+    },
+    "Now" : {
+
+    },
+    "OK" : {
+
+    },
+    "Onboarding" : {
+
+    },
+    "Onboarding step %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Onboarding step %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "One or more API keys are no longer accepted by the provider." : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Open-Meteo" : {
+
+    },
+    "OpenWeatherMap" : {
+
+    },
+    "Opted In:" : {
+
+    },
+    "Personal weather station" : {
+
+    },
+    "Personal weather station data" : {
+
+    },
+    "Personalize your weather app with your own images!" : {
+
+    },
+    "Photography Times" : {
+
+    },
+    "Please check your location settings or try again later" : {
+
+    },
+    "Please enable GPS or enter valid coordinates in Settings" : {
+
+    },
+    "Please enable location access in Settings" : {
+
+    },
+    "Pollen Forecast" : {
+
+    },
+    "Pollutant Levels" : {
+
+    },
+    "Precipitation" : {
+
+    },
+    "PRECIPITATION" : {
+
+    },
+    "Precipitation Forecast" : {
+
+    },
+    "Preferences" : {
+
+    },
+    "Preview Failed" : {
+
+    },
+    "Privacy" : {
+
+    },
+    "Privacy & Data" : {
+
+    },
+    "Privacy Notice" : {
+
+    },
+    "Privacy Protection" : {
+
+    },
+    "Processing..." : {
+
+    },
+    "Protection Recommendations" : {
+
+    },
+    "Provide detailed descriptions for screen readers" : {
+
+    },
+    "Provides more detailed descriptions when using VoiceOver" : {
+
+    },
+    "Purchase Error" : {
+
+    },
+    "Rain expected to start in %@" : {
+
+    },
+    "Rain Probability" : {
+
+    },
+    "Rank" : {
+
+    },
+    "Re-run Onboarding" : {
+
+    },
+    "Re-test" : {
+
+    },
+    "Re-trigger or reset the new-user onboarding tour for testing." : {
+
+    },
+    "Real-time logging and debug output" : {
+
+    },
+    "Reduce Motion" : {
+
+    },
+    "Reduces animations throughout the app" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh Leaderboard" : {
+
+    },
+    "Requires iOS 16+" : {
+
+    },
+    "Reset Accessibility Settings to Defaults" : {
+
+    },
+    "Reset Backoff Counter" : {
+
+    },
+    "Reset to Default Background" : {
+
+    },
+    "Reset to Defaults" : {
+
+    },
+    "Resets all accessibility preferences to their default values" : {
+
+    },
+    "Resets the consecutive-failure counter. The next background refresh will use the base 5-minute interval." : {
+
+    },
+    "Restore Purchase" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Retrying, please wait" : {
+
+    },
+    "Rise: %@" : {
+
+    },
+    "S" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save API Keys" : {
+
+    },
+    "Saved Locations" : {
+
+    },
+    "SaxWeather needs location access to show weather for where you are. You can add a location manually later in Settings." : {
+
+    },
+    "SaxWeather needs location access to show weather for where you are. You can also add a location manually in Settings." : {
+
+    },
+    "SaxWeather uses multiple weather data providers to give you the most accurate weather information." : {
+
+    },
+    "Schedule Test Notification" : {
+
+    },
+    "Search City/Town" : {
+
+    },
+    "Search for a city or town" : {
+
+    },
+    "Secure Storage" : {
+
+    },
+    "See how you rank among SaxWeather supporters! Completely optional and privacy-focused." : {
+
+    },
+    "Select" : {
+
+    },
+    "Select Animation" : {
+
+    },
+    "Select Custom Background" : {
+
+    },
+    "Select Location" : {
+
+    },
+    "Select on Map" : {
+
+    },
+    "Service" : {
+
+    },
+    "Set: %@" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Show as Anonymous" : {
+
+    },
+    "Show Location Menu" : {
+
+    },
+    "Show your support and see how you rank among other SaxWeather supporters!" : {
+
+    },
+    "Shows static weather icons instead of animated ones" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Smaller" : {
+
+    },
+    "Source Code" : {
+
+    },
+    "Speaks severe weather alerts when they occur" : {
+
+    },
+    "Speed" : {
+
+    },
+    "Start:" : {
+
+    },
+    "Stay Updated" : {
+
+    },
+    "Stored API Keys" : {
+
+    },
+    "Stored securely in your iOS Keychain." : {
+
+    },
+    "Sun & Moon" : {
+
+    },
+    "Sun Times" : {
+
+    },
+    "Sunny" : {
+
+    },
+    "Sunny, H:25 L:14" : {
+
+    },
+    "Sunrise" : {
+
+    },
+    "SUNRISE" : {
+
+    },
+    "Sunset" : {
+
+    },
+    "Support Development" : {
+
+    },
+    "Support development with a tip! Every contribution helps keep the app free and ad-free." : {
+
+    },
+    "Support SaxWeather" : {
+
+    },
+    "Switch between saved locations" : {
+
+    },
+    "Switch Location" : {
+
+    },
+    "System" : {
+
+    },
+    "System Information" : {
+
+    },
+    "Tap a location to use it. Swipe left to delete." : {
+
+    },
+    "Tap a location to use it. Weather will refresh automatically." : {
+
+    },
+    "Tap for burn times by skin type" : {
+
+    },
+    "Tap for detailed health recommendations" : {
+
+    },
+    "Tap for details" : {
+
+    },
+    "Tap for hourly breakdown" : {
+
+    },
+    "Tap for photography times & moon details" : {
+
+    },
+    "Temperature" : {
+
+    },
+    "Temperature Unit" : {
+
+    },
+    "Test Actions" : {
+
+    },
+    "Test and debug Lottie animations" : {
+
+    },
+    "Test Display Name" : {
+
+    },
+    "Test Increment Contribution" : {
+
+    },
+    "Test Opt-In" : {
+
+    },
+    "Test Opt-In (Anonymous)" : {
+
+    },
+    "Test Opt-Out" : {
+
+    },
+    "Test Refresh" : {
+
+    },
+    "Thank You! 🎉" : {
+
+    },
+    "Theme" : {
+
+    },
+    "This will permanently delete your leaderboard entry and all associated data. You can rejoin anytime." : {
+
+    },
+    "This will permanently remove your entry from the leaderboard. You can rejoin anytime by leaving another tip." : {
+
+    },
+    "Tier" : {
+
+    },
+    "Time to burn" : {
+
+    },
+    "Time to Burn by Skin Type" : {
+
+    },
+    "Time to burn: %@" : {
+
+    },
+    "tip%@" : {
+
+    },
+    "To use custom locations, disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
+
+    },
+    "Today" : {
+
+    },
+    "Today's Weather" : {
+
+    },
+    "Top Supporters" : {
+
+    },
+    "Total Supporters:" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Type %@" : {
+
+    },
+    "Units" : {
+
+    },
+    "Unlock Custom Backgrounds" : {
+
+    },
+    "Update" : {
+
+    },
+    "Use as default" : {
+
+    },
+    "Use Current Location (GPS)" : {
+
+    },
+    "Use custom background" : {
+
+    },
+    "Use only GPS and saved locations" : {
+
+    },
+    "Use static weather icons instead of animated ones" : {
+
+    },
+    "Use System Text Size" : {
+
+    },
+    "UV Index" : {
+
+    },
+    "UV Index Scale" : {
+
+    },
+    "Version" : {
+
+    },
+    "View" : {
+
+    },
+    "W" : {
+
+    },
+    "We take your privacy seriously. Your data is stored securely and never shared with third parties." : {
+
+    },
+    "Weather" : {
+
+    },
+    "Weather Alerts" : {
+
+    },
+    "Weather Data" : {
+
+    },
+    "Weather data by Open-Meteo.com" : {
+
+    },
+    "Weather data from Apple Weather" : {
+
+    },
+    "Weather data from OpenWeatherMap" : {
+
+    },
+    "Weather for %@" : {
+
+    },
+    "Weather Forecast" : {
+
+    },
+    "Weather may be outdated — last updated %@" : {
+
+    },
+    "Weather Underground" : {
+
+    },
+    "Weather Underground and OpenWeatherMap API keys are currently disabled. Only Apple Weather and Open-Meteo are available." : {
+
+    },
+    "Weather Underground station is active and will override custom locations." : {
+
+    },
+    "What we collect:\n• Display name (chosen by you)\n• Number of contributions\n• Dates of contributions\n\nWhat we DON'T collect:\n• Email addresses\n• Phone numbers\n• Dollar amounts\n• Any personal information\n\nYour data is:\n• Stored securely in iCloud\n• Never sold or shared\n• Deleted immediately when you opt-out\n• Fully under your control\n\nYou can delete your data anytime by leaving the leaderboard." : {
+
+    },
+    "When enabled, text will resize according to your system settings" : {
+
+    },
+    "WIND" : {
+
+    },
+    "You can change this any time in Settings." : {
+
+    },
+    "You can revisit this tour any time from the Debug menu." : {
+
+    },
+    "You're offline — showing cached data" : {
+
+    },
+    "You're Welcome!" : {
+
+    },
+    "Your Contributions:" : {
+
+    },
+    "Your display name can be up to 20 characters. Use letters, numbers, spaces, and underscores only." : {
+
+    },
+    "Your name won't be displayed, but you'll still be ranked" : {
+
+    },
+    "Your Name:" : {
+
+    },
+    "Your privacy is important:\n\n• Only your display name is shown\n• No email or personal info collected\n• You can opt-out anytime\n• All data deleted when you opt-out\n• We never share your data" : {
+
+    },
+    "Your Rank" : {
+
+    },
+    "Your Stats" : {
+
+    },
+    "Your support helps keep SaxWeather free and ad-free for everyone!" : {
+
+    },
+    "Your tips support:" : {
+
+    }
+  },
+  "version" : "1.0"
+}

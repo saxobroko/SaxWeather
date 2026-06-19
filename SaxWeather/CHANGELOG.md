@@ -2,7 +2,32 @@
 
 All notable changes to SaxWeather will be documented in this file.
 
-## [1.2.4] - 2026-01-11 (Unreleased)
+## [1.2.5] - 2026-01-18
+
+### Added
+- Comprehensive accessibility settings following Apple's standards
+  - Dynamic text size customization (75% - 150%)
+  - Reduce motion options (disable animations, background effects, weather icons)
+  - Visual enhancements (increased contrast, bold text, larger touch targets)
+  - Enhanced VoiceOver support with detailed labels
+  - Haptic feedback controls with intensity adjustment (iOS only)
+- Accessibility modifiers for consistent app-wide implementation
+  - Custom font size support with bold text
+  - Touch target size optimization (44pt minimum, 120% when enabled)
+  - Animation and transition controls based on reduce motion setting
+  - Contrast enhancement for better readability
+  - Enhanced VoiceOver labels with hints and values
+
+### Fixed
+- Weather background not updating on app launch until manual refresh
+  - Background now updates immediately when weather data loads
+  - Secondary update after forecast data loads for accuracy
+  - Improved weather condition mapping to background types
+- Background condition logic prioritizes current weather over forecast
+- Text scaling now properly applies throughout the app
+- Animations respect reduce motion accessibility setting
+
+## [1.2.4] - 2026-01-11
 
 > **Note**: Version 1.2.3 was skipped due to the extensive nature of these changes.
 

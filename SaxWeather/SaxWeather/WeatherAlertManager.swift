@@ -594,8 +594,14 @@ class WeatherAlertManager: ObservableObject {
             isRainingNow: isRainingNow
         )
         print("DEBUG: Timeline: isRainingNow=\(timeline.isRainingNow), rainStartTime=\(String(describing: timeline.rainStartTime)), rainEndTime=\(String(describing: timeline.rainEndTime))")
-        self.precipitationTimeline = timeline
-        scheduleRainNotifications(timeline)
+        // `precipitationTimeline` is `@Published` — must be set on
+        // the main thread. This function is called from a
+        // background URLSession callback, so hop to MainActor
+        // before mutating.
+        Task { @MainActor in
+            self.precipitationTimeline = timeline
+            self.scheduleRainNotifications(timeline)
+        }
     }
 
     // MARK: - Notifications

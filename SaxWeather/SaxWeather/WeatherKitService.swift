@@ -37,7 +37,12 @@ actor WeatherKitService {
             #if DEBUG
             print("❌ WeatherKit Error: \(error.localizedDescription)")
             #endif
-            throw WeatherError.apiError(error.localizedDescription)
+            // Funnel through `WeatherError.from(_:)` so URL
+            // errors (offline, timeout, DNS) get mapped to
+            // `.noNetwork` / `.timeout` rather than a generic
+            // `.apiError`. The caller will then surface the
+            // right message to the user.
+            throw WeatherError.from(error)
         }
     }
 }

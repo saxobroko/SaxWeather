@@ -20,6 +20,26 @@ struct Weather: Codable {
     var windGust: Double?
     var uvIndex: Int?
     var solarRadiation: Double?
+    // Current (live) wind direction in degrees (0-360).
+    // Distinct from `forecasts[0].windDirection` which is the
+    // day's prevailing direction. Populated from WU
+    // (`winddir`), Open-Meteo `current.wind_direction_10m`,
+    // or WeatherKit's `currentWeather.wind.direction`.
+    var currentWindDirection: Double?
+    // Human-readable location label (e.g. Weather Underground
+    // neighbourhood name, "Current Location", saved-location
+    // name). Surfaces in the header so the user always knows
+    // which place they're looking at.
+    var locationName: String?
+    // Extended metrics fetched separately by
+    // `ExtendedWeatherService` and merged onto the base
+    // weather record by `WeatherService`. Kept optional /
+    // empty-initialised so a missing extended fetch doesn't
+    // prevent the basic forecast from displaying.
+    var airQuality: AirQualityData?
+    var sunData: SunMoonData?
+    var pollen: PollenData?
+    var hourlyPrecipitation: [HourlyPrecipitation] = []
     private let cachedCondition: String
     let lastUpdateTime: Date
     var forecasts: [Forecast] = []
@@ -213,6 +233,40 @@ struct Weather: Codable {
         self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
         self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
         self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
+
+        // Current wind direction in degrees (0-360). WU exposes
+        // it as Int, Open-Meteo returns Double on the current
+        // snapshot. Promote to a single Double so callers
+        // (cardinal-direction helpers, etc.) only have to handle
+        // one type. Nil when the active source didn't provide
+        // one — callers fall back to forecasts[0].windDirection
+        // in that case.
+        if let wuDir = wuObservation?.winddir {
+            self.currentWindDirection = Double(wuDir)
+        } else if let omDir = openMeteoResponse?.current?.wind_direction_10m {
+            self.currentWindDirection = omDir
+        } else {
+            self.currentWindDirection = nil
+        }
+
+        // Location label: prefer WU's neighbourhood string when
+        // available, otherwise defer to the caller (ContentView
+        // falls back to GPS / saved-location name).
+        if let neighborhood = wuObservation?.neighborhood, !neighborhood.isEmpty {
+            self.locationName = neighborhood
+        } else {
+            self.locationName = nil
+        }
+
+        // Extended payloads (AQI / sun-moon / hourly precip) are
+        // populated after the fact by ExtendedWeatherService.
+        // Initialising them to nil / empty keeps this constructor
+        // self-contained and avoids forcing the basic fetch to
+        // block on the extended one.
+        self.airQuality = nil
+        self.sunData = nil
+        self.pollen = nil
+        self.hourlyPrecipitation = []
         
         // Initialize forecasts if OpenMeteo data is available
         if let openMeteoDaily = openMeteoResponse?.daily {

@@ -39,31 +39,38 @@ class KeychainService {
     }
     
     // MARK: - API Keys
-    
+
     func saveApiKey(_ key: String, forService service: String) -> Bool {
         logger.debug("Attempting to save API key for service: \(service)")
         let success = keychain.set(key, forKey: apiKeyPrefix + service)
-        
+
         if success {
             logger.debug("Successfully saved API key for service: \(service)")
         } else {
             logger.error("Failed to save API key for service: \(service). Status: \(self.keychain.lastResultCode)")
         }
-        
+
         // Verify the save
         if let savedKey = getApiKey(forService: service) {
             let matches = savedKey == key
             logger.debug("Verification check - Key matches: \(matches)")
+
+            // Notify the health monitor that a new key has been stored.
+            // It will reset the prior health entry and start fresh.
+            if matches, let known = APIKeyService(rawValue: service) {
+                APIKeyHealthMonitor.shared.refreshFingerprint(for: known)
+            }
+
             return matches
         }
-        
+
         return false
     }
-    
+
     func getApiKey(forService service: String) -> String? {
         logger.debug("Retrieving API key for service: \(service)")
         let fullKey = apiKeyPrefix + service
-        
+
         if let key = keychain.get(fullKey) {
             logger.debug("Successfully retrieved API key for service: \(service)")
             return key
@@ -73,17 +80,29 @@ class KeychainService {
             return nil
         }
     }
-    
+
+    /// Returns `true` if a non-empty key is currently stored for
+    /// the given service.
+    func hasApiKey(forService service: String) -> Bool {
+        guard let key = getApiKey(forService: service) else { return false }
+        return !key.isEmpty
+    }
+
     func deleteApiKey(forService service: String) -> Bool {
         logger.debug("Attempting to delete API key for service: \(service)")
         let success = keychain.delete(apiKeyPrefix + service)
-        
+
         if success {
             logger.debug("Successfully deleted API key for service: \(service)")
         } else {
             logger.error("Failed to delete API key for service: \(service). Status: \(self.keychain.lastResultCode)")
         }
-        
+
+        // Forget any health history we had for this key.
+        if let known = APIKeyService(rawValue: service) {
+            APIKeyHealthMonitor.shared.reset(for: known)
+        }
+
         return success
     }
     

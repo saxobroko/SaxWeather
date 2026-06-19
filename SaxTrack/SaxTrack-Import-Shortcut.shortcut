@@ -1,0 +1,83 @@
+{
+  "WFWorkflowActions": [
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.comment",
+      "WFWorkflowActionParameters": {
+        "WFCommentActionText": "SaxTrack Instagram Follower Import\n\nThis shortcut helps you import Instagram follower data into SaxTrack.\n\nHow to use:\n1. Run this shortcut\n2. Choose Followers or Following\n3. Paste your Instagram usernames (one per line)\n4. Shortcut will open SaxTrack with your data"
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.choosefrommenu",
+      "WFWorkflowActionParameters": {
+        "WFMenuPrompt": "What do you want to import?",
+        "WFMenuItems": [
+          "Followers",
+          "Following"
+        ]
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.ask",
+      "WFWorkflowActionParameters": {
+        "WFAskActionPrompt": "Paste Instagram usernames (one per line):",
+        "WFInputType": "Text",
+        "WFAskActionDefaultAnswer": ""
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.text.replace",
+      "WFWorkflowActionParameters": {
+        "WFReplaceTextFind": "\n",
+        "WFReplaceTextReplace": ",",
+        "WFReplaceTextCaseSensitive": false
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.conditional",
+      "WFWorkflowActionParameters": {
+        "WFCondition": "Equals",
+        "WFConditionalActionString": "Followers"
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.url",
+      "WFWorkflowActionParameters": {
+        "WFURLActionURL": "saxtrack://import?type=followers&data="
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.otherwise"
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.url",
+      "WFWorkflowActionParameters": {
+        "WFURLActionURL": "saxtrack://import?type=following&data="
+      }
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.endif"
+    },
+    {
+      "WFWorkflowActionIdentifier": "is.workflow.actions.openurl",
+      "WFWorkflowActionParameters": {
+        "WFInput": "URL"
+      }
+    }
+  ],
+  "WFWorkflowClientVersion": "2302.0.4",
+  "WFWorkflowClientRelease": "21.0",
+  "WFWorkflowMinimumClientVersion": 900,
+  "WFWorkflowMinimumClientRelease": "15.0",
+  "WFWorkflowTypes": [
+    "Watch",
+    "NCWidget"
+  ],
+  "WFWorkflowInputContentItemClasses": [],
+  "WFWorkflowImportQuestions": [],
+  "WFWorkflowNoInputBehavior": {
+    "Name": "WFWorkflowNoInputBehaviorAskForInput",
+    "Parameters": {
+      "ItemClass": "WFStringContentItem"
+    }
+  }
+}

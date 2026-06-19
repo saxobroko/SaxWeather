@@ -109,6 +109,11 @@ struct OpenMeteoResponse: Codable {
         let precipitation: Double
         let wind_speed_10m: Double
         let wind_gusts_10m: Double
+        // Current wind direction in degrees (0-360). Optional
+        // because older cached Open-Meteo responses may not
+        // include it. Callers fall back to the daily-dominant
+        // direction when this is nil.
+        let wind_direction_10m: Double?
         let pressure_msl: Double
         let cloud_cover: Int
         let uv_index: Double

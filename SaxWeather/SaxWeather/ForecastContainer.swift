@@ -37,7 +37,7 @@ struct ForecastContainer: View {
                                 ForecastView(weatherService: weatherService)
                             }
                         } else if let error = weatherService.error {
-                            errorView(message: error)
+                            errorView(weatherError: error)
                         } else {
                             loadingView
                         }
@@ -109,20 +109,21 @@ struct ForecastContainer: View {
         .padding()
     }
     
-    private func errorView(message: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
+    private func errorView(weatherError: WeatherError) -> some View {
+        let presentation = weatherError.presentation
+        return VStack(spacing: 16) {
+            Image(systemName: presentation.iconName)
                 .font(.system(size: 50))
                 .foregroundColor(.red)
-            
-            Text("Error Loading Forecast")
+
+            Text(presentation.title)
                 .font(.headline)
-            
-            Text(message)
+
+            Text(presentation.message)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("Try Again") {
                 fetchForecast()
             }
@@ -130,7 +131,7 @@ struct ForecastContainer: View {
             .background(Color.blue)
             .foregroundColor(.white)
             .cornerRadius(8)
-            
+
             if !weatherService.useGPS {
                 Button("Enable GPS Location") {
                     weatherService.useGPS = true

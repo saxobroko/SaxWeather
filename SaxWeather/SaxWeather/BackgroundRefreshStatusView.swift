@@ -73,11 +73,35 @@ struct BackgroundRefreshStatusView: View {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     InfoRow(title: "Task ID", value: "com.saxobroko.SaxWeather.refresh")
-                    InfoRow(title: "Interval", value: "5 minutes")
-                    InfoRow(title: "Policy", value: "After completion")
+                    InfoRow(
+                        title: "Interval",
+                        value: formattedInterval(seconds: BackgroundRefreshCoordinator.shared.nextIntervalSeconds)
+                    )
+                    InfoRow(
+                        title: "Failures",
+                        value: "\(BackgroundRefreshCoordinator.shared.consecutiveFailures)"
+                    )
+                    InfoRow(
+                        title: "Low Power Mode",
+                        value: BackgroundRefreshCoordinator.shared.isLowPowerModeEnabled ? "On (2× backoff)" : "Off"
+                    )
+                    InfoRow(title: "Policy", value: "Exponential backoff on failure")
                 }
             } header: {
                 Text("Configuration")
+            }
+
+            Section {
+                Button {
+                    BackgroundRefreshCoordinator.shared.resetFailureCounter()
+                    checkBackgroundRefreshStatus()
+                } label: {
+                    Label("Reset Backoff Counter", systemImage: "arrow.counterclockwise")
+                }
+            } header: {
+                Text("Debug")
+            } footer: {
+                Text("Resets the consecutive-failure counter. The next background refresh will use the base 5-minute interval.")
             }
         }
         .navigationTitle("Background Refresh")
@@ -86,7 +110,18 @@ struct BackgroundRefreshStatusView: View {
             checkBackgroundRefreshStatus()
         }
     }
-    
+
+    /// Format an interval (in seconds) as a human-readable string.
+    /// We render in minutes up to 60 min, then in hours.
+    private func formattedInterval(seconds: TimeInterval) -> String {
+        let minutes = Int((seconds / 60).rounded())
+        if minutes < 60 {
+            return "\(minutes) minutes"
+        }
+        let hours = Double(minutes) / 60.0
+        return String(format: "%.1f hours", hours)
+    }
+
     private var statusColor: Color {
         switch backgroundRefreshStatus {
         case "Available":
@@ -97,10 +132,10 @@ struct BackgroundRefreshStatusView: View {
             return .orange
         }
     }
-    
+
     private func checkBackgroundRefreshStatus() {
         let status = UIApplication.shared.backgroundRefreshStatus
-        
+
         switch status {
         case .available:
             backgroundRefreshStatus = "Available"
@@ -111,17 +146,20 @@ struct BackgroundRefreshStatusView: View {
         @unknown default:
             backgroundRefreshStatus = "Unknown"
         }
-        
+
         // Try to read last refresh time from UserDefaults
         if let lastRefresh = UserDefaults.standard.object(forKey: "lastBackgroundRefresh") as? Date {
             lastRefreshTime = lastRefresh
         }
-        
-        // Calculate next scheduled refresh (5 minutes from last or now)
-        if let last = lastRefreshTime {
-            nextScheduledRefresh = last.addingTimeInterval(5 * 60)
+
+        // Next scheduled refresh now uses the *coordinator's*
+        // computed interval, which reflects the backoff state
+        // and Low Power Mode adjustments.
+        let coordinator = BackgroundRefreshCoordinator.shared
+        if let last = coordinator.lastSuccessDate ?? lastRefreshTime {
+            nextScheduledRefresh = last.addingTimeInterval(coordinator.nextIntervalSeconds)
         } else {
-            nextScheduledRefresh = Date().addingTimeInterval(5 * 60)
+            nextScheduledRefresh = Date().addingTimeInterval(coordinator.nextIntervalSeconds)
         }
     }
     

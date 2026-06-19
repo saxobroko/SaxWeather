@@ -13,6 +13,7 @@ import WeatherKit
 
 @available(iOS 16.0, macOS 13.0, *)
 extension WeatherService {
+    @MainActor
     func fetchWeatherKitWeather(latitude: String, longitude: String) async throws -> Weather {
         guard let lat = Double(latitude), let lon = Double(longitude) else {
             throw WeatherError.invalidURL
@@ -57,7 +58,12 @@ extension WeatherService {
             #if DEBUG
             print("❌ WeatherKit Error: \(error.localizedDescription)")
             #endif
-            throw WeatherError.apiError(error.localizedDescription)
+            // Funnel through `WeatherError.from(_:)` so URL
+            // errors (offline, timeout, DNS) get mapped to
+            // `.noNetwork` / `.timeout` rather than a generic
+            // `.apiError`. The caller will then surface the
+            // right message to the user.
+            throw WeatherError.from(error)
         }
     }
     
@@ -150,7 +156,7 @@ extension WeatherService {
             return 85 // Snow showers
         case .sunShowers:
             return 80 // Rain showers
-        @unknown default:
+        default:
             return 0 // Default to clear if unknown
         }
     }

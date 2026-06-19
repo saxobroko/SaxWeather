@@ -13,7 +13,7 @@ struct HourlyForecastView: View {
     @State private var hourlyData: [HourlyWeatherData] = []
     @State private var conditionSummary: String = "Loading hourly forecast..."
     @State private var isLoading = true
-    @State private var error: String?
+    @State private var error: WeatherError?
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
     
@@ -136,7 +136,7 @@ struct HourlyForecastView: View {
                 guard latitude != 0.0 && longitude != 0.0 else {
                     await MainActor.run {
                         isLoading = false
-                        error = "Unable to determine location"
+                        error = .locationUnavailable
                         conditionSummary = "Location unavailable"
                     }
                     return
@@ -161,7 +161,7 @@ struct HourlyForecastView: View {
             } catch {
                 await MainActor.run {
                     self.isLoading = false
-                    self.error = "Failed to load forecast: \(error.localizedDescription)"
+                    self.error = WeatherError.from(error)
                     self.conditionSummary = "Unable to load forecast"
                     print("Error fetching hourly forecast: \(error.localizedDescription)")
                 }

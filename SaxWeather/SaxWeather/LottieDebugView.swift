@@ -450,7 +450,16 @@ struct LottieDebugView: View {
                 color: .pink,
                 items: getStorageInfo()
             )
-            
+
+            // Onboarding Controls
+            // Lets the developer re-trigger the onboarding
+            // flow on demand for testing. Setting the
+            // `isFirstLaunch` flag and posting
+            // `.debugRerunOnboarding` is the same path the
+            // production code uses, so this exercises the
+            // real flow rather than a debug-only shortcut.
+            onboardingDebugCard()
+
             // Notification Settings
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -625,6 +634,81 @@ struct LottieDebugView: View {
         .cornerRadius(12)
     }
     
+    /// Card for the System section that lets the developer
+    /// re-trigger or reset the onboarding flow on demand.
+    /// Mirrors the production code path (sets the
+    /// `isFirstLaunch` flag and posts a notification) so
+    /// what's being tested is the real onboarding, not a
+    /// debug-only stub.
+    private func onboardingDebugCard() -> some View {
+        let isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "person.crop.circle.badge.questionmark.fill")
+                    .foregroundColor(.teal)
+                Text("Onboarding")
+                    .font(.headline)
+                Spacer()
+                // Live status: ✅ if completed (flag is
+                // false), ⚠️ if still on first launch
+                // (flag is true).
+                Text(isFirstLaunch ? "⚠️ First launch" : "✅ Completed")
+                    .font(.caption.bold())
+                    .foregroundColor(isFirstLaunch ? .orange : .green)
+            }
+
+            Text("Re-trigger or reset the new-user onboarding tour for testing.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 8) {
+                Button(action: rerunOnboarding) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                        Text("Re-run Onboarding")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.teal)
+
+                Button(action: markOnboardingComplete) {
+                    HStack {
+                        Image(systemName: "checkmark.circle")
+                        Text("Mark Onboarding Complete")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.bordered)
+                .tint(.gray)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+
+    /// Set the `isFirstLaunch` flag to `true` and post the
+    /// notification that `ContentView` listens for. The
+    /// ContentView handler flips the bound `isFirstLaunch`
+    /// back to `true` and re-presents the onboarding.
+    private func rerunOnboarding() {
+        UserDefaults.standard.set(true, forKey: "isFirstLaunch")
+        NotificationCenter.default.post(name: .debugRerunOnboarding, object: nil)
+        addDebugMessage("🔁 Re-running onboarding flow", type: .info)
+    }
+
+    /// Reset the `isFirstLaunch` flag to `false` so the
+    /// onboarding view won't show on next launch. Useful for
+    /// cleaning up after testing.
+    private func markOnboardingComplete() {
+        UserDefaults.standard.set(false, forKey: "isFirstLaunch")
+        addDebugMessage("✅ Onboarding marked complete", type: .success)
+    }
+
     private func apiKeyRow(service: String) -> some View {
         HStack {
             Image(systemName: "key.fill")
@@ -880,7 +964,7 @@ struct LottieDebugView: View {
             
             if !isZip {
                 // Try to parse as JSON
-                if let jsonString = String(data: data, encoding: .utf8) {
+                if String(data: data, encoding: .utf8) != nil {
                     addDebugMessage("Content appears to be text/JSON", type: .info)
                     
                     do {

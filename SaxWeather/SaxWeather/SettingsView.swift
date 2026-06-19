@@ -31,6 +31,7 @@ struct SettingsView: View {
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var locationsManager = SavedLocationsManager()
+    @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var showingAddLocationSheet = false
     @State private var addLocationMode: AddLocationMode? = nil
     @State private var newLocationName = ""
@@ -44,6 +45,9 @@ struct SettingsView: View {
     @State private var citySearchError: String? = nil
     @State private var citySearchCoordinate: CLLocationCoordinate2D? = nil
     @State private var citySearchCompleterDelegate: CitySearchCompleterDelegate? = nil
+    @State private var showingTipJar = false
+    @State private var mapSelectedLocation: CLLocationCoordinate2D? = nil
+    @State private var mapSelectedLocationName: String? = nil
 
     // For onboarding dismiss button
     var isOnboarding: Bool = false
@@ -84,6 +88,25 @@ struct SettingsView: View {
                                 .environmentObject(storeManager)
                                 .padding()
                         }
+                        GroupBox(label: Text("Accessibility").font(.title3).fontWeight(.semibold)) {
+                            NavigationLink(destination: AccessibilitySettingsView()) {
+                                Label("Accessibility Settings", systemImage: "accessibility")
+                            }
+                            .padding()
+                        }
+                        GroupBox(label: Text("Support").font(.title3).fontWeight(.semibold)) {
+                            Button {
+                                showingTipJar = true
+                            } label: {
+                                HStack {
+                                    Label("Support Development", systemImage: "heart.fill")
+                                        .foregroundColor(.pink)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .padding()
+                        }
                         GroupBox(label: Text("About").font(.title3).fontWeight(.semibold)) {
                             aboutSection
                                 .padding()
@@ -102,6 +125,9 @@ struct SettingsView: View {
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
             }
+            .sheet(isPresented: $showingTipJar) {
+                TipJarView()
+            }
             .alert("Settings", isPresented: $showingAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -111,6 +137,13 @@ struct SettingsView: View {
         #else
         NavigationStack {
             List {
+                // Network quality hint. Sits at the top of the
+                // list so the user sees it before tweaking any
+                // other setting. Reactive — updates as the user
+                // toggles Low Data Mode or moves between WiFi
+                // and cellular.
+                NetworkQualityHint()
+
                 Section {
                     NavigationLink {
                         LocationsSettingsView(
@@ -156,12 +189,34 @@ struct SettingsView: View {
                     } label: {
                         Label("Preferences", systemImage: "slider.horizontal.3")
                     }
-                    
                     NavigationLink {
                         AppearanceSettingsView()
                     } label: {
                         Label("Appearance", systemImage: "paintbrush.fill")
                     }
+                    
+                    NavigationLink {
+                        AccessibilitySettingsView()
+                    } label: {
+                        Label("Accessibility", systemImage: "accessibility")
+                    }
+                }
+                
+                Section {
+                    Button {
+                        showingTipJar = true
+                    } label: {
+                        HStack {
+                            Label("Support Development", systemImage: "heart.fill")
+                                .foregroundColor(.pink)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .accessibilityLabel("Support Development")
+                    .accessibilityHint("Leave a tip to support the app")
                 }
                 
                 Section {
@@ -187,6 +242,9 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
+            }
+            .sheet(isPresented: $showingTipJar) {
+                TipJarView()
             }
             .sheet(isPresented: $showingAddLocationSheet) {
                 addLocationSheet
@@ -222,6 +280,33 @@ struct SettingsView: View {
     
     private var weatherSourcesSection: some View {
         Group {
+            // Aggregate warning banner (macOS variant)
+            if healthMonitor.hasAnyBlockingIssue {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "key.slash")
+                            .foregroundColor(.red)
+                        Text("One or more API keys are no longer accepted by the provider.")
+                            .font(.subheadline)
+                            .foregroundColor(.red)
+                    }
+                    ForEach(healthMonitor.blockingServices, id: \.rawValue) { service in
+                        HStack(spacing: 8) {
+                            APIKeyHealthStatusBadge(
+                                entry: healthMonitor.entry(for: service),
+                                compact: true
+                            )
+                            Text("\(service.displayName) – re-enter a valid key to restore this source.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(8)
+                .background(Color.red.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             // Weather Underground
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -230,12 +315,23 @@ struct SettingsView: View {
                         .font(.title3)
                     Text("Weather Underground")
                         .font(.headline)
+                    Spacer()
+                    APIKeyHealthStatusBadge(
+                        entry: healthMonitor.entry(for: .weatherUnderground),
+                        compact: true
+                    )
                 }
-                
+
                 Text("Personal weather station data")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
+                APIKeyHealthCard(
+                    monitor: healthMonitor,
+                    service: .weatherUnderground,
+                    weatherService: weatherService
+                )
+
                 #if os(iOS)
                 APIKeyTextField(
                     text: $wuApiKey,
@@ -271,12 +367,23 @@ struct SettingsView: View {
                         .font(.title3)
                     Text("OpenWeatherMap")
                         .font(.headline)
+                    Spacer()
+                    APIKeyHealthStatusBadge(
+                        entry: healthMonitor.entry(for: .openWeatherMap),
+                        compact: true
+                    )
                 }
-                
+
                 Text("Detailed forecast data")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
+                APIKeyHealthCard(
+                    monitor: healthMonitor,
+                    service: .openWeatherMap,
+                    weatherService: weatherService
+                )
+
                 #if os(iOS)
                 APIKeyTextField(
                     text: $owmApiKey,
@@ -665,6 +772,9 @@ struct SettingsView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
+                #if canImport(UIKit)
+                HapticFeedbackHelper.shared.light()
+                #endif
                 locationsManager.selectCurrentLocation()
                 weatherService.useGPS = true
             }
@@ -729,11 +839,20 @@ struct SettingsView: View {
                     weatherService.useGPS = true
                     showingAddLocationSheet = false
                 }
-                Button("Enter Custom Coordinates") {
+                Button {
                     addLocationMode = .manual
+                } label: {
+                    Label("Enter Custom Coordinates", systemImage: "number.square")
                 }
-                Button("Search City/Town") {
+                Button {
                     addLocationMode = .search
+                } label: {
+                    Label("Search City/Town", systemImage: "magnifyingglass")
+                }
+                Button {
+                    addLocationMode = .map
+                } label: {
+                    Label("Select on Map", systemImage: "map")
                 }
             }
             .navigationTitle("Add Location")
@@ -752,6 +871,54 @@ struct SettingsView: View {
                     manualCoordinatesSheet
                 case .search:
                     citySearchSheet
+                case .map:
+                    mapSelectionSheet
+                }
+            }
+        }
+    }
+    
+    // Map selection sheet
+    private var mapSelectionSheet: some View {
+        LocationPickerView(
+            selectedLocation: $mapSelectedLocation,
+            selectedLocationName: $mapSelectedLocationName
+        )
+        .onDisappear {
+            // When the map picker is dismissed, check if a location was selected
+            if let location = mapSelectedLocation {
+                let lat = location.latitude
+                let lon = location.longitude
+                
+                // Validate coordinates
+                let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                if validationResult.isValid {
+                    let validatedLat = validationResult.normalizedLatitude ?? lat
+                    let validatedLon = validationResult.normalizedLongitude ?? lon
+                    
+                    // Use the geocoded name or a default name
+                    let locationName = mapSelectedLocationName ?? "Selected Location"
+                    
+                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
+                        // Find the newly added location to select it
+                        if let addedLocation = locationsManager.locations.last {
+                            locationsManager.selectLocation(addedLocation)
+                            weatherService.useGPS = false
+                            Task {
+                                await weatherService.fetchWeather(calledFrom: "SettingsView.addMapLocation")
+                            }
+                        }
+                        // Reset state
+                        addLocationMode = nil
+                        mapSelectedLocation = nil
+                        mapSelectedLocationName = nil
+                    } else {
+                        alertMessage = "Invalid coordinates. Please try again."
+                        showingAlert = true
+                    }
+                } else {
+                    alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
+                    showingAlert = true
                 }
             }
         }
@@ -775,15 +942,32 @@ struct SettingsView: View {
             }
             Button(action: {
                 if let lat = Double(newLatitude), let lon = Double(newLongitude), !newLocationName.isEmpty {
-                    let loc = SavedLocation(name: newLocationName, latitude: lat, longitude: lon)
-                    locationsManager.addLocation(loc)
-                    locationsManager.selectLocation(loc)
-                    weatherService.useGPS = false
-                    Task { await weatherService.fetchWeather(calledFrom: "SettingsView.addLocation") }
-                    showingAddLocationSheet = false
-                    newLocationName = ""
-                    newLatitude = ""
-                    newLongitude = ""
+                    // Validate coordinates before adding location
+                    let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                    if validationResult.isValid {
+                        // Use the new validated coordinates
+                        let validatedLat = validationResult.normalizedLatitude ?? lat
+                        let validatedLon = validationResult.normalizedLongitude ?? lon
+                        
+                        if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
+                            // Find the newly added location to select it
+                            if let addedLocation = locationsManager.locations.last {
+                                locationsManager.selectLocation(addedLocation)
+                                weatherService.useGPS = false
+                                Task { await weatherService.fetchWeather(calledFrom: "SettingsView.addLocation") }
+                            }
+                            showingAddLocationSheet = false
+                            newLocationName = ""
+                            newLatitude = ""
+                            newLongitude = ""
+                        } else {
+                            alertMessage = "Invalid coordinates. Please check your values and try again."
+                            showingAlert = true
+                        }
+                    } else {
+                        alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
+                        showingAlert = true
+                    }
                 }
             }) {
                 HStack {
@@ -834,17 +1018,37 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                         Button("Save") {
                             let name = selected.title
-                            let loc = SavedLocation(name: name, latitude: coordinate.latitude, longitude: coordinate.longitude)
-                            locationsManager.addLocation(loc)
-                            locationsManager.selectLocation(loc)
-                            weatherService.useGPS = false
-                            Task { await weatherService.fetchWeather(calledFrom: "SettingsView.citySearch") }
-                            showingAddLocationSheet = false
-                            citySearchQuery = ""
-                            citySearchResults = []
-                            selectedSearchCompletion = nil
-                            citySearchCoordinate = nil
-                            citySearchError = nil
+                            let lat = coordinate.latitude
+                            let lon = coordinate.longitude
+                            
+                            // Validate coordinates before adding location
+                            let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                            if validationResult.isValid {
+                                // Use the new validated coordinates
+                                let validatedLat = validationResult.normalizedLatitude ?? lat
+                                let validatedLon = validationResult.normalizedLongitude ?? lon
+                                
+                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
+                                    // Find the newly added location to select it
+                                    if let addedLocation = locationsManager.locations.last {
+                                        locationsManager.selectLocation(addedLocation)
+                                        weatherService.useGPS = false
+                                        Task { await weatherService.fetchWeather(calledFrom: "SettingsView.citySearch") }
+                                    }
+                                    showingAddLocationSheet = false
+                                    citySearchQuery = ""
+                                    citySearchResults = []
+                                    selectedSearchCompletion = nil
+                                    citySearchCoordinate = nil
+                                    citySearchError = nil
+                                } else {
+                                    // Handle error - but we don't have access to alertMessage/showingAlert here
+                                    print("Failed to add location")
+                                }
+                            } else {
+                                // Handle error - but we don't have access to alertMessage/showingAlert here
+                                print("Invalid coordinates: \(validationResult.errorMessage ?? "Unknown error")")
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -904,7 +1108,7 @@ struct SettingsView: View {
     }
     
     enum AddLocationMode: Identifiable {
-        case manual, search
+        case manual, search, map
         var id: Int { hashValue }
     }
     
@@ -1086,6 +1290,18 @@ struct APIKeyTextField: UIViewRepresentable {
         }
         @objc func doneTapped() {
             textField?.resignFirstResponder()
+            // The parent's onDone callback is fired from
+            // textFieldDidEndEditing so the focus state stays in
+            // sync no matter how the field resigns first responder
+            // (Done button, tap outside, system dismissal, etc.).
+        }
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            // Tell the parent the field resigned first responder so
+            // it can clear its @FocusState. This also keeps the
+            // SwiftUI focus state in lock-step with the UITextField
+            // without us ever calling resignFirstResponder() from
+            // updateUIView (which is what was dismissing the
+            // keyboard after every keystroke).
             parent.onDone?()
         }
     }
@@ -1124,10 +1340,24 @@ struct APIKeyTextField: UIViewRepresentable {
         if uiView.text != text {
             uiView.text = text
         }
+        // Only request focus when the parent asks us to focus AND
+        // the field isn't already first responder. We deliberately
+        // do NOT call resignFirstResponder() based on `isFocused`
+        // here, because updateUIView is invoked on every text-change
+        // re-render and the parent's @FocusState is not
+        // automatically kept in sync with the UITextField's first
+        // responder status. Calling resignFirstResponder() under
+        // those conditions would dismiss the keyboard after every
+        // single character the user typed (since `isFocused` is
+        // almost always `false` while the user is typing). The Done
+        // button, taps outside the field, and other standard UIKit
+        // dismissal paths handle the resign naturally, and the
+        // coordinator reports the focus change back to the parent
+        // through onDone in textFieldDidEndEditing.
         if isFocused && !uiView.isFirstResponder {
-            uiView.becomeFirstResponder()
-        } else if !isFocused && uiView.isFirstResponder {
-            uiView.resignFirstResponder()
+            DispatchQueue.main.async {
+                uiView.becomeFirstResponder()
+            }
         }
     }
 }
@@ -1169,6 +1399,10 @@ struct LocationsSettingsView: View {
     @State private var citySearchError: String? = nil
     @State private var citySearchCoordinate: CLLocationCoordinate2D? = nil
     @State private var citySearchCompleterDelegate: CitySearchCompleterDelegate? = nil
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
+    @State private var mapSelectedLocation: CLLocationCoordinate2D? = nil
+    @State private var mapSelectedLocationName: String? = nil
     
     // Computed properties that read fresh values
     private var wuApiKey: String {
@@ -1180,7 +1414,7 @@ struct LocationsSettingsView: View {
     }
     
     enum AddLocationMode: Identifiable {
-        case manual, search
+        case manual, search, map
         var id: Int { hashValue }
     }
     
@@ -1294,6 +1528,9 @@ struct LocationsSettingsView: View {
                         .onTapGesture {
                             // Only allow selection if not overridden
                             if !isOverriddenByAPIKeys {
+                                #if canImport(UIKit)
+                                HapticFeedbackHelper.shared.light()
+                                #endif
                                 locationsManager.selectLocation(location)
                                 weatherService.useGPS = false
                                 Task {
@@ -1344,16 +1581,31 @@ struct LocationsSettingsView: View {
         .sheet(isPresented: $showingAddLocationSheet) {
             addLocationSheet
         }
+        .onAppear {
+            // Sync LocationsManager with current GPS state when view appears
+            if weatherService.useGPS {
+                locationsManager.selectCurrentLocation()
+            }
+        }
     }
     
     private var addLocationSheet: some View {
         NavigationView {
             List {
-                Button("Enter Custom Coordinates") {
+                Button {
                     addLocationMode = .manual
+                } label: {
+                    Label("Enter Custom Coordinates", systemImage: "number.square")
                 }
-                Button("Search City/Town") {
+                Button {
                     addLocationMode = .search
+                } label: {
+                    Label("Search City/Town", systemImage: "magnifyingglass")
+                }
+                Button {
+                    addLocationMode = .map
+                } label: {
+                    Label("Select on Map", systemImage: "map")
                 }
             }
             .navigationTitle("Add Location")
@@ -1364,6 +1616,54 @@ struct LocationsSettingsView: View {
                     manualCoordinatesSheet
                 case .search:
                     citySearchSheet
+                case .map:
+                    mapSelectionSheet
+                }
+            }
+        }
+    }
+    
+    // Map selection sheet
+    private var mapSelectionSheet: some View {
+        LocationPickerView(
+            selectedLocation: $mapSelectedLocation,
+            selectedLocationName: $mapSelectedLocationName
+        )
+        .onDisappear {
+            // When the map picker is dismissed, check if a location was selected
+            if let location = mapSelectedLocation {
+                let lat = location.latitude
+                let lon = location.longitude
+                
+                // Validate coordinates
+                let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                if validationResult.isValid {
+                    let validatedLat = validationResult.normalizedLatitude ?? lat
+                    let validatedLon = validationResult.normalizedLongitude ?? lon
+                    
+                    // Use the geocoded name or a default name
+                    let locationName = mapSelectedLocationName ?? "Selected Location"
+                    
+                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
+                        // Find the newly added location to select it
+                        if let addedLocation = locationsManager.locations.last {
+                            locationsManager.selectLocation(addedLocation)
+                            weatherService.useGPS = false
+                            Task {
+                                await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addMapLocation")
+                            }
+                        }
+                        // Reset state
+                        addLocationMode = nil
+                        mapSelectedLocation = nil
+                        mapSelectedLocationName = nil
+                    } else {
+                        alertMessage = "Invalid coordinates. Please try again."
+                        showingAlert = true
+                    }
+                } else {
+                    alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
+                    showingAlert = true
                 }
             }
         }
@@ -1384,22 +1684,67 @@ struct LocationsSettingsView: View {
                         TextField("Latitude", text: $newLatitude)
                         TextField("Longitude", text: $newLongitude)
                         #endif
+                        
+                        // Real-time validation feedback
+                        if let validationMessage = getCoordinateValidationMessage() {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
+                                Text(validationMessage)
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+                        } else if !newLatitude.isEmpty && !newLongitude.isEmpty && Double(newLatitude) != nil && Double(newLongitude) != nil {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Coordinates are valid")
+                                    .foregroundColor(.green)
+                                    .font(.caption)
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    } header: {
+                        Text("Enter Coordinates")
+                    } footer: {
+                        Text("Latitude: -90 to 90, Longitude: -180 to 180")
+                            .font(.caption)
                     }
                 }
                 Button(action: {
                     if let lat = Double(newLatitude), let lon = Double(newLongitude), !newLocationName.isEmpty {
-                        let loc = SavedLocation(name: newLocationName, latitude: lat, longitude: lon)
-                        locationsManager.addLocation(loc)
-                        locationsManager.selectLocation(loc)
-                        weatherService.useGPS = false
-                        Task {
-                            await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addManualLocation")
+                        // Validate coordinates before adding location
+                        let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                        if validationResult.isValid {
+                            // Use the new validated coordinates
+                            let validatedLat = validationResult.normalizedLatitude ?? lat
+                            let validatedLon = validationResult.normalizedLongitude ?? lon
+                            
+                            if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
+                                // Find the newly added location to select it
+                                if let addedLocation = locationsManager.locations.last {
+                                    locationsManager.selectLocation(addedLocation)
+                                    weatherService.useGPS = false
+                                    Task {
+                                        await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addManualLocation")
+                                    }
+                                }
+                                showingAddLocationSheet = false
+                                addLocationMode = nil
+                                newLocationName = ""
+                                newLatitude = ""
+                                newLongitude = ""
+                            } else {
+                                alertMessage = "Invalid coordinates. Please check your values and try again."
+                                showingAlert = true
+                            }
+                        } else {
+                            alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
+                            showingAlert = true
                         }
-                        showingAddLocationSheet = false
-                        addLocationMode = nil
-                        newLocationName = ""
-                        newLatitude = ""
-                        newLongitude = ""
                     }
                 }) {
                     HStack {
@@ -1408,11 +1753,11 @@ struct LocationsSettingsView: View {
                     }
                     .padding()
                     .frame(maxWidth: 220)
-                    .background(Color.blue)
+                    .background(canSave ? Color.blue : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 }
-                .disabled(newLocationName.isEmpty || Double(newLatitude) == nil || Double(newLongitude) == nil)
+                .disabled(!canSave)
                 .padding(.top, 8)
             }
             .navigationTitle("Custom Coordinates")
@@ -1420,6 +1765,41 @@ struct LocationsSettingsView: View {
                 addLocationMode = nil
             })
         }
+    }
+    
+    // Helper function to get validation message for current coordinate input
+    private func getCoordinateValidationMessage() -> String? {
+        guard !newLatitude.isEmpty || !newLongitude.isEmpty else { return nil }
+        
+        if newLatitude.isEmpty {
+            return "Latitude is required"
+        }
+        
+        if newLongitude.isEmpty {
+            return "Longitude is required"
+        }
+        
+        guard let lat = Double(newLatitude) else {
+            return "Latitude must be a valid number"
+        }
+        
+        guard let lon = Double(newLongitude) else {
+            return "Longitude must be a valid number"
+        }
+        
+        let result = CoordinateValidator.validate(latitude: lat, longitude: lon)
+        return result.isValid ? nil : result.errorMessage
+    }
+    
+    // Helper function to determine if save button should be enabled
+    private var canSave: Bool {
+        guard !newLocationName.isEmpty,
+              let lat = Double(newLatitude),
+              let lon = Double(newLongitude) else {
+            return false
+        }
+        
+        return CoordinateValidator.validate(latitude: lat, longitude: lon).isValid
     }
     
     private var citySearchSheet: some View {
@@ -1454,20 +1834,40 @@ struct LocationsSettingsView: View {
                             .foregroundColor(.secondary)
                         Button("Save") {
                             let name = selected.title
-                            let loc = SavedLocation(name: name, latitude: coordinate.latitude, longitude: coordinate.longitude)
-                            locationsManager.addLocation(loc)
-                            locationsManager.selectLocation(loc)
-                            weatherService.useGPS = false
-                            Task {
-                                await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addCityLocation")
+                            let lat = coordinate.latitude
+                            let lon = coordinate.longitude
+                            
+                            // Validate coordinates before adding location
+                            let validationResult = CoordinateValidator.validate(latitude: lat, longitude: lon)
+                            if validationResult.isValid {
+                                // Use the new validated coordinates
+                                let validatedLat = validationResult.normalizedLatitude ?? lat
+                                let validatedLon = validationResult.normalizedLongitude ?? lon
+                                
+                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
+                                    // Find the newly added location to select it
+                                    if let addedLocation = locationsManager.locations.last {
+                                        locationsManager.selectLocation(addedLocation)
+                                        weatherService.useGPS = false
+                                        Task {
+                                            await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addCityLocation")
+                                        }
+                                    }
+                                    showingAddLocationSheet = false
+                                    addLocationMode = nil
+                                    citySearchQuery = ""
+                                    citySearchResults = []
+                                    selectedSearchCompletion = nil
+                                    citySearchCoordinate = nil
+                                    citySearchError = nil
+                                } else {
+                                    alertMessage = "Invalid coordinates. Please try again."
+                                    showingAlert = true
+                                }
+                            } else {
+                                alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
+                                showingAlert = true
                             }
-                            showingAddLocationSheet = false
-                            addLocationMode = nil
-                            citySearchQuery = ""
-                            citySearchResults = []
-                            selectedSearchCompletion = nil
-                            citySearchCoordinate = nil
-                            citySearchError = nil
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -1541,11 +1941,40 @@ struct WeatherSourcesSettingsView: View {
     @Binding var disableAPIKeys: Bool
     @ObservedObject var locationsManager: SavedLocationsManager
     @FocusState var focusedField: SettingsView.Field?
+    @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     let saveAPIKeys: () -> Void
     let loadAPIKeys: () -> Void
-    
+
     var body: some View {
         List {
+            // Aggregate health banner – only shown when at least one
+            // stored key is known to be invalid.
+            if healthMonitor.hasAnyBlockingIssue {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "key.slash")
+                                .foregroundColor(.red)
+                            Text("One or more API keys are no longer accepted by the provider.")
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                        }
+                        ForEach(healthMonitor.blockingServices, id: \.rawValue) { service in
+                            HStack(spacing: 8) {
+                                APIKeyHealthStatusBadge(
+                                    entry: healthMonitor.entry(for: service),
+                                    compact: true
+                                )
+                                Text("\(service.displayName) – re-enter a valid key to restore this source.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             // API Keys Disabled Warning
             if disableAPIKeys {
                 Section {
@@ -1623,7 +2052,18 @@ struct WeatherSourcesSettingsView: View {
             } footer: {
                 Text("Personal weather station data")
             }
-            
+
+            // Weather Underground health card
+            Section {
+                APIKeyHealthCard(
+                    monitor: healthMonitor,
+                    service: .weatherUnderground,
+                    weatherService: weatherService
+                )
+            } header: {
+                Text("Key health")
+            }
+
             // OpenWeatherMap
             Section {
                 #if os(iOS)
@@ -1647,7 +2087,18 @@ struct WeatherSourcesSettingsView: View {
             } footer: {
                 Text("Detailed forecast data")
             }
-            
+
+            // OpenWeatherMap health card
+            Section {
+                APIKeyHealthCard(
+                    monitor: healthMonitor,
+                    service: .openWeatherMap,
+                    weatherService: weatherService
+                )
+            } header: {
+                Text("Key health")
+            }
+
             // Apple WeatherKit
             Section {
                 HStack {
@@ -1720,6 +2171,7 @@ struct PreferencesSettingsView: View {
     @Binding var useOpenMeteoAsDefault: Bool
     @Binding var owmApiKey: String
     @ObservedObject var weatherService: WeatherService
+    @AppStorage("showHamburgerMenu") private var showHamburgerMenu: Bool = true
     let unitSystems: [String]
     let colorSchemes: [String]
     let forecastDayOptions: [Int]
@@ -1790,6 +2242,22 @@ struct PreferencesSettingsView: View {
                 #endif
             } header: {
                 Label("View", systemImage: "rectangle.split.3x1")
+            }
+            
+            Section {
+                Toggle(isOn: $showHamburgerMenu) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Location Menu")
+                            .font(.body)
+                        Text("Display the hamburger menu in the top-right corner of the main weather screen for quick location switching.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } header: {
+                Label("Interface", systemImage: "rectangle.grid.2x2")
+            } footer: {
+                Text("Disable for a more minimalistic experience. You can still manage locations from Settings → Locations.")
             }
         }
         .navigationTitle("Preferences")

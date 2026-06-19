@@ -19,7 +19,12 @@ actor OpenMeteoService {
         let urlString = "https://api.open-meteo.com/v1/forecast?" +
             "latitude=\(latitude)" +
             "&longitude=\(longitude)" +
-            "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
+            // `wind_direction_10m` is requested here so we have
+            // access to the *current* direction (the
+            // `wind_direction_10m_dominant` field on the daily
+            // payload is the day's prevailing direction, which
+            // is rarely what the user feels right now).
+            "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
             "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max,wind_direction_10m_dominant,relative_humidity_2m_max,pressure_msl_max,uv_index_max,sunrise,sunset" +
             "&timezone=UTC"
         

@@ -453,14 +453,14 @@ extension WeatherService {
             #if DEBUG
             print("❌ Could not obtain valid coordinates")
             #endif
-            self.error = "Unable to determine location. Please check location permissions or enter coordinates manually."
+            self.error = WeatherError.apiError("Unable to determine location. Please check location permissions or enter coordinates manually.")
             return
         }
-        
+
         #if DEBUG
         print("📍 Fetching forecast for coordinates: \(latitude), \(longitude)")
         #endif
-        
+
         do {
             // Use the forecast-only helper
             print("📍 Fetching forecast data from OpenMeteo")
@@ -474,7 +474,7 @@ extension WeatherService {
             #if DEBUG
             print("✅ Forecast data processing complete")
             #endif
-            
+
             // Update widget with high/low from today's forecast
             if let weather = self.weather {
                 self.saveWeatherDataForWidget(weather)
@@ -485,7 +485,7 @@ extension WeatherService {
             #if DEBUG
             print("❌ Failed to fetch forecasts: \(error.localizedDescription)")
             #endif
-            self.error = "Failed to fetch forecast: \(error.localizedDescription)"
+            self.error = WeatherError.apiError("Failed to fetch forecast: \(error.localizedDescription)")
         }
     }
     

@@ -28,6 +28,66 @@
       "productID" : "CustomBackground50c",
       "referenceName" : "Custom Background",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "1234567891",
+      "localizations" : [
+        {
+          "description" : "Buy me a coffee! ☕️",
+          "displayName" : "Coffee Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxobroko.SaxWeather.tip1",
+      "referenceName" : "Coffee Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.49",
+      "familyShareable" : false,
+      "internalID" : "1234567892",
+      "localizations" : [
+        {
+          "description" : "Buy me a cake! 🍰",
+          "displayName" : "Cake Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxobroko.SaxWeather.tip250",
+      "referenceName" : "Cake Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "1234567893",
+      "localizations" : [
+        {
+          "description" : "Buy me a pizza! 🍕",
+          "displayName" : "Pizza Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxobroko.SaxWeather.tip5",
+      "referenceName" : "Pizza Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "1234567894",
+      "localizations" : [
+        {
+          "description" : "Throw me a party! 🎉",
+          "displayName" : "Party Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxobroko.SaxWeather.tip10",
+      "referenceName" : "Party Tip",
+      "type" : "Consumable"
     }
   ],
   "settings" : {
