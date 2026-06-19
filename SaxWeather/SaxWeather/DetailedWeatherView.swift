@@ -191,203 +191,75 @@ struct DetailedWeatherView: View {
     }
     
     // MARK: - Hero Section
-    @ViewBuilder
+    // Phase 3 — styling delegated to `.styledCard()`. The if/else
+    // branches were collapsed because `.styledCard()` does its own
+    // iOS-availability check internally. The dark/light text
+    // colours are unchanged.
     private var heroSection: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Effect
-            VStack(spacing: 12) {
-                HStack(alignment: .center, spacing: 16) {
-                    if let condition = weatherService.weather?.condition {
-                        LottieView(name: getAnimationName(for: condition))
-                            .frame(width: 100, height: 100)
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(locationDisplayName)
-                            .font(.title2.bold())
+        VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 16) {
+                if let condition = weatherService.weather?.condition {
+                    LottieView(name: getAnimationName(for: condition))
+                        .frame(width: 100, height: 100)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(locationDisplayName)
+                        .font(.title2.bold())
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.9) :
+                            Color.black.opacity(0.85)
+                        )
+                    Text(Date(), style: .date)
+                        .font(.caption)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.6) :
+                            Color.black.opacity(0.5)
+                        )
+                    Text(weatherService.weather?.condition ?? "-")
+                        .font(.headline)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.7) :
+                            Color.black.opacity(0.6)
+                        )
+                    if let temp = weatherService.weather?.temperature {
+                        Text(String(format: "%.1f%@", temp, unitSymbol))
+                            .font(.system(size: 48, weight: .bold))
                             .foregroundStyle(colorScheme == .dark ?
-                                Color.white.opacity(0.9) :
-                                Color.black.opacity(0.85)
+                                Color.white.opacity(0.95) :
+                                Color.black.opacity(0.9)
                             )
-                        Text(Date(), style: .date)
+                    }
+                    if let feels = weatherService.weather?.feelsLike {
+                        Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
                             .font(.caption)
                             .foregroundStyle(colorScheme == .dark ?
                                 Color.white.opacity(0.6) :
                                 Color.black.opacity(0.5)
                             )
-                        Text(weatherService.weather?.condition ?? "-")
-                            .font(.headline)
-                            .foregroundStyle(colorScheme == .dark ?
-                                Color.white.opacity(0.7) :
-                                Color.black.opacity(0.6)
-                            )
-                        if let temp = weatherService.weather?.temperature {
-                            Text(String(format: "%.1f%@", temp, unitSymbol))
-                                .font(.system(size: 48, weight: .bold))
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.95) :
-                                    Color.black.opacity(0.9)
-                                )
-                        }
-                        if let feels = weatherService.weather?.feelsLike {
-                            Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
-                                .font(.caption)
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.6) :
-                                    Color.black.opacity(0.5)
-                                )
-                        }
                     }
-                    Spacer()
                 }
+                Spacer()
             }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.6)
-                    
-                    LinearGradient(
-                        colors: colorScheme == .dark ? [
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.1),
-                            Color.clear
-                        ] : [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: colorScheme == .dark ? [
-                                Color.white.opacity(0.2),
-                                Color.white.opacity(0.1)
-                            ] : [
-                                Color.white.opacity(0.25),
-                                Color.white.opacity(0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
-        } else {
-            // Fallback for iOS 25 and earlier
-            VStack(spacing: 12) {
-                HStack(alignment: .center, spacing: 16) {
-                    if let condition = weatherService.weather?.condition {
-                        LottieView(name: getAnimationName(for: condition))
-                            .frame(width: 100, height: 100)
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(locationDisplayName)
-                            .font(.title2.bold())
-                        Text(Date(), style: .date)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(weatherService.weather?.condition ?? "-")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        if let temp = weatherService.weather?.temperature {
-                            Text(String(format: "%.1f%@", temp, unitSymbol))
-                                .font(.system(size: 48, weight: .bold))
-                        }
-                        if let feels = weatherService.weather?.feelsLike {
-                            Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                }
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .styledCard()
     }
     
     // MARK: - Hourly Forecast Section
-    @ViewBuilder
+    // Phase 3 — styling delegated to `.styledCard()`.
     private var hourlyForecastSection: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Effect
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Hourly Forecast")
-                    .font(.headline)
-                    .padding(.leading, 4)
-                    .foregroundStyle(colorScheme == .dark ?
-                        Color.white.opacity(0.9) :
-                        Color.black.opacity(0.85)
-                    )
-                WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
-                    .frame(height: 180)
-                    .background {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                                .opacity(0.6)
-                            
-                            LinearGradient(
-                                colors: colorScheme == .dark ? [
-                                    Color.black.opacity(0.2),
-                                    Color.black.opacity(0.1),
-                                    Color.clear
-                                ] : [
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.05),
-                                    Color.clear
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: colorScheme == .dark ? [
-                                        Color.white.opacity(0.2),
-                                        Color.white.opacity(0.1)
-                                    ] : [
-                                        Color.white.opacity(0.25),
-                                        Color.white.opacity(0.08)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                    .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
-            }
-        } else {
-            // Fallback for iOS 25 and earlier
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Hourly Forecast")
-                    .font(.headline)
-                    .padding(.leading, 4)
-                WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
-                    .frame(height: 180)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hourly Forecast")
+                .font(.headline)
+                .padding(.leading, 4)
+                .foregroundStyle(colorScheme == .dark ?
+                    Color.white.opacity(0.9) :
+                    Color.black.opacity(0.85)
+                )
+            WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
+                .frame(height: 180)
+                .styledCard()
         }
     }
 }
@@ -398,93 +270,34 @@ struct WeatherCard: View {
     let title: String
     let value: String
     let icon: String
-    
+
+    // Phase 3 — styling (background / border / corner radius) is
+    // delegated to `.styledCard()` which reads cardStyle, cornerRadius,
+    // cardOpacity and the palette from the customisation registry.
     var body: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Effect
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.body)
-                        .foregroundColor(.accentColor)
-                    Text(title.uppercased())
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(colorScheme == .dark ?
-                            Color.white.opacity(0.7) :
-                            Color.black.opacity(0.6)
-                        )
-                }
-                Text(value)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundColor(.accentColor)
+                Text(title.uppercased())
+                    .font(.caption)
+                    .fontWeight(.semibold)
                     .foregroundStyle(colorScheme == .dark ?
-                        Color.white.opacity(0.9) :
-                        Color.black.opacity(0.85)
+                        Color.white.opacity(0.7) :
+                        Color.black.opacity(0.6)
                     )
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.6)
-                    
-                    LinearGradient(
-                        colors: colorScheme == .dark ? [
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.1),
-                            Color.clear
-                        ] : [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: colorScheme == .dark ? [
-                                Color.white.opacity(0.2),
-                                Color.white.opacity(0.1)
-                            ] : [
-                                Color.white.opacity(0.25),
-                                Color.white.opacity(0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
-        } else {
-            // Fallback for iOS 25 and earlier
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.body)
-                        .foregroundColor(.accentColor)
-                    Text(title.uppercased())
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                }
-                Text(value)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(colorScheme == .dark ?
+                    Color.white.opacity(0.9) :
+                    Color.black.opacity(0.85)
+                )
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+        .styledCard()
     }
 }
 
@@ -495,194 +308,87 @@ struct WindCard: View {
     let gust: Double
     let direction: Double
     let unit: String
-    
+
+    // Phase 3 — styling delegated to `.styledCard()`. Reads
+    // cardStyle, cornerRadius, cardOpacity and palette from the
+    // customisation registry. The if/available branches are
+    // removed because `.styledCard()` does its own availability
+    // check internally.
     var body: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Effect
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: "wind")
-                        .font(.body)
-                        .foregroundColor(.accentColor)
-                    Text("WIND")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(colorScheme == .dark ?
-                            Color.white.opacity(0.7) :
-                            Color.black.opacity(0.6)
-                        )
-                }
-                
-                HStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Speed")
-                                .font(.caption)
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.6) :
-                                    Color.black.opacity(0.5)
-                                )
-                            Text(String(format: "%.0f %@", wind, unit))
-                                .font(.title2.bold())
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Gusts")
-                                .font(.caption)
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.6) :
-                                    Color.black.opacity(0.5)
-                                )
-                            Text(String(format: "%.0f %@", gust, unit))
-                                .font(.headline)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Direction")
-                                .font(.caption)
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.6) :
-                                    Color.black.opacity(0.5)
-                                )
-                            Text(String(format: "%.0f°", direction))
-                                .font(.headline)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // Compass
-                    ZStack {
-                        Circle()
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
-                            .frame(width: 80, height: 80)
-                        
-                        ForEach([0, 90, 180, 270], id: \.self) { deg in
-                            Text(["N", "E", "S", "W"][deg/90])
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .offset(y: -40)
-                                .rotationEffect(.degrees(Double(deg)))
-                        }
-                        
-                        Arrow()
-                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .frame(width: 40, height: 40)
-                            .rotationEffect(.degrees(direction))
-                    }
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "wind")
+                    .font(.body)
+                    .foregroundColor(.accentColor)
+                Text("WIND")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.7) :
+                        Color.black.opacity(0.6)
+                    )
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
+
+            HStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Speed")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f %@", wind, unit))
+                            .font(.title2.bold())
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Gusts")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f %@", gust, unit))
+                            .font(.headline)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Direction")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f°", direction))
+                            .font(.headline)
+                    }
+                }
+
+                Spacer()
+
+                // Compass
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.6)
-                    
-                    LinearGradient(
-                        colors: colorScheme == .dark ? [
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.1),
-                            Color.clear
-                        ] : [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: colorScheme == .dark ? [
-                                Color.white.opacity(0.2),
-                                Color.white.opacity(0.1)
-                            ] : [
-                                Color.white.opacity(0.25),
-                                Color.white.opacity(0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
-        } else {
-            // Fallback for iOS 25 and earlier
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: "wind")
-                        .font(.body)
-                        .foregroundColor(.accentColor)
-                    Text("WIND")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                }
-                
-                HStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Speed")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.0f %@", wind, unit))
-                                .font(.title2.bold())
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Gusts")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.0f %@", gust, unit))
-                                .font(.headline)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Direction")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.0f°", direction))
-                                .font(.headline)
-                        }
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
+                        .frame(width: 80, height: 80)
+
+                    ForEach([0, 90, 180, 270], id: \.self) { deg in
+                        Text(["N", "E", "S", "W"][deg/90])
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .offset(y: -40)
+                            .rotationEffect(.degrees(Double(deg)))
                     }
-                    
-                    Spacer()
-                    
-                    // Compass
-                    ZStack {
-                        Circle()
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
-                            .frame(width: 80, height: 80)
-                        
-                        ForEach([0, 90, 180, 270], id: \.self) { deg in
-                            Text(["N", "E", "S", "W"][deg/90])
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .offset(y: -40)
-                                .rotationEffect(.degrees(Double(deg)))
-                        }
-                        
-                        Arrow()
-                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .frame(width: 40, height: 40)
-                            .rotationEffect(.degrees(direction))
-                    }
+
+                    Arrow()
+                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 40, height: 40)
+                        .rotationEffect(.degrees(direction))
                 }
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .styledCard()
     }
 }
 

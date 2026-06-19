@@ -48,7 +48,7 @@ enum ProfileToAppStorageBridge {
         dispatchPrecondition(condition: .onQueue(.main))
 
         // Visual
-        defaults.set(knobs.visual.accentColor, forKey: "accentColor")
+        defaults.set(knobs.visual.accentColor.rawString, forKey: "accentColor")
         defaults.set(knobs.visual.colorScheme, forKey: "colorScheme")
         defaults.set(knobs.visual.useSystemTextSize, forKey: "useSystemTextSize")
         defaults.set(knobs.visual.fontScale, forKey: "customTextSizeMultiplier")
@@ -105,7 +105,7 @@ enum ProfileToAppStorageBridge {
 
         // Visual
         if let v = defaults.string(forKey: "accentColor") {
-            knobs.visual.accentColor = v
+            knobs.visual.accentColor = ColourToken(rawString: v)
         }
         if let v = defaults.string(forKey: "colorScheme") {
             knobs.visual.colorScheme = v

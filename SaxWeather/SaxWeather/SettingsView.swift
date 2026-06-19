@@ -151,7 +151,10 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                customisationRegistry.set(\.visual.accentColor, newValue)
+                // Phase 3 — accentColor is now a ColourToken; the
+                // existing `@AppStorage` writes a plain String, so
+                // wrap on the bridge.
+                customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
                 TipJarView()
@@ -292,7 +295,10 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                customisationRegistry.set(\.visual.accentColor, newValue)
+                // Phase 3 — accentColor is now a ColourToken; the
+                // existing `@AppStorage` writes a plain String, so
+                // wrap on the bridge.
+                customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
                 TipJarView()

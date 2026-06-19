@@ -78,7 +78,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
 
     func test_bridge_writesEveryKnobToUserDefaults() {
         var knobs = KnobStorage()
-        knobs.visual.accentColor = "purple"
+        knobs.visual.accentColor = .named("purple")
         knobs.visual.colorScheme = "dark"
         knobs.visual.fontScale = 1.3
         knobs.visual.boldText = true
@@ -232,7 +232,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
         registry.set(\.data.unitSystem, "Imperial")
         XCTAssertEqual(UserDefaults.standard.string(forKey: "unitSystem"), "Imperial")
 
-        registry.set(\.visual.accentColor, "pink")
+        registry.set(\.visual.accentColor, .named("pink"))
         XCTAssertEqual(UserDefaults.standard.string(forKey: "accentColor"), "pink")
 
         registry.set(\.layout.forecastDays, 10)

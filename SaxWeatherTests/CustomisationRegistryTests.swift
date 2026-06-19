@@ -30,7 +30,7 @@ final class CustomisationRegistryTests: XCTestCase {
     func test_defaultKnobStorage_matchesExistingAppStorageDefaults() {
         let knobs = KnobStorage()
         // Visual
-        XCTAssertEqual(knobs.visual.accentColor, "blue")
+        XCTAssertEqual(knobs.visual.accentColor, .named("blue"))
         XCTAssertEqual(knobs.visual.useSystemTextSize, true)
         XCTAssertEqual(knobs.visual.fontScale, 1.0, accuracy: 0.0001)
         XCTAssertEqual(knobs.visual.boldText, false)
@@ -114,7 +114,7 @@ final class CustomisationRegistryTests: XCTestCase {
         var original = CustomisationProfile.makeDefault()
         original.name = "Round Trip"
         original.knobs.data.unitSystem = "Imperial"
-        original.knobs.visual.accentColor = "purple"
+        original.knobs.visual.accentColor = .named("purple")
         original.knobs.layout.hiddenHomeSections = [.extended, .hourly]
         original.knobs.forecast.hourlyChartType = .area
         original.knobs.behaviour.quietHoursStart = 22
@@ -130,7 +130,7 @@ final class CustomisationRegistryTests: XCTestCase {
 
         XCTAssertEqual(restored, original)
         XCTAssertEqual(restored.knobs.data.unitSystem, "Imperial")
-        XCTAssertEqual(restored.knobs.visual.accentColor, "purple")
+        XCTAssertEqual(restored.knobs.visual.accentColor, .named("purple"))
         XCTAssertEqual(restored.knobs.layout.hiddenHomeSections, [.extended, .hourly])
         XCTAssertEqual(restored.knobs.forecast.hourlyChartType, .area)
         XCTAssertEqual(restored.knobs.behaviour.quietHoursStart, 22)
@@ -227,7 +227,7 @@ final class CustomisationRegistryTests: XCTestCase {
     func test_registry_getReturnsValue() {
         let registry = CustomisationRegistry(testProfile: .makeDefault())
         XCTAssertEqual(registry.get(\.data.unitSystem), "Metric")
-        XCTAssertEqual(registry.get(\.visual.accentColor), "blue")
+        XCTAssertEqual(registry.get(\.visual.accentColor), .named("blue"))
     }
 
     func test_registry_applyReplacesProfile() {

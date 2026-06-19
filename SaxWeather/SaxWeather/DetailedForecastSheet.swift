@@ -239,12 +239,7 @@ struct WeatherDetailCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(backgroundFillColor(colorScheme))
-                .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.gray.opacity(0.15),
-                       radius: 6, x: 0, y: 3)
-        )
+        .styledCard()
     }
 }
 
@@ -273,11 +268,7 @@ struct DetailBox: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(backgroundFillColor(colorScheme))
-                .shadow(radius: 3)
-        )
+        .styledCard()
     }
 }
 

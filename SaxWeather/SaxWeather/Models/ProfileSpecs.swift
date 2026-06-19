@@ -16,9 +16,11 @@ import Foundation
 // MARK: - 1.1 Visual — Colours & Typography
 
 struct VisualSpec: Codable, Hashable {
-    /// Matches `@AppStorage("accentColor")` default of "blue" in
-    /// `SettingsView.swift:28`.
-    var accentColor: String = "blue"
+    /// Phase 3 — typed colour token. The bridge writes the
+    /// `rawString` representation to `UserDefaults` so existing
+    /// `@AppStorage("accentColor")` views continue to see a
+    /// plain `String`.
+    var accentColor: ColourToken = .named("blue")
     var palette: Palette = .init()
     /// `.glass` is gated by `#available(iOS 26.2, *)` at the call
     /// site; views fall back to `.solid` on older OSes.
@@ -48,16 +50,14 @@ enum TypographyFamily: String, Codable, CaseIterable, Hashable {
     case system, rounded, serif, mono
 }
 
-/// Five-colour palette. Values are semantic names ("system",
-/// "blue", "red", …) resolved to SwiftUI `Color` by either
-/// `AccentColorHelper` (for named colours) or system semantic
-/// colours (for "system" / "primary" / etc.).
+/// Five-colour palette. Phase 3 — values are now typed
+/// `ColourToken`s (named / rgb / hex) instead of raw `String`s.
 struct Palette: Codable, Hashable {
-    var background: String = "system"
-    var surface: String = "system"
-    var text: String = "system"
-    var muted: String = "system"
-    var danger: String = "red"
+    var background: ColourToken = .named("system")
+    var surface: ColourToken = .named("system")
+    var text: ColourToken = .named("system")
+    var muted: ColourToken = .named("secondary")
+    var danger: ColourToken = .named("red")
 }
 
 // MARK: - 1.2 Visual — Background

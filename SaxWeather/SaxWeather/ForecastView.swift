@@ -172,11 +172,7 @@ struct ForecastView: View {
                             value: hourlyData.count
                         )
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(cardBackgroundColor)
-                            .shadow(color: cardShadowColor, radius: 10, x: 0, y: 4)
-                    )
+                    .styledCard()
                     .padding(.horizontal)
                     
                     // YOUR ORIGINAL DAILY FORECAST SECTION
