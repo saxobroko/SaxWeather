@@ -3,6 +3,13 @@
 //  SaxWeather
 //
 //  Created by Saxon on 2/3/2025.
+//  Phase 5 — Background engine: now renders a `BackgroundStrategy`
+//  instead of a raw condition string. The view is deliberately
+//  dumb — it switches on the strategy and draws the right thing.
+//  All decisions (mode, time-of-day, per-condition overrides) live
+//  in `BackgroundResolver`.
+//
+//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §2.5 and §4.5.
 //
 
 import SwiftUI
@@ -16,80 +23,122 @@ import AppKit
 struct BackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var storeManager: StoreManager
-    @AppStorage("userCustomBackground") private var savedImageData: Data?
-    @AppStorage("useCustomBackground") private var useCustomBackground = true
-    
-    let condition: String
-    
-    #if os(iOS)
-    private func backgroundImage(for condition: String) -> Image? {
-        if let uiImage = UIImage(named: "weather_background_\(condition)") {
-            return Image(uiImage: uiImage)
-        } else if let uiImage = UIImage(named: "weather_background_default") {
-            return Image(uiImage: uiImage)
-        }
-        return nil
-    }
-    #elseif os(macOS)
-    private func backgroundImage(for condition: String) -> Image? {
-        if let nsImage = NSImage(named: "weather_background_\(condition)") {
-            return Image(nsImage: nsImage)
-        } else if let nsImage = NSImage(named: "weather_background_default") {
-            return Image(nsImage: nsImage)
-        }
-        return nil
-    }
-    #endif
-    
+
+    let strategy: BackgroundStrategy
+
     var body: some View {
         GeometryReader { geometry in
-            // Check if custom background should be used
-            if storeManager.customBackgroundUnlocked && useCustomBackground,
-               let imageData = savedImageData {
-                #if os(iOS)
-                if let customImage = UIImage(data: imageData) {
-                    Image(uiImage: customImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                        .overlay(
-                            Color.black.opacity(colorScheme == .dark ? 0.5 : 0.3)
-                                .edgesIgnoringSafeArea(.all)
-                        )
-                } else {
-                    defaultBackground(geometry: geometry)
-                }
-                #elseif os(macOS)
-                if let customImage = NSImage(data: imageData) {
-                    Image(nsImage: customImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                        .overlay(
-                            Color.black.opacity(colorScheme == .dark ? 0.5 : 0.3)
-                                .edgesIgnoringSafeArea(.all)
-                        )
-                } else {
-                    defaultBackground(geometry: geometry)
-                }
-                #endif
-            } else {
-                defaultBackground(geometry: geometry)
-            }
+            contents(in: geometry)
         }
     }
 
+    // MARK: - Dispatch
+
     @ViewBuilder
-    private func defaultBackground(geometry: GeometryProxy) -> some View {
-        if let bg = backgroundImage(for: condition) {
-            bg
+    private func contents(in geometry: GeometryProxy) -> some View {
+        switch strategy {
+        case .preset(let condition):
+            presetBackground(condition: condition)
+        case .customImage(let data):
+            customImageBackground(data: data)
+        case .gradient(let top, let bottom, let topOp, let bottomOp):
+            gradientBackground(top: top, bottom: bottom,
+                               topOpacity: topOp, bottomOpacity: bottomOp)
+        case .dynamicAccent(let tint, let condition):
+            dynamicAccentBackground(tint: tint, condition: condition)
+        }
+    }
+
+    // MARK: - Preset (shipped imageset)
+
+    @ViewBuilder
+    private func presetBackground(condition: String) -> some View {
+        #if os(iOS)
+        if let uiImage = UIImage(named: "weather_background_\(condition)") {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+        } else if let uiImage = UIImage(named: "weather_background_default") {
+            Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
         } else {
             Color.blue.opacity(0.2).ignoresSafeArea()
         }
+        #elseif os(macOS)
+        if let nsImage = NSImage(named: "weather_background_\(condition)") {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+        } else if let nsImage = NSImage(named: "weather_background_default") {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+        } else {
+            Color.blue.opacity(0.2).ignoresSafeArea()
+        }
+        #endif
+    }
+
+    // MARK: - Custom image (user-supplied)
+
+    @ViewBuilder
+    private func customImageBackground(data: Data?) -> some View {
+        #if os(iOS)
+        if let data = data, let image = UIImage(data: data) {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+        } else {
+            presetBackground(condition: "default")
+        }
+        #elseif os(macOS)
+        if let data = data, let image = NSImage(data: data) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+        } else {
+            presetBackground(condition: "default")
+        }
+        #endif
+    }
+
+    // MARK: - Gradient
+
+    @ViewBuilder
+    private func gradientBackground(
+        top: ColourToken,
+        bottom: ColourToken,
+        topOpacity: Double,
+        bottomOpacity: Double
+    ) -> some View {
+        LinearGradient(
+            colors: [
+                top.color(for: colorScheme).opacity(topOpacity),
+                bottom.color(for: colorScheme).opacity(bottomOpacity)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Dynamic accent (preset image + tint)
+
+    @ViewBuilder
+    private func dynamicAccentBackground(tint: ColourToken, condition: String) -> some View {
+        presetBackground(condition: condition)
+            .overlay(
+                tint.color(for: colorScheme)
+                    .opacity(0.35)
+                    .blendMode(.multiply)
+                    .ignoresSafeArea()
+            )
     }
 }

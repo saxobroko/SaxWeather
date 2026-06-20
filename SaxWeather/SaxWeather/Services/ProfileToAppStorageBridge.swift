@@ -59,10 +59,18 @@ enum ProfileToAppStorageBridge {
         // then reads back as `nil`.
         defaults.set(knobs.background.useCustom, forKey: "useCustomBackground")
         defaults.set(knobs.background.customImageData, forKey: "userCustomBackground")
+        defaults.set(knobs.background.overlayOpacity, forKey: "overlayOpacity")
+        defaults.set(knobs.background.mode.rawValue, forKey: "backgroundMode")
 
         // Iconography
         defaults.set(knobs.iconography.disableWeatherAnimations,
                      forKey: "disableWeatherAnimations")
+        // Phase 6 — playback speed is read by `LottieView` via
+        // `@AppStorage("lottiePlaybackSpeed")` so the
+        // `LottieAnimationView.animationSpeed` honours the
+        // registry knob.
+        defaults.set(knobs.iconography.lottiePlaybackSpeed,
+                     forKey: "lottiePlaybackSpeed")
 
         // Layout
         defaults.set(knobs.layout.forecastDays, forKey: "forecastDays")
@@ -130,11 +138,23 @@ enum ProfileToAppStorageBridge {
         if let data = defaults.data(forKey: "userCustomBackground") {
             knobs.background.customImageData = data
         }
+        if defaults.object(forKey: "overlayOpacity") != nil {
+            knobs.background.overlayOpacity =
+                defaults.double(forKey: "overlayOpacity")
+        }
+        if let mode = defaults.string(forKey: "backgroundMode"),
+           let parsed = BackgroundMode(rawValue: mode) {
+            knobs.background.mode = parsed
+        }
 
         // Iconography
         if defaults.object(forKey: "disableWeatherAnimations") != nil {
             knobs.iconography.disableWeatherAnimations =
                 defaults.bool(forKey: "disableWeatherAnimations")
+        }
+        if defaults.object(forKey: "lottiePlaybackSpeed") != nil {
+            knobs.iconography.lottiePlaybackSpeed =
+                defaults.double(forKey: "lottiePlaybackSpeed")
         }
 
         // Layout
@@ -196,7 +216,10 @@ enum ProfileToAppStorageBridge {
         "increaseContrast",
         "useCustomBackground",
         "userCustomBackground",
+        "overlayOpacity",
+        "backgroundMode",
         "disableWeatherAnimations",
+        "lottiePlaybackSpeed",
         "forecastDays",
         "displayMode",
         "showHamburgerMenu",

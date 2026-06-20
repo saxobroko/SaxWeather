@@ -19,14 +19,35 @@ struct AlertsView: View {
     @ObservedObject var alertManager: WeatherAlertManager
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
+    // Phase 5 — observe the registry + overlay strength.
+    @ObservedObject private var registry = CustomisationRegistry.shared
+    @EnvironmentObject private var storeManager: StoreManager
+
+    private var alertsBackgroundStrategy: BackgroundStrategy {
+        BackgroundResolver.resolve(
+            condition: weatherService.currentBackgroundCondition,
+            spec: registry.profile.knobs.background,
+            sunrise: weatherService.forecast?.daily.first?.sunrise,
+            sunset: weatherService.forecast?.daily.first?.sunset,
+            now: Date(),
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+    }
+
+    private var alertsOverlayOpacity: Double {
+        BackgroundResolver.effectiveOverlayOpacity(
+            spec: registry.profile.knobs.background,
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+    }
 
     var body: some View {
         ZStack {
-            // Use the centralized background condition
-            BackgroundView(condition: weatherService.currentBackgroundCondition)
+            // Phase 5 — resolve into a strategy and render that.
+            BackgroundView(strategy: alertsBackgroundStrategy)
                 .ignoresSafeArea()
-            // Add a dark overlay for better contrast
-            Color.black.opacity(0.28)
+            // Add a dark overlay for better contrast.
+            Color.black.opacity(alertsOverlayOpacity)
                 .blur(radius: 8)
                 .ignoresSafeArea()
                 .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)

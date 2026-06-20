@@ -19,6 +19,32 @@ struct ForecastView: View {
     @State private var conditionSummary: String = ""
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
+    // Phase 5 — observe the registry so the background updates
+    // when the user tweaks a knob in Settings.
+    @ObservedObject private var registry = CustomisationRegistry.shared
+    @EnvironmentObject private var storeManager: StoreManager
+
+    /// Resolved background strategy for the current condition +
+    /// active profile + sun position.
+    private var forecastBackgroundStrategy: BackgroundStrategy {
+        BackgroundResolver.resolve(
+            condition: weatherService.currentBackgroundCondition,
+            spec: registry.profile.knobs.background,
+            sunrise: weatherService.forecast?.daily.first?.sunrise,
+            sunset: weatherService.forecast?.daily.first?.sunset,
+            now: Date(),
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+    }
+
+    /// Effective overlay opacity, gated on the IAP. Falls back
+    /// to the free default (0.28) when the IAP is locked.
+    private var forecastOverlayOpacity: Double {
+        BackgroundResolver.effectiveOverlayOpacity(
+            spec: registry.profile.knobs.background,
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+    }
     
     // Unified card styling
     private var cardBackgroundColor: Color {
@@ -55,11 +81,14 @@ struct ForecastView: View {
     
     var body: some View {
         ZStack {
-            // Use the centralized background condition
-            BackgroundView(condition: weatherService.currentBackgroundCondition)
+            // Phase 5 — resolve the active profile into a strategy
+            // and render that, instead of a raw condition string.
+            BackgroundView(strategy: forecastBackgroundStrategy)
                 .ignoresSafeArea()
-            // Add a dark overlay for better contrast
-            Color.black.opacity(0.28)
+            // Add a dark overlay for better contrast.
+            // Phase 5: strength comes from `BackgroundSpec.overlayOpacity`
+            // (bridged through to `@AppStorage("overlayOpacity")`).
+            Color.black.opacity(forecastOverlayOpacity)
                 .blur(radius: 8)
                 .ignoresSafeArea()
                 .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)
@@ -255,25 +284,29 @@ struct ForecastView: View {
         // Check if it's night based on hour
         let hour = Calendar.current.component(.hour, from: forecast.time)
         let isNight = hour < 6 || hour > 18
-        
-        let animationName = WeatherAnimationHelper.animationNameFromCode(for: forecast.weatherCode, isNight: isNight)
-        
+
         #if DEBUG
         // Log the first few forecast items to debug
         if forecast.id < 3 {
-            print("🎨 Hourly Forecast Item #\(forecast.id): time=\(forecast.timeString), weatherCode=\(forecast.weatherCode), isNight=\(isNight), animation='\(animationName)'")
+            print("🎨 Hourly Forecast Item #\(forecast.id): time=\(forecast.timeString), weatherCode=\(forecast.weatherCode), isNight=\(isNight)")
         }
         #endif
-        
+
         return VStack(spacing: 12) {
             // Hour (12h format)
             Text(forecast.timeString)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.secondary)
-            
-            // Weather Lottie animation - using your existing LottieView and WeatherAnimationHelper
-            LottieView(name: animationName)
-                .frame(width: 40, height: 40)
+
+            // Phase 6 — migrated to `ConditionIcon` so the
+            // iconography knobs in `IconographySpec` are honoured
+            // automatically.
+            ConditionIcon(
+                weatherCode: forecast.weatherCode,
+                isNight: isNight,
+                size: 40
+            )
+            .frame(width: 40, height: 40)
             
             // Temperature
             Text(tempString(forecast.temperature))
@@ -761,8 +794,9 @@ struct ForecastDayCard: View {
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
     @Environment(\.colorScheme) var colorScheme
-    @State private var loadingFailed: Bool = false
-    
+    // Phase 6 — `loadingFailed` removed; `ConditionIcon` handles
+    // the Lottie → SF Symbol fallback internally.
+
     private var cardFillColor6: Color {
         #if os(iOS)
         return Color(UIColor.systemGray6)
@@ -770,36 +804,22 @@ struct ForecastDayCard: View {
         return Color(NSColor.windowBackgroundColor)
         #endif
     }
-    
-    private var animationName: String {
-        let name = WeatherAnimationHelper.animationNameFromCode(
-            for: day.weatherCode,
-            isNight: false
-        )
-        #if DEBUG
-        print("📅 ForecastDayCard: date=\(day.date), weatherCode=\(day.weatherCode), animation='\(name)'")
-        #endif
-        return name
-    }
-    
+
     var body: some View {
         HStack(spacing: 20) {
             // Left: Weather Lottie animation and temperatures
             HStack(spacing: 12) {
-                // Use Lottie animation instead of text emoji
-                if loadingFailed {
-                    Text(day.weatherSymbol)
-                        .font(.system(size: 32))
-                        .frame(width: 44, height: 44)
-                        .minimumScaleFactor(0.7)
-                } else {
-                    // For daily forecasts, always use daytime animations (represents the whole day)
-                    LottieView(
-                        name: animationName,
-                        loadingFailed: $loadingFailed
-                    )
-                    .frame(width: 44, height: 44)
-                }
+                // Phase 6 — migrated to `ConditionIcon` so the
+                // iconography knobs in `IconographySpec` are
+                // honoured automatically. The SF Symbol fallback
+                // replaces the previous text-emoji fallback for
+                // consistency with the rest of the app.
+                ConditionIcon(
+                    weatherCode: day.weatherCode,
+                    isNight: false,
+                    size: 44
+                )
+                .frame(width: 44, height: 44)
                 
                 VStack(alignment: .leading) {
                     Text("\(Int(round(day.tempMax)))°")

@@ -71,7 +71,10 @@ struct BackgroundSpec: Codable, Hashable {
     /// `.saxtheme`. Nil = no custom image.
     var customImageData: Data? = nil
     var gradient: GradientSpec = .init()
-    var dynamicTint: String = "blue"
+    /// Tint applied on top of the shipped preset image when
+    /// `mode == .dynamicAccent`. Typed as `ColourToken` so it can
+    /// reference any named colour, an RGB triple, or a hex string.
+    var dynamicTint: ColourToken = .named("blue")
     /// Keyed by condition code (e.g. "clear-day", "rainy").
     /// Empty = use the shipped `Assets.xcassets` imagesets.
     var perCondition: [String: PerConditionBackground] = [:]
@@ -90,8 +93,11 @@ enum TimeOfDayRule: String, Codable, CaseIterable, Hashable {
 }
 
 struct GradientSpec: Codable, Hashable {
-    var topColor: String = "blue"
-    var bottomColor: String = "system"
+    /// `ColourToken`s so the gradient can use any named / RGB / hex
+    /// colour, including references to `Palette.surface` (via the
+    /// `"surface"` semantic name in `ColourToken`).
+    var topColor: ColourToken = .named("blue")
+    var bottomColor: ColourToken = .named("system")
     var topOpacity: Double = 0.5
     var bottomOpacity: Double = 0.9
 }

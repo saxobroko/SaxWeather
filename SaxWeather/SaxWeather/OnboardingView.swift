@@ -745,7 +745,10 @@ private struct AnimationTile: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            LottieView(name: name, loopMode: .loop)
+            // Phase 6 — migrated to `ConditionIcon` so the
+            // iconography knobs in `IconographySpec` are honoured
+            // automatically.
+            ConditionIcon(condition: name, size: 70)
                 .frame(width: 70, height: 70)
                 .accessibilityLabel("\(label) animation preview")
 

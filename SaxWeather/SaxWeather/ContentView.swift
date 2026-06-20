@@ -43,6 +43,13 @@ struct ContentView: View {
     @AppStorage("displayMode") private var displayMode: String = "Summary"
     @AppStorage("disableAPIKeys") private var disableAPIKeys = false
     @AppStorage("showHamburgerMenu") private var showHamburgerMenu: Bool = true
+    // Phase 5 — observes the registry so the background re-renders
+    // when the user tweaks a knob in the new Settings UI. The
+    // resolver's `effectiveOverlayOpacity` is the source of truth
+    // for the overlay (and is IAP-gated); the bridge still writes
+    // the spec value through to `@AppStorage("overlayOpacity")`
+    // for any legacy reader.
+    @ObservedObject private var registry = CustomisationRegistry.shared
     @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var weatherAlertManager = WeatherAlertManager()
     @State private var activePopup: PopupData?
@@ -259,8 +266,11 @@ struct ContentView: View {
     private var mainWeatherView: some View {
         ZStack(alignment: .top) {
             backgroundLayer
-            // Add a dark overlay for better contrast
-            Color.black.opacity(0.28)
+            // Add a dark overlay for better contrast.
+            // Phase 5: strength comes from the spec via the
+            // resolver, which falls back to the free default
+            // (0.28) when the IAP is locked.
+            Color.black.opacity(currentOverlayOpacity)
                 .blur(radius: 8)
                 .ignoresSafeArea()
             if displayMode == "Detailed" {
@@ -321,16 +331,37 @@ struct ContentView: View {
     }
     
     private var backgroundLayer: some View {
-        // Use the wrapper which properly passes the environment object
-        BackgroundViewWrapper(condition: weatherService.currentBackgroundCondition)
+        // Phase 5 — resolve the active `BackgroundSpec` into a
+        // `BackgroundStrategy` and hand it to the view. The
+        // resolver is a pure function, so re-renders are cheap.
+        let strategy = BackgroundResolver.resolve(
+            condition: weatherService.currentBackgroundCondition,
+            spec: registry.profile.knobs.background,
+            sunrise: weatherService.forecast?.daily.first?.sunrise,
+            sunset: weatherService.forecast?.daily.first?.sunset,
+            now: Date(),
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+        return BackgroundViewWrapper(strategy: strategy)
     }
-    
+
+    /// Effective overlay opacity, gated on the IAP. The view
+    /// reads this instead of `@AppStorage("overlayOpacity")`
+    /// directly so the free default (0.28) is used when the
+    /// IAP is locked, even if the spec has a different value.
+    private var currentOverlayOpacity: Double {
+        BackgroundResolver.effectiveOverlayOpacity(
+            spec: registry.profile.knobs.background,
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+        )
+    }
+
     struct BackgroundViewWrapper: View {
-        let condition: String
+        let strategy: BackgroundStrategy
         @EnvironmentObject var storeManager: StoreManager
-        
+
         var body: some View {
-            BackgroundView(condition: condition)
+            BackgroundView(strategy: strategy)
                 .environmentObject(storeManager)
         }
     }
@@ -375,11 +406,14 @@ struct ContentView: View {
                     
                     #if os(macOS)
                     Spacer().frame(height: 48)
-                    LottieView(name: getAnimationName(for: weather.condition))
+                    // Phase 6 — migrated to `ConditionIcon` so the
+                    // iconography knobs in `IconographySpec` are
+                    // honoured automatically.
+                    ConditionIcon(condition: weather.condition, size: 100)
                         .frame(width: 100, height: 100)
                         .frame(maxWidth: .infinity, alignment: .center)
                     #else
-                    LottieView(name: getAnimationName(for: weather.condition))
+                    ConditionIcon(condition: weather.condition, size: 150)
                         .frame(width: 150, height: 150)
                         .padding(.top, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -489,30 +523,10 @@ struct ContentView: View {
             }
         }
     }
-    
-    // Helper to determine animation name
-    private func getAnimationName(for condition: String) -> String {
-        let lowercased = condition.lowercased()
-        let isNight = isNighttime()
-        
-        if lowercased.contains("clear") || lowercased.contains("sunny") {
-            return isNight ? "clear-night" : "clear-day"
-        } else if lowercased.contains("partly cloudy") {
-            return isNight ? "partly-cloudy-night" : "partly-cloudy"
-        } else if lowercased.contains("cloud") || lowercased.contains("overcast") {
-            return "cloudy"
-        } else if lowercased.contains("fog") || lowercased.contains("mist") {
-            return "foggy"
-        } else if lowercased.contains("rain") || lowercased.contains("shower") || lowercased.contains("drizzle") {
-            return "rainy"
-        } else if lowercased.contains("snow") || lowercased.contains("sleet") || lowercased.contains("ice") {
-            return "snowy"
-        } else if lowercased.contains("thunder") || lowercased.contains("lightning") || lowercased.contains("storm") {
-            return "thunderstorm"
-        }
-        return isNight ? "clear-night" : "clear-day"
-    }
-    
+
+    // Phase 6 — `getAnimationName(for:)` removed; `ConditionIcon`
+    // resolves the animation name via `AnimationRegistry`.
+
     // Helper function to determine if it's nighttime
     private func isNighttime() -> Bool {
         let hour = Calendar.current.component(.hour, from: Date())

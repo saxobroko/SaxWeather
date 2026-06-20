@@ -25,6 +25,7 @@
 //
 
 import Foundation
+import SwiftUI
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -168,6 +169,41 @@ final class CustomisationRegistry: ObservableObject {
     /// Read a single knob via a key path.
     func get<Value>(_ keyPath: KeyPath<KnobStorage, Value>) -> Value {
         profile.knobs[keyPath: keyPath]
+    }
+
+    /// A two-way `Binding` to the active `KnobStorage`. Use
+    /// `$registry.knobsBinding.background.mode` in SwiftUI views
+    /// to bind pickers, sliders, and toggles to a single knob —
+    /// `setKnobs(_:)` runs on every write so the change
+    /// persists, bumps the hash, and reloads widgets.
+    ///
+    /// Why a custom binding instead of binding to `profile`
+    /// directly? `profile` is `@Published private(set)` so the
+    /// setter is private (all writes must funnel through the
+    /// registry to keep the persistence + widget-reload
+    /// invariants).
+    var knobsBinding: Binding<KnobStorage> {
+        Binding(
+            get: { self.profile.knobs },
+            set: { self.setKnobs($0) }
+        )
+    }
+
+    /// Replace the whole `KnobStorage`. Bumps the profile
+    /// timestamp, persists, bridges to `UserDefaults`, and
+    /// reloads widgets. The sibling of `set(_:_:)` for callers
+    /// that already hold a complete `KnobStorage` (e.g. SwiftUI
+    /// bindings).
+    func setKnobs(_ newKnobs: KnobStorage) {
+        var newProfile = profile
+        guard newProfile.knobs != newKnobs else { return }
+        newProfile.knobs = newKnobs
+        newProfile.updatedAt = Date()
+        profile = newProfile
+        recomputeHash()
+        persist()
+        ProfileToAppStorageBridge.bridge(profile.knobs)
+        reloadWidgets()
     }
 
     // MARK: - Profile I/O

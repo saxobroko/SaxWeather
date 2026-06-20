@@ -199,7 +199,10 @@ struct DetailedWeatherView: View {
         VStack(spacing: 12) {
             HStack(alignment: .center, spacing: 16) {
                 if let condition = weatherService.weather?.condition {
-                    LottieView(name: getAnimationName(for: condition))
+                    // Phase 6 — migrated to `ConditionIcon` so the
+                    // iconography knobs in `IconographySpec` are
+                    // honoured automatically.
+                    ConditionIcon(condition: condition, size: 100)
                         .frame(width: 100, height: 100)
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -751,17 +754,8 @@ private func getSymbol(for condition: String) -> String {
     }
 }
 
-private func getAnimationName(for condition: String) -> String {
-    switch condition.lowercased() {
-    case let c where c.contains("cloud"): return "cloudy"
-    case let c where c.contains("rain"): return "rainy"
-    case let c where c.contains("snow"): return "snowy"
-    case let c where c.contains("sun"): return "sunny"
-    case let c where c.contains("clear"): return "clear-day"
-    case let c where c.contains("thunder"): return "thunder"
-    default: return "default"
-    }
-}
+// Phase 6 — `getAnimationName(for:)` removed; `ConditionIcon`
+// resolves the animation name via `AnimationRegistry`.
 
 // MARK: - Preview
 #Preview {

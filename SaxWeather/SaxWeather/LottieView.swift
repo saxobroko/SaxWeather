@@ -10,13 +10,18 @@ struct LottieView: UIViewRepresentable {
     @Binding var loadingFailed: Bool
     @AppStorage("disableWeatherAnimations") private var disableWeatherAnimations = false
     @AppStorage("reduceMotion") private var reduceMotion = false
-    
+    // Phase 6 — playback speed is bridged from
+    // `IconographySpec.lottiePlaybackSpeed` via
+    // `ProfileToAppStorageBridge`. Default 1.0 matches the
+    // registry default so existing call sites see no change.
+    @AppStorage("lottiePlaybackSpeed") private var lottiePlaybackSpeed: Double = 1.0
+
     init(name: String, loopMode: LottieLoopMode = .loop) {
         self.name = name
         self.loopMode = loopMode
         self._loadingFailed = .constant(false)
     }
-    
+
     init(name: String, loopMode: LottieLoopMode = .loop, loadingFailed: Binding<Bool>) {
         self.name = name
         self.loopMode = loopMode
@@ -65,13 +70,16 @@ struct LottieView: UIViewRepresentable {
             animationView.animation = animation
             animationView.contentMode = .scaleAspectFit
             animationView.loopMode = loopMode
+            // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`
+            // (bridged to UserDefaults via `ProfileToAppStorageBridge`).
+            animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
             animationView.play()
         } else {
             // Animation failed to load
             DispatchQueue.main.async {
                 self.loadingFailed = true
             }
-            
+
             // Show error indicator
             let label = UILabel()
             label.text = "❌"
@@ -79,16 +87,16 @@ struct LottieView: UIViewRepresentable {
             label.textAlignment = .center
             label.translatesAutoresizingMaskIntoConstraints = false
             containerView.addSubview(label)
-            
+
             NSLayoutConstraint.activate([
                 label.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
                 label.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
             ])
         }
-        
+
         return containerView
     }
-    
+
     func updateUIView(_ uiView: UIView, context: Context) {
         // Check if settings have changed and we need to recreate the view
         let hasSubviews = !uiView.subviews.isEmpty
@@ -133,12 +141,14 @@ struct LottieView: UIViewRepresentable {
                     animationView.animation = animation
                     animationView.contentMode = .scaleAspectFit
                     animationView.loopMode = loopMode
+                    // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
+                    animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
                     animationView.play()
                 }
             }
         }
     }
-    
+
     private func weatherSymbolForAnimation(_ animationName: String) -> String {
         let name = animationName.lowercased()
         switch name {
@@ -165,13 +175,18 @@ struct LottieView: NSViewRepresentable {
     @Binding var loadingFailed: Bool
     @AppStorage("disableWeatherAnimations") private var disableWeatherAnimations = false
     @AppStorage("reduceMotion") private var reduceMotion = false
-    
+    // Phase 6 — playback speed is bridged from
+    // `IconographySpec.lottiePlaybackSpeed` via
+    // `ProfileToAppStorageBridge`. Default 1.0 matches the
+    // registry default so existing call sites see no change.
+    @AppStorage("lottiePlaybackSpeed") private var lottiePlaybackSpeed: Double = 1.0
+
     init(name: String, loopMode: LottieLoopMode = .loop) {
         self.name = name
         self.loopMode = loopMode
         self._loadingFailed = .constant(false)
     }
-    
+
     init(name: String, loopMode: LottieLoopMode = .loop, loadingFailed: Binding<Bool>) {
         self.name = name
         self.loopMode = loopMode
@@ -218,13 +233,15 @@ struct LottieView: NSViewRepresentable {
         if let animation = LottieParser.loadAnimation(named: name) {
             animationView.animation = animation
             animationView.loopMode = loopMode
+            // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
+            animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
             animationView.play()
         } else {
             loadingFailed = true
         }
         return containerView
     }
-    
+
     func updateNSView(_ nsView: NSView, context: Context) {
         // Check if settings have changed and we need to recreate the view
         let hasSubviews = !nsView.subviews.isEmpty
@@ -269,12 +286,14 @@ struct LottieView: NSViewRepresentable {
                 if let animation = LottieParser.loadAnimation(named: name) {
                     animationView.animation = animation
                     animationView.loopMode = loopMode
+                    // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
+                    animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
                     animationView.play()
                 }
             }
         }
     }
-    
+
     private func weatherSymbolForAnimation(_ animationName: String) -> String {
         let name = animationName.lowercased()
         switch name {
