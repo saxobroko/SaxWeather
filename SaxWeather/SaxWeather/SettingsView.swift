@@ -175,6 +175,12 @@ struct SettingsView: View {
                 // and cellular.
                 NetworkQualityHint()
 
+                // Phase 7 — Theme switcher + share/import. Drop-in
+                // section that surfaces the "infinitely customisable"
+                // features without rewriting the rest of the
+                // settings UI.
+                ThemeSettingsSection()
+
                 Section {
                     NavigationLink {
                         LocationsSettingsView(

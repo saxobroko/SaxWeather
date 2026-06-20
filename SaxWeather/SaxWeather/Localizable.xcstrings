@@ -10,6 +10,9 @@
     " %@" : {
 
     },
+    "'%@' will replace your current theme." : {
+
+    },
     "[Hourly Temperature Graph]" : {
 
     },
@@ -290,6 +293,9 @@
     "Built-in (Default)" : {
 
     },
+    "Built-in Profiles" : {
+
+    },
     "Built-in weather service" : {
 
     },
@@ -312,6 +318,9 @@
 
     },
     "Check Status" : {
+
+    },
+    "Choose .saxtheme File…" : {
 
     },
     "Choose Display Name" : {
@@ -375,6 +384,9 @@
 
     },
     "Custom Text Size" : {
+
+    },
+    "Customisation" : {
 
     },
     "Dark" : {
@@ -854,7 +866,22 @@
         }
       }
     },
+    "Export" : {
+
+    },
+    "Export Again" : {
+
+    },
+    "Export Current Theme" : {
+
+    },
     "Export Debug Log" : {
+
+    },
+    "Export Failed" : {
+
+    },
+    "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
 
     },
     "Feel touch feedback for actions" : {
@@ -912,6 +939,18 @@
 
     },
     "Hourly Forecast" : {
+
+    },
+    "Import" : {
+
+    },
+    "Import Failed" : {
+
+    },
+    "Import Theme?" : {
+
+    },
+    "Imports a .saxtheme file from Files, AirDrop, or another app. Your current theme is replaced." : {
 
     },
     "in %@" : {
@@ -1001,6 +1040,9 @@
 
     },
     "Light" : {
+
+    },
+    "Live JSON view of the active customisation profile." : {
 
     },
     "Live Preview" : {
@@ -1349,6 +1391,9 @@
     "Schedule Test Notification" : {
 
     },
+    "Schema v%lld" : {
+
+    },
     "Search City/Town" : {
 
     },
@@ -1383,6 +1428,15 @@
 
     },
     "Settings" : {
+
+    },
+    "Share %@" : {
+
+    },
+    "Share Theme" : {
+
+    },
+    "Share Theme…" : {
 
     },
     "Show as Anonymous" : {
@@ -1427,6 +1481,9 @@
     "Strength of the dark scrim on top of the background. Improves contrast for the text below." : {
 
     },
+    "Strip credentials before sharing" : {
+
+    },
     "Sun & Moon" : {
 
     },
@@ -1457,10 +1514,16 @@
     "Support SaxWeather" : {
 
     },
+    "Switch between built-in themes, or share your current theme as a .saxtheme file." : {
+
+    },
     "Switch between saved locations" : {
 
     },
     "Switch Location" : {
+
+    },
+    "Switching applies the preset immediately. You can tweak individual settings afterwards." : {
 
     },
     "System" : {
@@ -1533,6 +1596,9 @@
 
     },
     "Theme" : {
+
+    },
+    "Theme Editor" : {
 
     },
     "This will permanently delete your leaderboard entry and all associated data. You can rejoin anytime." : {

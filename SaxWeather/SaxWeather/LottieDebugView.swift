@@ -389,6 +389,11 @@ struct LottieDebugView: View {
     
     private var systemInfoSection: some View {
         VStack(spacing: 16) {
+            // Phase 7 — Theme Editor. JSON view + Reveal in Finder
+            // + Reload + Reset, so devs can hot-reload the active
+            // profile by editing the on-disk `.saxtheme`.
+            ThemeEditorCard()
+
             // Header Card
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
