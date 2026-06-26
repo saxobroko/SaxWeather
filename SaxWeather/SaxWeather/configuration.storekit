@@ -88,6 +88,96 @@
       "productID" : "com.saxobroko.SaxWeather.tip10",
       "referenceName" : "Party Tip",
       "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "2234567890",
+      "localizations" : [
+        {
+          "description" : "Eight aurora-themed background images, one for each weather condition.",
+          "displayName" : "Aurora Backgrounds",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.aurora.backgrounds",
+      "referenceName" : "Aurora Backgrounds",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "2234567895",
+      "localizations" : [
+        {
+          "description" : "An aurora-themed gradient for the hourly temperature chart.",
+          "displayName" : "Aurora Chart Skin",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.aurora.chart",
+      "referenceName" : "Aurora Chart Skin",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "2234567891",
+      "localizations" : [
+        {
+          "description" : "A five-colour palette: deep navy, ocean blue, teal, mint, coral.",
+          "displayName" : "Aurora Palette",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.aurora.palette",
+      "referenceName" : "Aurora Palette",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "2234567892",
+      "localizations" : [
+        {
+          "description" : "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison.",
+          "displayName" : "Supporter Badge",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.supporter.badge",
+      "referenceName" : "Supporter Badge",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "2234567893",
+      "localizations" : [
+        {
+          "description" : "Buy once, get every cosmetic — now and forever. Help fund the app you love.",
+          "displayName" : "Supporter Pack",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.supporter.pack",
+      "referenceName" : "Supporter Pack",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "2234567896",
+      "localizations" : [
+        {
+          "description" : "All three Aurora items — backgrounds, palette, and chart skin.",
+          "displayName" : "Mega Pack: Aurora",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.saxweather.cosmetic.bundle.mega.aurora",
+      "referenceName" : "Mega Pack: Aurora",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

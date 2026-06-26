@@ -21,6 +21,11 @@
 //
 //  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §4.6.
 //
+//  Phase 3 — removed the Aurora Lottie cosmetic and its
+//  `LottieSkinOverlay` modifier. The bundled Lottie animations
+//  are still wired in (they're the free default for everyone);
+//  only the paid colour overlay is gone.
+//
 
 import SwiftUI
 import Lottie
@@ -42,6 +47,7 @@ struct ConditionIcon: View {
     let size: CGFloat
 
     @EnvironmentObject private var customisation: CustomisationRegistry
+    @EnvironmentObject private var storeManager: StoreManager
     @State private var loadingFailed = false
 
     /// Textual condition convenience init.
@@ -60,6 +66,12 @@ struct ConditionIcon: View {
         self.size = size
     }
 
+    /// User-configured icon size multiplier. Defaults to 1.0
+    /// when the key is missing.
+    private var resolvedSize: CGFloat {
+        CGFloat(SettingsBehaviour.iconSizeMultiplier) * size
+    }
+
     var body: some View {
         Group {
             if shouldUseLottie && !loadingFailed {
@@ -72,7 +84,7 @@ struct ConditionIcon: View {
                 symbolView
             }
         }
-        .frame(width: size, height: size)
+        .frame(width: resolvedSize, height: resolvedSize)
         // Re-resolve when the profile changes so toggling a knob
         // (e.g. disable animations) updates the icon immediately.
         .id(animationName)

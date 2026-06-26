@@ -13,17 +13,33 @@
     "'%@' will replace your current theme." : {
 
     },
-    "[Hourly Temperature Graph]" : {
+    "\"%@\" will be removed from your saved locations. This cannot be undone." : {
 
     },
-    "#%lld" : {
+    "[Hourly Temperature Graph]" : {
 
     },
     "#RRGGBB" : {
 
     },
+    "%.1f pt" : {
+
+    },
+    "%@" : {
+
+    },
     "%@ – re-enter a valid key to restore this source." : {
 
+    },
+    "%@ · %lld pt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld pt"
+          }
+        }
+      }
     },
     "%@ animation preview" : {
 
@@ -41,27 +57,46 @@
         }
       }
     },
-    "%lld" : {
-
-    },
-    "%lld contribution%@" : {
+    "%@. %@. %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld contribution%2$@"
+            "value" : "%1$@. %2$@. %3$@"
           }
         }
       }
     },
+    "%@°" : {
+
+    },
+    "%lld" : {
+
+    },
     "%lld Days" : {
 
     },
-    "%lld more" : {
+    "%lld dp" : {
+
+    },
+    "%lld knobs" : {
 
     },
     "%lld percent" : {
 
+    },
+    "%lld pt" : {
+
+    },
+    "%lld%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%2$@"
+          }
+        }
+      }
     },
     "%lld%%" : {
 
@@ -87,12 +122,6 @@
     "✅ Completed" : {
 
     },
-    "✅ Yes" : {
-
-    },
-    "❌ No" : {
-
-    },
     "🐞 Developer Debug" : {
 
     },
@@ -106,23 +135,53 @@
         }
       }
     },
-    "🥇" : {
-
-    },
-    "🥈" : {
-
-    },
-    "🥉" : {
-
-    },
     "7-Day Forecast" : {
+
+    },
+    "12 hours" : {
+
+    },
+    "14°" : {
 
     },
     "22°" : {
 
     },
+    "24 hours" : {
+
+    },
     "24-Hour Summary" : {
 
+    },
+    "48 hours" : {
+
+    },
+    "A casual handwritten font family for a friendlier feel." : {
+      "comment" : "Subtitle for the Handwritten Font Set cosmetic tile."
+    },
+    "A continuous-breeze Core Haptics pattern for selection and refresh." : {
+      "comment" : "Subtitle for the Wind Haptic Pack cosmetic tile."
+    },
+    "A five-colour palette: deep navy, ocean blue, teal, mint, coral." : {
+      "comment" : "Subtitle for the Aurora Palette cosmetic tile."
+    },
+    "A five-colour palette: hot pink, electric blue, cyan, magenta, deep purple." : {
+      "comment" : "Subtitle for the Neon Palette cosmetic tile."
+    },
+    "A monospace font family for the entire app." : {
+      "comment" : "Subtitle for the Mono Code Font Set cosmetic tile."
+    },
+    "A raindrop-like Core Haptics pattern for selection and refresh." : {
+      "comment" : "Subtitle for the Rain Haptic Pack cosmetic tile."
+    },
+    "A serif headline font paired with a clean sans-serif for body text." : {
+      "comment" : "Subtitle for the Editorial Font Set cosmetic tile."
+    },
+    "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically. No subscriptions, no Family Sharing, no auto-renew. The most cost-effective way to support development and own the entire cosmetic library." : {
+      "comment" : "Long description for Supporter Pack."
+    },
+    "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison." : {
+      "comment" : "Subtitle for the Supporter Badge cosmetic tile."
     },
     "About" : {
 
@@ -139,6 +198,9 @@
     "Active" : {
 
     },
+    "Active Backup" : {
+
+    },
     "Active Location" : {
 
     },
@@ -146,6 +208,9 @@
 
     },
     "Active source: %@" : {
+
+    },
+    "Add an outline around text for low-vision users." : {
 
     },
     "Add API Keys in Settings" : {
@@ -166,19 +231,55 @@
     "Add widgets from the iOS widget gallery after setup." : {
 
     },
+    "Adds a small private acknowledgement in Settings → About. No public visibility, no social comparison, no leaderboard. The free equivalent: no badge, but every other cosmetic is still available." : {
+      "comment" : "Long description for Supporter Badge."
+    },
+    "Aggressive refresh uses more battery; Battery Saver throttles network calls." : {
+
+    },
     "Air Quality" : {
 
     },
     "Alerts" : {
 
     },
+    "Alerts & Sounds" : {
+
+    },
     "Alerts Enabled" : {
 
+    },
+    "All cosmetics are optional. SaxWeather is fully functional without any purchase." : {
+      "comment" : "Footer reassurance copy in the cosmetics store."
+    },
+    "All four seasonal packs — Halloween, Christmas, Pride, and Autumn." : {
+      "comment" : "Subtitle for the Mega Pack: Seasonal bundle tile."
+    },
+    "All three Aurora items — backgrounds, palette, and chart skin." : {
+      "comment" : "Subtitle for the Mega Pack: Aurora bundle tile."
+    },
+    "All three Neon items — backgrounds, palette, and icons." : {
+      "comment" : "Subtitle for the Mega Pack: Neon bundle tile."
     },
     "All tweakable in Settings, then Appearance." : {
 
     },
+    "Allow pull-to-refresh anywhere on the home screen, not just inside the scroll view." : {
+
+    },
+    "Always reduce motion, even when the system setting is off." : {
+
+    },
+    "Always Show Location Label" : {
+
+    },
+    "An aurora-themed gradient for the hourly temperature chart." : {
+      "comment" : "Subtitle for the Aurora Hourly Chart Skin cosmetic tile."
+    },
     "Animation" : {
+
+    },
+    "Animation Set" : {
 
     },
     "Animation Testing" : {
@@ -245,6 +346,9 @@
     "Apply" : {
 
     },
+    "Apply a built-in preset or one of your saved themes" : {
+
+    },
     "AQI" : {
 
     },
@@ -257,16 +361,31 @@
     "ATTRIBUTIONS" : {
 
     },
+    "Aurora Backgrounds" : {
+
+    },
+    "Aurora Backgrounds + Aurora Palette + Aurora Chart Skin + Mono Code Font." : {
+      "comment" : "Subtitle for the Starter Pack bundle tile."
+    },
     "Auto-scroll Console" : {
 
     },
     "Automatically announce severe weather warnings" : {
 
     },
+    "Available" : {
+      "comment" : "Accessibility value: row is available to pick."
+    },
     "Back" : {
 
     },
+    "Back Up & Share Settings…" : {
+
+    },
     "Background" : {
+
+    },
+    "Background Behaviour" : {
 
     },
     "Background Mode" : {
@@ -284,10 +403,34 @@
     "Background Settings" : {
 
     },
+    "Backup & Restore" : {
+
+    },
+    "Behaviour" : {
+
+    },
+    "Blur" : {
+
+    },
+    "Blur Intensity" : {
+
+    },
+    "Blur picks between ultra-thin, thin, and regular materials. Material Opacity controls how much the background shows through (60% matches the original look). Edge highlight draws a soft light sweep across the card." : {
+
+    },
     "Bold Text" : {
 
     },
+    "Border" : {
+
+    },
+    "Border Gradient" : {
+
+    },
     "Bottom Opacity: %.2f" : {
+
+    },
+    "Browse and purchase cosmetic items for the app" : {
 
     },
     "Built-in (Default)" : {
@@ -299,10 +442,34 @@
     "Built-in weather service" : {
 
     },
+    "Bundle" : {
+
+    },
+    "Buy $%.2f" : {
+      "comment" : "Buy button label with the cosmetic's price. %@ is replaced with the formatted price."
+    },
+    "Buy once, get every cosmetic — now and forever. Help fund the app you love." : {
+      "comment" : "Subtitle for the Supporter Pack cosmetic tile."
+    },
     "by Saxon" : {
 
     },
     "Cancel" : {
+
+    },
+    "Card Density" : {
+
+    },
+    "Card Opacity" : {
+
+    },
+    "Card Style" : {
+
+    },
+    "Card Style…" : {
+
+    },
+    "Cards" : {
 
     },
     "Change Custom Background" : {
@@ -310,6 +477,9 @@
     },
     "Change the background image, set a gradient, tint the preset, swap images by condition, switch by time of day, and tune the dark overlay." : {
 
+    },
+    "Chart Style" : {
+      "comment" : "Header on the chart skin picker section.\nTitle of the chart skin picker row in Settings.\nTitle of the chart skin picker view."
     },
     "Check Authorization Status" : {
 
@@ -323,22 +493,37 @@
     "Choose .saxtheme File…" : {
 
     },
-    "Choose Display Name" : {
+    "Choose a preset for a quick look, or pick a custom colour. Empty (\"Default\") means the card uses your palette surface colour." : {
 
     },
     "Clear Console" : {
 
     },
     "Close" : {
+      "comment" : "Accessibility label for the close button."
+    },
+    "Collapse" : {
+
+    },
+    "Colour" : {
+
+    },
+    "Compact Cards in Landscape" : {
+
+    },
+    "Condition" : {
 
     },
     "Configuration" : {
 
     },
-    "Console" : {
+    "Confirm Before Quitting" : {
 
     },
-    "Contributions" : {
+    "Confirm Destructive Actions" : {
+
+    },
+    "Console" : {
 
     },
     "Coordinates are valid" : {
@@ -350,10 +535,28 @@
     "Copy Message" : {
 
     },
-    "Current Location (GPS)" : {
+    "Corner Radius" : {
 
     },
-    "Current State" : {
+    "Corner radius and inner padding. Original WeatherDetailsView used 24 pt radius, 16 pt horizontal padding, 20 pt vertical padding." : {
+
+    },
+    "Cosmetic Colours" : {
+
+    },
+    "Cosmetic palette — installed when the matching pack is owned." : {
+      "comment" : "Subtitle for an owned cosmetic palette row."
+    },
+    "Cosmetic skin — installed when the matching pack is owned." : {
+      "comment" : "Subtitle for an owned cosmetic chart skin row."
+    },
+    "Cosmetics" : {
+      "comment" : "Title of the cosmetics store view."
+    },
+    "Current" : {
+
+    },
+    "Current Location (GPS)" : {
 
     },
     "Currently using: %@" : {
@@ -362,8 +565,14 @@
     "Custom Coordinates" : {
 
     },
+    "Custom Fill" : {
+
+    },
     "Custom gradient" : {
 
+    },
+    "Custom illustrated weather-condition icons in a neon style." : {
+      "comment" : "Subtitle for the Neon Weather Icons cosmetic tile."
     },
     "Custom image" : {
 
@@ -386,7 +595,10 @@
     "Custom Text Size" : {
 
     },
-    "Customisation" : {
+    "Customise" : {
+
+    },
+    "Customise Day" : {
 
     },
     "Dark" : {
@@ -395,10 +607,19 @@
     "Dark Overlay" : {
 
     },
+    "Data" : {
+
+    },
+    "Data & Refresh" : {
+
+    },
     "Data from WU Station: %@" : {
 
     },
     "Dawn / Day / Dusk / Night" : {
+
+    },
+    "Day" : {
 
     },
     "Debug" : {
@@ -413,10 +634,22 @@
     "Debug Section" : {
 
     },
+    "Decimal Places" : {
+
+    },
+    "Default" : {
+      "comment" : "Fallback name for an unknown custom palette in the picker row."
+    },
     "Delete" : {
 
     },
+    "Delete location?" : {
+
+    },
     "Detailed forecast data" : {
+
+    },
+    "Details" : {
 
     },
     "Developer" : {
@@ -437,26 +670,32 @@
     "Disable Weather Icons" : {
 
     },
+    "Display “Weather for X” above the hero card." : {
+
+    },
     "Display Mode" : {
-
-    },
-    "Display Name" : {
-
-    },
-    "Display Settings" : {
 
     },
     "Display the hamburger menu in the top-right corner of the main weather screen for quick location switching." : {
 
     },
     "Done" : {
-
+      "comment" : "Done button on the chart skin picker.\nDone button on the palette picker."
     },
     "Dynamic Accent" : {
 
     },
     "E" : {
 
+    },
+    "Edge Highlight" : {
+
+    },
+    "Eight aurora-themed background images, one for each weather condition." : {
+      "comment" : "Subtitle for the Aurora Backgrounds cosmetic tile."
+    },
+    "Eight synthwave-themed background images, one for each weather condition." : {
+      "comment" : "Subtitle for the Neon Backgrounds cosmetic tile."
     },
     "Enable Alerts" : {
 
@@ -476,10 +715,25 @@
     "Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events." : {
 
     },
+    "Enable Quiet Hours" : {
+
+    },
+    "Enabled" : {
+
+    },
     "Enables vibration feedback for interactions" : {
 
     },
+    "End" : {
+
+    },
+    "End preview" : {
+      "comment" : "Button to end an active preview."
+    },
     "End:" : {
+
+    },
+    "Ends in %llds" : {
 
     },
     "Enhance contrast for better readability" : {
@@ -495,9 +749,6 @@
 
     },
     "Enter Custom Coordinates" : {
-
-    },
-    "Enter your name" : {
 
     },
     "Error" : {
@@ -866,6 +1117,15 @@
         }
       }
     },
+    "Every cosmetic is optional — no features are paywalled." : {
+      "comment" : "Cosmetics store subtitle emphasising no paywalled features."
+    },
+    "Expand" : {
+
+    },
+    "Experimental" : {
+
+    },
     "Export" : {
 
     },
@@ -884,10 +1144,25 @@
     "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
 
     },
+    "Family Sharing" : {
+
+    },
+    "Featured" : {
+      "comment" : "Section header for the featured carousel."
+    },
     "Feel touch feedback for actions" : {
 
     },
+    "Fill" : {
+
+    },
+    "Fill Opacity" : {
+
+    },
     "Follow system Dynamic Type settings" : {
+
+    },
+    "Force Reduce Motion" : {
 
     },
     "Forecast" : {
@@ -896,13 +1171,34 @@
     "Forecast Days" : {
 
     },
+    "Forecast Detail" : {
+
+    },
     "Forecast Length" : {
 
+    },
+    "Four cohesive widget themes: Classic, Glass, Newspaper, Terminal." : {
+      "comment" : "Subtitle for the Widget Theme Skins cosmetic tile."
+    },
+    "Four illustrated app icons: hand-drawn weather scenes." : {
+      "comment" : "Subtitle for the App Icon Pack: Illustrated cosmetic tile."
+    },
+    "Four minimalist app icons: line-art weather glyphs on solid backgrounds." : {
+      "comment" : "Subtitle for the App Icon Pack: Minimal cosmetic tile."
+    },
+    "Free — uses the shipped chart styling." : {
+      "comment" : "Subtitle for the free Default chart skin row."
+    },
+    "Free — uses the shipped theme tokens." : {
+      "comment" : "Subtitle for the free Default palette row."
     },
     "Free alternative" : {
 
     },
     "Free weather API (CC BY 4.0)" : {
+
+    },
+    "Gestures" : {
 
     },
     "Get notified about weather changes" : {
@@ -911,10 +1207,16 @@
     "Get Started" : {
 
     },
-    "Global weather data provider" : {
+    "Give this theme a name so you can switch back to it later." : {
 
     },
-    "Got It" : {
+    "Glass" : {
+
+    },
+    "Glass uses Apple’s translucent material. Solid is opaque. Outline is transparent with a border. Neumorphic adds a soft inner shadow." : {
+
+    },
+    "Global weather data provider" : {
 
     },
     "Gradient" : {
@@ -926,10 +1228,25 @@
     "Haptic Feedback" : {
 
     },
+    "Haptic on Selection" : {
+
+    },
+    "Haptics" : {
+
+    },
     "Health Recommendations" : {
 
     },
     "Hex" : {
+
+    },
+    "High" : {
+
+    },
+    "High-Contrast Outline" : {
+
+    },
+    "Highlight" : {
 
     },
     "Hour Range" : {
@@ -939,6 +1256,21 @@
 
     },
     "Hourly Forecast" : {
+
+    },
+    "Hourly Window" : {
+
+    },
+    "How many digits to show after the decimal point for each kind of value." : {
+
+    },
+    "Icon Size" : {
+
+    },
+    "Icon Style" : {
+
+    },
+    "Icons" : {
 
     },
     "Import" : {
@@ -959,6 +1291,12 @@
     "Increase Contrast" : {
 
     },
+    "Inner shadow" : {
+
+    },
+    "Intensity" : {
+
+    },
     "Interface" : {
 
     },
@@ -966,18 +1304,6 @@
 
     },
     "It is currently raining. Rain expected to stop in %@." : {
-
-    },
-    "Join Leaderboard" : {
-
-    },
-    "Join Now" : {
-
-    },
-    "Join the Leaderboard" : {
-
-    },
-    "Join the Leaderboard!" : {
 
     },
     "Key health" : {
@@ -1015,28 +1341,7 @@
     "Latitude: -90 to 90, Longitude: -180 to 180" : {
 
     },
-    "Leaderboard" : {
-
-    },
-    "Leaderboard Data" : {
-
-    },
-    "Leaderboard Debug" : {
-
-    },
-    "Leaderboard Settings" : {
-
-    },
-    "Leave" : {
-
-    },
     "Leave a tip to support the app" : {
-
-    },
-    "Leave Leaderboard" : {
-
-    },
-    "Leave Leaderboard?" : {
 
     },
     "Light" : {
@@ -1078,7 +1383,22 @@
     "Locations" : {
 
     },
+    "Locked" : {
+      "comment" : "Accessibility value: row is locked behind a purchase."
+    },
+    "Long-Press to Customise" : {
+
+    },
+    "Loop forever" : {
+
+    },
+    "Loop Mode" : {
+
+    },
     "Love SaxWeather?" : {
+
+    },
+    "Low" : {
 
     },
     "Made by Saxon" : {
@@ -1089,6 +1409,9 @@
     },
     "Make all text heavier for improved legibility" : {
 
+    },
+    "Make SaxWeather yours." : {
+      "comment" : "Cosmetics store headline."
     },
     "Makes all text appear bolder" : {
 
@@ -1102,19 +1425,19 @@
     "Mark Onboarding Complete" : {
 
     },
-    "Max 20 characters. Letters, numbers, spaces, and underscores only." : {
+    "Match Original Glass Look" : {
 
     },
-    "Maybe Later" : {
+    "Material Opacity" : {
 
     },
     "Melbourne" : {
 
     },
-    "Minimize UI animations and transitions" : {
+    "Micro" : {
 
     },
-    "Mode" : {
+    "Minimize UI animations and transitions" : {
 
     },
     "Moon Information" : {
@@ -1124,6 +1447,12 @@
 
     },
     "N" : {
+
+    },
+    "Neumorphic" : {
+
+    },
+    "New Hero Layout" : {
 
     },
     "Next" : {
@@ -1138,7 +1467,7 @@
     "Next Scheduled" : {
 
     },
-    "Next tier: %@" : {
+    "Nickname (optional)" : {
 
     },
     "No Active Alerts" : {
@@ -1148,6 +1477,9 @@
 
     },
     "No hourly data available" : {
+
+    },
+    "No matches for '%@'" : {
 
     },
     "No messages yet" : {
@@ -1189,6 +1521,15 @@
     "Now" : {
 
     },
+    "Off" : {
+      "comment" : "Family Sharing off indicator."
+    },
+    "Offset X" : {
+
+    },
+    "Offset Y" : {
+
+    },
     "OK" : {
 
     },
@@ -1208,6 +1549,9 @@
     "One or more API keys are no longer accepted by the provider." : {
 
     },
+    "Opacity" : {
+
+    },
     "Open Settings" : {
 
     },
@@ -1217,13 +1561,62 @@
     "OpenWeatherMap" : {
 
     },
-    "Opted In:" : {
+    "Overlay" : {
+
+    },
+    "Overlay Opacity" : {
+
+    },
+    "Overlay Strength" : {
 
     },
     "Overlay Strength: %.2f" : {
 
     },
     "Override the mode for individual conditions. Empty entries fall through to the global mode." : {
+
+    },
+    "Overrides the solid border with a top-leading → bottom-trailing gradient. Leave both colours on “System” to fall back to the solid border." : {
+
+    },
+    "Owned" : {
+      "comment" : "Owned badge on a cosmetic tile.\nOwned indicator label on a cosmetic detail sheet.\nOwned indicator label on a cosmetic row."
+    },
+    "Owned ✓" : {
+      "comment" : "Owned indicator label on a cosmetic tile.\nOwned indicator label on the Supporter Pack card."
+    },
+    "Owned cosmetic palettes and chart skins. Locked rows open the cosmetics store when tapped." : {
+
+    },
+    "Pack: %@, %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pack: %1$@, %2$lld items"
+          }
+        }
+      }
+    },
+    "Packs" : {
+      "comment" : "Section header for the pack list."
+    },
+    "Padding (Horizontal)" : {
+
+    },
+    "Padding (Vertical)" : {
+
+    },
+    "Padding H" : {
+
+    },
+    "Padding V" : {
+
+    },
+    "Palette" : {
+      "comment" : "Header on the palette picker section.\nTitle of the palette picker row in Settings.\nTitle of the palette picker view."
+    },
+    "Partly Cloudy" : {
 
     },
     "Per-Condition Overrides" : {
@@ -1236,6 +1629,21 @@
 
     },
     "Photography Times" : {
+
+    },
+    "Pick the font family that suits the look you’re going for. System is the iOS default." : {
+
+    },
+    "Pin day" : {
+
+    },
+    "Pinned days stay expanded in the forecast. Nicknames show in the daily header instead of the date." : {
+
+    },
+    "Play once" : {
+
+    },
+    "Playback Speed" : {
 
     },
     "Please check your location settings or try again later" : {
@@ -1265,25 +1673,40 @@
     "Preferences" : {
 
     },
+    "Preferred Source" : {
+
+    },
+    "Premium" : {
+
+    },
     "Preset" : {
+
+    },
+    "Pressure" : {
 
     },
     "Preview Failed" : {
 
     },
-    "Privacy" : {
+    "Preview on your forecast for %llds" : {
+      "comment" : "Button to start a preview that applies the cosmetic temporarily."
+    },
+    "Previewing %@" : {
+      "comment" : "Headline of the live-preview countdown overlay. %@ is the cosmetic display name."
+    },
+    "Previewing on your forecast" : {
+      "comment" : "Banner shown while a preview is active."
+    },
+    "Price" : {
 
     },
-    "Privacy & Data" : {
-
-    },
-    "Privacy Notice" : {
-
-    },
-    "Privacy Protection" : {
+    "PRO" : {
 
     },
     "Processing…" : {
+
+    },
+    "Profile name" : {
 
     },
     "Protection Recommendations" : {
@@ -1295,7 +1718,28 @@
     "Provides more detailed descriptions when using VoiceOver" : {
 
     },
+    "Pull to Refresh" : {
+
+    },
+    "Pull-to-refresh haptics cannot be fully disabled (iOS limitation)." : {
+
+    },
+    "Pulse the taptic engine when weather data refreshes." : {
+
+    },
     "Purchase Error" : {
+
+    },
+    "Purchase Failed" : {
+
+    },
+    "Purchase Required" : {
+
+    },
+    "Quiet Hours mutes alert sounds during a daily time range. Times wrap past midnight (e.g. 22:00 → 07:00)." : {
+
+    },
+    "Radius" : {
 
     },
     "Rain expected to start in %@" : {
@@ -1304,8 +1748,8 @@
     "Rain Probability" : {
 
     },
-    "Rank" : {
-
+    "Rainbow-themed backgrounds, animations, icons, and palette." : {
+      "comment" : "Subtitle for the Pride Pack cosmetic tile."
     },
     "Re-run Onboarding" : {
 
@@ -1328,8 +1772,23 @@
     "Refresh" : {
 
     },
-    "Refresh Leaderboard" : {
+    "Refresh Cadence" : {
 
+    },
+    "Refresh Sound" : {
+
+    },
+    "Rename" : {
+
+    },
+    "Rename '%@'." : {
+
+    },
+    "Rename Profile" : {
+
+    },
+    "Replaces the eight shipped weather background images with aurora-themed versions. Purely visual — your forecast, your data, your alerts, all work the same. Free alternatives: any custom image you supply, or any of the other built-in presets." : {
+      "comment" : "Long description for Aurora Backgrounds."
     },
     "Requires iOS 16+" : {
 
@@ -1338,6 +1797,12 @@
 
     },
     "Reset Backoff Counter" : {
+
+    },
+    "Reset Behaviour to Defaults" : {
+
+    },
+    "Reset Card to Defaults" : {
 
     },
     "Reset to Default" : {
@@ -1352,7 +1817,27 @@
     "Resets the consecutive-failure counter. The next background refresh will use the base 5-minute interval." : {
 
     },
+    "Restore now" : {
+
+    },
     "Restore Purchase" : {
+
+    },
+    "Restore Purchases" : {
+      "comment" : "Button to restore previously purchased cosmetics."
+    },
+    "Restored. You own %lld cosmetic%@." : {
+      "comment" : "Confirmation banner shown after Restore Purchases completes.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Restored. You own %1$lld cosmetic%2$@."
+          }
+        }
+      }
+    },
+    "Restores in %llds" : {
 
     },
     "Retry" : {
@@ -1376,7 +1861,19 @@
     "Save API Keys" : {
 
     },
+    "Save Current as New…" : {
+
+    },
+    "Save Current Theme" : {
+
+    },
+    "Saved %@" : {
+
+    },
     "Saved Locations" : {
+
+    },
+    "Saved Profiles" : {
 
     },
     "SaxWeather needs location access to show weather for where you are. You can add a location manually later in Settings." : {
@@ -1394,16 +1891,28 @@
     "Schema v%lld" : {
 
     },
+    "Search All Settings" : {
+
+    },
     "Search City/Town" : {
+
+    },
+    "Search every customisation knob the registry knows about" : {
+
+    },
+    "Search every setting…" : {
 
     },
     "Search for a city or town" : {
 
     },
-    "Secure Storage" : {
+    "Search settings" : {
 
     },
-    "See how you rank among SaxWeather supporters! Completely optional and privacy-focused." : {
+    "Search Settings" : {
+
+    },
+    "Secure Storage" : {
 
     },
     "Select" : {
@@ -1421,13 +1930,28 @@
     "Select on Map" : {
 
     },
+    "Selected" : {
+      "comment" : "Accessibility value: row is the active chart skin.\nAccessibility value: row is the active palette."
+    },
     "Service" : {
 
     },
     "Set: %@" : {
 
     },
+    "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral. Purely visual — every existing customisation knob still works. The free equivalent: pick any other palette, or set each colour manually via the hex picker." : {
+      "comment" : "Long description for Aurora Palette."
+    },
     "Settings" : {
+
+    },
+    "Settings Backup and Restore" : {
+
+    },
+    "Shadow" : {
+
+    },
+    "Shape" : {
 
     },
     "Share %@" : {
@@ -1436,26 +1960,32 @@
     "Share Theme" : {
 
     },
-    "Share Theme…" : {
-
-    },
-    "Show as Anonymous" : {
+    "Show Location Header" : {
 
     },
     "Show Location Menu" : {
 
     },
-    "Show your support and see how you rank among other SaxWeather supporters!" : {
+    "Show the location name on the hero card even after scrolling." : {
 
     },
     "Shows static weather icons instead of animated ones" : {
 
+    },
+    "Shrink card padding when the device is rotated sideways." : {
+
+    },
+    "Six curated background images for the home-screen widget." : {
+      "comment" : "Subtitle for the Widget Background Images cosmetic tile."
     },
     "Skip" : {
 
     },
     "Smaller" : {
 
+    },
+    "Snowy cabin backgrounds, snowflake animations, and a red/green palette." : {
+      "comment" : "Subtitle for the Christmas Pack cosmetic tile."
     },
     "Source Code" : {
 
@@ -1466,11 +1996,23 @@
     "Speed" : {
 
     },
+    "Spooky backgrounds, animations, icons, and palette for Halloween." : {
+      "comment" : "Subtitle for the Halloween Pack cosmetic tile."
+    },
+    "Standard" : {
+
+    },
+    "Start" : {
+
+    },
     "Start:" : {
 
     },
     "Stay Updated" : {
 
+    },
+    "Stop Preview" : {
+      "comment" : "Button on the countdown overlay that ends the preview immediately."
     },
     "Stored API Keys" : {
 
@@ -1478,10 +2020,16 @@
     "Stored securely in your iOS Keychain." : {
 
     },
+    "Strength" : {
+
+    },
     "Strength of the dark scrim on top of the background. Improves contrast for the text below." : {
 
     },
     "Strip credentials before sharing" : {
+
+    },
+    "Style" : {
 
     },
     "Sun & Moon" : {
@@ -1514,7 +2062,28 @@
     "Support SaxWeather" : {
 
     },
-    "Switch between built-in themes, or share your current theme as a .saxtheme file." : {
+    "Supporter" : {
+
+    },
+    "Supporter Pack" : {
+
+    },
+    "Swipe a profile to rename or delete it." : {
+
+    },
+    "Swipe Between Locations" : {
+
+    },
+    "Swipe horizontally on the home screen to switch saved locations." : {
+
+    },
+    "Swipe Refresh Anywhere" : {
+
+    },
+    "Switch between built-in backups, or share your current settings as a .saxtheme file. Use the search bar above to find any setting." : {
+
+    },
+    "Switch between built-in backups, or share your settings as a .saxtheme file." : {
 
     },
     "Switch between saved locations" : {
@@ -1523,7 +2092,13 @@
     "Switch Location" : {
 
     },
+    "Switch Profile" : {
+
+    },
     "Switching applies the preset immediately. You can tweak individual settings afterwards." : {
+
+    },
+    "Symbol Variant" : {
 
     },
     "System" : {
@@ -1536,6 +2111,9 @@
 
     },
     "Tap a location to use it. Weather will refresh automatically." : {
+
+    },
+    "Tap Day to Expand" : {
 
     },
     "Tap for burn times by skin type" : {
@@ -1553,31 +2131,30 @@
     "Tap for photography times & moon details" : {
 
     },
+    "Tap the row to customise every card in the app: style, colour, glass, border, shadow, and tint, with a live preview." : {
+
+    },
+    "Tap to buy %@ — $%.2f" : {
+      "comment" : "Locked-row subtitle on the chart skin picker. %1$@ is the product name, %2$.2f is the price.\nLocked-row subtitle on the palette picker. %1$@ is the product name, %2$.2f is the price.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tap to buy %1$@ — $%2$.2f"
+          }
+        }
+      }
+    },
+    "Taptic on Refresh" : {
+
+    },
     "Temperature" : {
 
     },
     "Temperature Unit" : {
 
     },
-    "Test Actions" : {
-
-    },
     "Test and debug Lottie animations" : {
-
-    },
-    "Test Display Name" : {
-
-    },
-    "Test Increment Contribution" : {
-
-    },
-    "Test Opt-In" : {
-
-    },
-    "Test Opt-In (Anonymous)" : {
-
-    },
-    "Test Opt-Out" : {
 
     },
     "Test Refresh" : {
@@ -1585,6 +2162,12 @@
     },
     "Thank You! 🎉" : {
 
+    },
+    "The free Default palette uses the shipped theme tokens. Themed palettes are cosmetic add-ons — buy the matching pack to unlock them." : {
+      "comment" : "Footer on the palette picker section."
+    },
+    "The free Default uses a neutral blue-to-orange gradient. Themed skins are cosmetic add-ons — buy the matching pack to unlock them." : {
+      "comment" : "Footer on the chart skin picker section."
     },
     "The free experience — the shipped preset image with the default dark overlay — is available to every user. Customisation is unlocked by a single in-app purchase." : {
 
@@ -1601,14 +2184,11 @@
     "Theme Editor" : {
 
     },
-    "This will permanently delete your leaderboard entry and all associated data. You can rejoin anytime." : {
+    "These features are works-in-progress. Enable them to try them out, then file feedback so we know what to polish." : {
 
     },
-    "This will permanently remove your entry from the leaderboard. You can rejoin anytime by leaving another tip." : {
-
-    },
-    "Tier" : {
-
+    "Three short synth tones for the pull-to-refresh sound." : {
+      "comment" : "Subtitle for the Synth Refresh Sound Pack cosmetic tile."
     },
     "Time of Day" : {
 
@@ -1622,7 +2202,16 @@
     "Time to burn: %@" : {
 
     },
-    "tip%@" : {
+    "Time-of-Day Rule" : {
+
+    },
+    "Time-of-Day Rule swaps the background image to match the current lighting; Overlay Opacity dims the photo so text stays readable." : {
+
+    },
+    "Tint" : {
+
+    },
+    "Tint lays a soft wash over the card. Overlay layers a warm/cool gradient on top of everything. Original look used a dark wash at 20%." : {
 
     },
     "To use custom locations, disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
@@ -1637,10 +2226,7 @@
     "Top Opacity: %.2f" : {
 
     },
-    "Top Supporters" : {
-
-    },
-    "Total Supporters:" : {
+    "Try a different word, or clear the search to browse all settings." : {
 
     },
     "Try again" : {
@@ -1649,10 +2235,25 @@
     "Try Again" : {
 
     },
+    "Try the redesigned hero card layout." : {
+
+    },
     "Turn on to overlay a custom image on top of the preset when one is set." : {
 
     },
+    "Turn these off if a particular gesture is getting in the way. Long-Press to Customise works with the inline “Customise this section” menu on the home screen." : {
+
+    },
+    "Type" : {
+
+    },
     "Type %@" : {
+
+    },
+    "Type to search" : {
+
+    },
+    "Typography" : {
 
     },
     "Units" : {
@@ -1661,8 +2262,11 @@
     "Unlock Background Customisation" : {
 
     },
-    "Update" : {
+    "Unlock Custom Backgrounds to access these settings." : {
 
+    },
+    "Unlocks everything" : {
+      "comment" : "Overlay text on the Supporter Pack tile card."
     },
     "Use as default" : {
 
@@ -1676,6 +2280,9 @@
     "Use custom image if picked" : {
 
     },
+    "Use now" : {
+      "comment" : "Button to use the cosmetic just purchased."
+    },
     "Use only GPS and saved locations" : {
 
     },
@@ -1685,13 +2292,28 @@
     "Use System Text Size" : {
 
     },
+    "Use this" : {
+      "comment" : "Button to use an already-owned cosmetic."
+    },
     "UV Index" : {
 
     },
     "UV Index Scale" : {
 
     },
+    "Value" : {
+
+    },
     "Version" : {
+
+    },
+    "Vibrate on interactions." : {
+
+    },
+    "Vibrate on Pull-to-Refresh" : {
+
+    },
+    "Vibrate when a picker value changes." : {
 
     },
     "View" : {
@@ -1700,10 +2322,13 @@
     "W" : {
 
     },
-    "We take your privacy seriously. Your data is stored securely and never shared with third parties." : {
-
+    "Warm-toned forest backgrounds, falling-leaf animations, and a burnt-orange palette." : {
+      "comment" : "Subtitle for the Autumn Pack cosmetic tile."
     },
     "Weather" : {
+
+    },
+    "Weather Alert Sounds" : {
 
     },
     "Weather Alerts" : {
@@ -1739,13 +2364,25 @@
     "Weather Underground station is active and will override custom locations." : {
 
     },
-    "What we collect:\n• Display name (chosen by you)\n• Number of contributions\n• Dates of contributions\n\nWhat we DON'T collect:\n• Email addresses\n• Phone numbers\n• Dollar amounts\n• Any personal information\n\nYour data is:\n• Stored securely in iCloud\n• Never sold or shared\n• Deleted immediately when you opt-out\n• Fully under your control\n\nYou can delete your data anytime by leaving the leaderboard." : {
-
-    },
     "When enabled, text will resize according to your system settings" : {
 
     },
+    "Width" : {
+
+    },
+    "Width 0 removes the border entirely. Outline style uses a 45%-opacity stroke; other styles use 20%." : {
+
+    },
+    "Wind" : {
+
+    },
     "WIND" : {
+
+    },
+    "X" : {
+
+    },
+    "Y" : {
 
     },
     "You can change this any time in Settings." : {
@@ -1758,27 +2395,6 @@
 
     },
     "You're Welcome!" : {
-
-    },
-    "Your Contributions:" : {
-
-    },
-    "Your display name can be up to 20 characters. Use letters, numbers, spaces, and underscores only." : {
-
-    },
-    "Your name won't be displayed, but you'll still be ranked" : {
-
-    },
-    "Your Name:" : {
-
-    },
-    "Your privacy is important:\n\n• Only your display name is shown\n• No email or personal info collected\n• You can opt-out anytime\n• All data deleted when you opt-out\n• We never share your data" : {
-
-    },
-    "Your Rank" : {
-
-    },
-    "Your Stats" : {
 
     },
     "Your support helps keep SaxWeather free and ad-free for everyone!" : {

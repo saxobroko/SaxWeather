@@ -93,12 +93,7 @@ struct DetailedForecastSheet: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(backgroundFillColor(colorScheme))
-                        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.2),
-                               radius: 8, x: 0, y: 4)
-                )
+                .styledCard()
                 .padding(.horizontal)
                 
                 // Detailed weather data

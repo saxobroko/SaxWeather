@@ -24,6 +24,9 @@
 //     when IAP is unlocked.
 //   • `effectiveOverlayOpacity` — returns 0.28 when locked,
 //     otherwise the spec value.
+//   • Phase 4 — Aurora Backgrounds single-preset. The resolver
+//     picks the right Aurora image based on the current weather
+//     condition (not the mode).
 //
 
 import XCTest
@@ -47,7 +50,7 @@ final class BackgroundResolverTests: XCTestCase {
 
     /// Without the IAP, every spec value is ignored and the free
     /// default (`.preset(condition)`) is returned.
-    private func assertFreeDefault<IAPUnlocked>(
+    private func assertFreeDefault(
         mode: BackgroundMode,
         iapUnlocked: Bool
     ) {
@@ -389,5 +392,111 @@ final class BackgroundResolverTests: XCTestCase {
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(BackgroundStrategy.self, from: data)
         XCTAssertEqual(decoded, original)
+    }
+
+    // MARK: - Phase 4: Aurora Backgrounds single-preset
+
+    /// The Aurora Backgrounds cosmetic product ID — shared
+    /// between the resolver, the picker, and the lock checks.
+    private static let auroraProductID =
+        "com.saxweather.cosmetic.aurora.backgrounds"
+
+    /// Phase 4 — the single `.aurora` preset must resolve to
+    /// the correct Aurora image based on the current weather
+    /// condition. This is the single test covering all 8
+    /// conditions (previously there were 8 separate tests).
+    func test_aurora_resolvesToCorrectImageForCondition() {
+        let conditions: [(String, String)] = [
+            ("sunny", "weather_background_aurora_sunny"),
+            ("cloudy", "weather_background_aurora_cloudy"),
+            ("foggy", "weather_background_aurora_foggy"),
+            ("rainy", "weather_background_aurora_rainy"),
+            ("snowy", "weather_background_aurora_snowy"),
+            ("thunder", "weather_background_aurora_thunder"),
+            ("windy", "weather_background_aurora_windy"),
+            ("default", "weather_background_aurora_default")
+        ]
+        for (condition, expectedAsset) in conditions {
+            var spec = baseSpec
+            spec.mode = .aurora
+            let s = BackgroundResolver.resolve(
+                condition: condition, spec: spec,
+                sunrise: nil, sunset: nil,
+                now: Date(),
+                customBackgroundUnlocked: true,
+                isCosmeticUnlocked: { _ in true }
+            )
+            XCTAssertEqual(
+                s,
+                .auroraImage(name: expectedAsset),
+                "condition \(condition) must resolve to \(expectedAsset)"
+            )
+        }
+    }
+
+    /// An unowned Aurora selection must silently fall back to
+    /// the free preset — no errors, no blocking. This is the
+    /// core "IAP gate" guarantee for the Aurora Backgrounds
+    /// cosmetic: owning the cosmetic is what makes the
+    /// selection render.
+    func test_aurora_unowned_fallsBackToPreset() {
+        var spec = baseSpec
+        spec.mode = .aurora
+        let s = BackgroundResolver.resolve(
+            condition: "sunny", spec: spec,
+            sunrise: nil, sunset: nil,
+            now: Date(),
+            customBackgroundUnlocked: true,
+            isCosmeticUnlocked: { _ in false }
+        )
+        XCTAssertEqual(s, .preset(condition: "sunny"))
+    }
+
+    /// The resolver's asset-name function must return the
+    /// right asset for each condition. Catches accidental
+    /// re-mapping or rename.
+    func test_resolver_assetName_matchesEachCondition() {
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "sunny"),
+            "weather_background_aurora_sunny"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "cloudy"),
+            "weather_background_aurora_cloudy"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "foggy"),
+            "weather_background_aurora_foggy"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "rainy"),
+            "weather_background_aurora_rainy"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "snowy"),
+            "weather_background_aurora_snowy"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "thunder"),
+            "weather_background_aurora_thunder"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "windy"),
+            "weather_background_aurora_windy"
+        )
+        XCTAssertEqual(
+            BackgroundResolver.auroraAssetName(forCondition: "default"),
+            "weather_background_aurora_default"
+        )
+    }
+
+    /// The `.aurora` mode must require the Aurora Backgrounds
+    /// product ID. Catches accidental divergence (e.g. the
+    /// case pointing at the wrong IAP).
+    func test_auroraMode_requiresAuroraProductID() {
+        XCTAssertEqual(
+            BackgroundMode.aurora.requiredProductID,
+            "com.saxweather.cosmetic.aurora.backgrounds"
+        )
     }
 }

@@ -171,4 +171,51 @@ enum UnitConverter {
         case .uk:       return "h"
         }
     }
+
+    // MARK: - User-configured precision
+
+    /// Read the user-configured decimal-place count for
+    /// temperatures from `@AppStorage("temperaturePrecision")`.
+    /// Defaults to 1 when the key is missing.
+    static var temperaturePrecision: Int {
+        let raw = UserDefaults.standard.object(forKey: "temperaturePrecision") as? Int
+        return raw.map { max(0, min($0, 2)) } ?? 1
+    }
+
+    /// Read the user-configured decimal-place count for wind
+    /// values from `@AppStorage("windPrecision")`. Defaults to 0.
+    static var windPrecision: Int {
+        let raw = UserDefaults.standard.object(forKey: "windPrecision") as? Int
+        return raw.map { max(0, min($0, 1)) } ?? 0
+    }
+
+    /// Read the user-configured decimal-place count for pressure
+    /// values from `@AppStorage("pressurePrecision")`. Defaults to 0.
+    static var pressurePrecision: Int {
+        let raw = UserDefaults.standard.object(forKey: "pressurePrecision") as? Int
+        return raw.map { max(0, min($0, 2)) } ?? 0
+    }
+
+    /// Format a temperature with the user-configured precision.
+    /// `25.0` with `1 dp` → `"25.0"`, with `0 dp` → `"25"`,
+    /// with `2 dp` → `"25.00"`. Always signed-positive, no
+    /// unit suffix (callers append their own `°C` / `°F`).
+    static func formatTemperature(_ value: Double) -> String {
+        let digits = temperaturePrecision
+        return String(format: "%.\(digits)f", value)
+    }
+
+    /// Format a wind value with the user-configured precision.
+    /// Callers append the unit suffix (km/h, mph, etc.).
+    static func formatWind(_ value: Double) -> String {
+        let digits = windPrecision
+        return String(format: "%.\(digits)f", value)
+    }
+
+    /// Format a pressure value with the user-configured precision.
+    /// Callers append the unit suffix (hPa, inHg, etc.).
+    static func formatPressure(_ value: Double) -> String {
+        let digits = pressurePrecision
+        return String(format: "%.\(digits)f", value)
+    }
 }

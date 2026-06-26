@@ -39,7 +39,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_nameForCondition_honoursOverrideByBaseName() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieOverrideMap = [
             "clear-day": "my-custom-clear-day"
         ]
@@ -52,7 +52,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_nameForCondition_honoursOverrideByConditionString() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieOverrideMap = [
             "Rainy": "my-rainy.json"
         ]
@@ -78,7 +78,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_nameForWeatherCode_honoursOverride() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieOverrideMap = [
             "rainy": "my-rainy.json"
         ]
@@ -132,7 +132,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_animationsEnabled_isFalseWhenDisableWeatherAnimationsIsTrue() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.disableWeatherAnimations = true
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -141,7 +141,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_animationsEnabled_isFalseWhenReduceMotionIsTrue() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.accessibility.reduceMotion = true
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -150,7 +150,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_playbackSpeed_readsFromProfile() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottiePlaybackSpeed = 0.5
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -159,7 +159,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_loopMode_readsFromProfile() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieLoopMode = .playOnce
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -168,7 +168,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_animationSet_readsFromProfile() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieAnimationSet = .bundledStatic
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -177,7 +177,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_iconStyle_readsFromProfile() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.weatherIconStyle = .monochrome
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -186,7 +186,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_symbolVariant_readsFromProfile() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.symbolSet = .outline
         let registry = AnimationRegistry(
             customisation: CustomisationRegistry(testProfile: profile)
@@ -197,7 +197,7 @@ final class AnimationRegistryTests: XCTestCase {
     // MARK: - hasOverride
 
     func test_hasOverride_returnsTrueWhenBaseNameIsOverridden() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieOverrideMap = [
             "clear-day": "my-clear-day"
         ]
@@ -209,7 +209,7 @@ final class AnimationRegistryTests: XCTestCase {
     }
 
     func test_hasOverride_returnsTrueWhenConditionIsOverridden() {
-        let profile = CustomisationProfile.makeDefault()
+        var profile = CustomisationProfile.makeDefault()
         profile.knobs.iconography.lottieOverrideMap = [
             "Rainy": "my-rainy.json"
         ]

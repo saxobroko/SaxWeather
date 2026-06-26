@@ -1169,37 +1169,6 @@ struct SaxWeatherWidgetEntryView : View {
         }
     }
 
-    /// Small footer that renders the "Updated Xm ago" timestamp
-    /// along with an optional offline badge. Picks the right
-    /// text + icon for the entry's data state so the user can
-    /// tell at a glance whether the data is fresh, stale, or
-    /// coming from cache while offline.
-    @ViewBuilder
-    private func widgetStatusFooter(iconSize: CGFloat = 9) -> some View {
-        if let lastUpdate = entry.lastUpdateDate {
-            HStack(spacing: 4) {
-                if entry.isOffline {
-                    Image(systemName: "wifi.slash")
-                        .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundColor(.orange)
-                    Text("Offline · Updated \(relativeTimeString(from: lastUpdate))")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.orange)
-                } else if entry.isStale {
-                    Text("Updated \(relativeTimeString(from: lastUpdate))")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Updated \(relativeTimeString(from: lastUpdate))")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.secondary.opacity(0.6))
-                }
-                Spacer()
-            }
-            .padding(.top, 4)
-        }
-    }
-
     /// Full-bleed placeholder rendered when the widget has no
     /// usable weather data. Renders one of three distinct
     /// states so the user can tell:
@@ -1325,10 +1294,6 @@ struct SaxWeatherWidgetEntryView : View {
                     }
                     .font(.system(size: 11, weight: .semibold))
                 }
-                
-                // Last updated timestamp (or offline badge when offline)
-                widgetStatusFooter(iconSize: 9)
-                    .padding(.top, 2)
 
                 Spacer()
             } else {
@@ -1416,8 +1381,6 @@ struct SaxWeatherWidgetEntryView : View {
                     }
                 }
                 
-                // Last updated timestamp at bottom
-                widgetStatusFooter(iconSize: 9)
             } else {
                 // State-aware "no data" view. Renders one of
                 // three presentations based on the entry's
@@ -1617,9 +1580,7 @@ struct SaxWeatherWidgetEntryView : View {
                     }
                 }
                 
-                // Last updated timestamp at bottom (or offline badge)
-                widgetStatusFooter(iconSize: 9)
-            } else {
+              } else {
                 // State-aware "no data" view. Renders one of
                 // three presentations based on the entry's
                 // data state (first sync / offline / generic).

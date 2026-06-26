@@ -42,7 +42,7 @@ final class AnimationRegistry {
     static let shared = AnimationRegistry(customisation: .shared)
 
     /// The customisation registry we read knobs from.
-    private let customisation: CustomisationRegistry
+    let customisation: CustomisationRegistry
 
     /// Designated init. Production callers should use `shared`
     /// (which wires up `CustomisationRegistry.shared`). Tests can

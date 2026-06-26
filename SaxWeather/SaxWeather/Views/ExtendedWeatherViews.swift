@@ -69,7 +69,7 @@ struct AirQualityCardView: View {
                     .italic()
             }
             .padding(16)
-            .glassCardBackground(colorScheme: colorScheme)
+            .styledCard()
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
@@ -196,7 +196,7 @@ struct UVIndexCardView: View {
                     .italic()
             }
             .padding(16)
-            .glassCardBackground(colorScheme: colorScheme)
+            .styledCard()
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
@@ -250,7 +250,7 @@ struct PollenCardView: View {
             }
         }
         .padding(16)
-        .glassCardBackground(colorScheme: colorScheme)
+        .styledCard()
     }
 }
 
@@ -395,7 +395,7 @@ struct SunMoonCardView: View {
                     .italic()
             }
             .padding(16)
-            .glassCardBackground(colorScheme: colorScheme)
+            .styledCard()
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
@@ -475,8 +475,32 @@ struct PrecipitationGraphView: View {
     let hourlyData: [HourlyPrecipitation]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingDetail = false
-    
+    // Part F — observe the reactive chart palette store so the
+    // rain probability chart re-renders when the chart skin or
+    // entitlements change (e.g. during a live preview of the
+    // Aurora Chart Skin cosmetic). The store observes
+    // `CustomisationRegistry` and `StoreManager` and updates its
+    // `@Published var activeSkin` when either changes.
+    @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
+
+    /// Resolved colour scheme for the rain probability chart.
+    /// Free users always get the default blue tones; users who
+    /// own the Aurora Chart Skin IAP (or the Supporter Pack)
+    /// get the Aurora palette (ocean blue → teal → coral).
+    ///
+    /// Part F — reads `chartPaletteStore.activeSkin` directly so
+    /// SwiftUI tracks the dependency and re-renders when the
+    /// chart skin changes (e.g. during a live preview).
+    private var chartColors: ChartColorScheme {
+        ChartColorScheme.rainProbability(activeSkin: chartPaletteStore.activeSkin)
+    }
+
     var body: some View {
+        // Part F — direct reference to `chartPaletteStore.activeSkin`
+        // so SwiftUI tracks the dependency and re-renders when
+        // the chart skin or entitlements change (e.g. during a
+        // live preview of the Aurora Chart Skin cosmetic).
+        let _ = chartPaletteStore.activeSkin
         Button(action: {
             showingDetail = true
             #if canImport(UIKit)
@@ -488,22 +512,25 @@ struct PrecipitationGraphView: View {
                 HStack {
                     Image(systemName: "cloud.rain.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.blue)
-                    
+                        // Part F — use the resolved chart colour
+                        // scheme's `primary` for the header icon
+                        // so the icon matches the bar fill.
+                        .foregroundColor(chartColors.primary)
+
                     Text("Rain Probability")
                         .font(.system(size: 17, weight: .semibold))
-                    
+
                     Spacer()
-                    
+
                     Text("Next 24h")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.secondary)
                 }
-                
+
                 // Graph
                 GeometryReader { geometry in
                     ZStack(alignment: .bottom) {
@@ -514,7 +541,11 @@ struct PrecipitationGraphView: View {
                                 path.move(to: CGPoint(x: 0, y: y))
                                 path.addLine(to: CGPoint(x: geometry.size.width, y: y))
                             }
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            // Part F — use the resolved chart
+                            // colour scheme's `background` for
+                            // the grid lines so they match the
+                            // chart's colour identity.
+                            .stroke(chartColors.background, lineWidth: 1)
                         }
 
                         // "Now" indicator. The vertical line marks
@@ -528,7 +559,12 @@ struct PrecipitationGraphView: View {
                             let columnWidth = columnWidth(in: geometry.size)
                             let x = columnWidth * CGFloat(nowIndex) + columnWidth / 2
                             Rectangle()
-                                .fill(Color.white.opacity(0.85))
+                                // Part F — use the resolved chart
+                                // colour scheme's `accent` for
+                                // the "now" indicator so it
+                                // matches the chart's colour
+                                // identity.
+                                .fill(chartColors.accent.opacity(0.85))
                                 .frame(width: 2, height: geometry.size.height)
                                 .position(x: x, y: geometry.size.height / 2)
                                 .shadow(color: .black.opacity(0.3), radius: 1)
@@ -602,9 +638,12 @@ struct PrecipitationGraphView: View {
                 
                 // Legend
                 HStack(spacing: 16) {
-                    LegendItem(color: .blue.opacity(0.3), text: "Light")
-                    LegendItem(color: .blue.opacity(0.6), text: "Moderate")
-                    LegendItem(color: .blue.opacity(0.9), text: "Heavy")
+                    // Part F — use the resolved chart colour
+                    // scheme's `primary` for the legend swatches
+                    // so they match the bar fill.
+                    LegendItem(color: chartColors.primary.opacity(0.3), text: "Light")
+                    LegendItem(color: chartColors.primary.opacity(0.6), text: "Moderate")
+                    LegendItem(color: chartColors.primary.opacity(0.9), text: "Heavy")
                 }
                 .font(.system(size: 11))
                 
@@ -615,7 +654,7 @@ struct PrecipitationGraphView: View {
                     .italic()
             }
             .padding(16)
-            .glassCardBackground(colorScheme: colorScheme)
+            .styledCard()
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
@@ -624,10 +663,16 @@ struct PrecipitationGraphView: View {
     }
     
     private func colorForProbability(_ probability: Int) -> Color {
+        // Part F — use the resolved chart colour scheme instead
+        // of hardcoded `Color.blue`. The scheme's `primary` is
+        // the bar fill (top stop), `secondary` is the gradient
+        // bottom stop. Free users see blue tones; Aurora owners
+        // see the Aurora palette (ocean blue → teal).
+        let base = chartColors.primary
         switch probability {
-        case 0..<30: return .blue.opacity(0.3)
-        case 30..<60: return .blue.opacity(0.6)
-        default: return .blue.opacity(0.9)
+        case 0..<30: return base.opacity(0.3)
+        case 30..<60: return base.opacity(0.6)
+        default: return base.opacity(0.9)
         }
     }
 
@@ -699,49 +744,19 @@ struct LegendItem: View {
     }
 }
 
-// MARK: - Glass Card Modifier
+// MARK: - Glass Card Modifier (legacy)
+//
+// The hard-coded `glassCardBackground(colorScheme:)` helper used
+// to draw a fixed glass-card look. It's been replaced by the
+// user-configurable `.styledCard()` modifier (see
+// `SaxWeather/Views/StyledCard.swift`) so every card in the
+// app picks up the user's Card Settings customisation. The
+// helper is kept as a thin shim that delegates to the new
+// modifier so any third-party call site still compiles. New
+// code should use `.styledCard()` directly.
 extension View {
+    @available(*, deprecated, message: "Use .styledCard() instead — the new modifier reads the user's Card Settings customisation.")
     func glassCardBackground(colorScheme: ColorScheme) -> some View {
-        self
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.6)
-                    
-                    LinearGradient(
-                        colors: colorScheme == .dark ? [
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.1),
-                            Color.clear
-                        ] : [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: colorScheme == .dark ? [
-                                Color.white.opacity(0.2),
-                                Color.white.opacity(0.1)
-                            ] : [
-                                Color.white.opacity(0.25),
-                                Color.white.opacity(0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+        self.styledCard()
     }
 }

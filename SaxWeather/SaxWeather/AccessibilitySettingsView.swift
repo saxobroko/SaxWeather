@@ -12,68 +12,47 @@ struct AccessibilitySettingsView: View {
     // root via `.environmentObject`. Every setting write below
     // routes through `.onChange` to the registry.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
+
+    /// Whether the view body wraps itself in a `NavigationStack`.
+    /// Defaults to `true` so existing `NavigationLink` call sites
+    /// keep their nav chrome. Set to `false` when the view is
+    /// pushed onto an existing `NavigationStack` via
+    /// `.navigationDestination(for:)` — wrapping a second
+    /// `NavigationStack` inside the pushed view causes SwiftUI to
+    /// flash black during the push transition.
+    var wrappedInNavigationStack: Bool = true
     // MARK: - Dynamic Type
     @AppStorage("useSystemTextSize") private var useSystemTextSize = true
     @AppStorage("customTextSizeMultiplier") private var customTextSizeMultiplier = 1.0
-    
+
     // MARK: - Motion & Animations
     @AppStorage("reduceMotion") private var reduceMotion = false
+    @AppStorage("reduceMotionForce") private var reduceMotionForce = false
     @AppStorage("disableWeatherAnimations") private var disableWeatherAnimations = false
-    
+
     // MARK: - Visual Enhancements
     @AppStorage("increaseContrast") private var increaseContrast = false
+    @AppStorage("highContrastOutline") private var highContrastOutline = false
     @AppStorage("boldText") private var boldText = false
-    
+
     // MARK: - VoiceOver Support
     @AppStorage("enhancedVoiceOverLabels") private var enhancedVoiceOverLabels = true
     @AppStorage("speakWeatherAlerts") private var speakWeatherAlerts = true
+
      // MARK: - Haptic Feedback
     @AppStorage("enableHapticFeedback") private var enableHapticFeedback = true
+    @AppStorage("hapticOnSelection") private var hapticOnSelection = true
+    @AppStorage("tapticOnRefresh") private var tapticOnRefresh = true
     
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
+        let content = accessibilityForm
         #if os(iOS)
-        NavigationStack {
-            Form {
-                textSizeSection
-                motionSection
-                visualSection
-                voiceOverSection
-                hapticSection
-                resetSection
-            }
-            .navigationTitle("Accessibility")
-            .navigationBarTitleDisplayMode(.inline)
-            // Phase 2 bridge — forward every accessibility setting
-            // write to the registry.
-            .onChange(of: useSystemTextSize) { newValue in
-                customisationRegistry.set(\.visual.useSystemTextSize, newValue)
-            }
-            .onChange(of: customTextSizeMultiplier) { newValue in
-                customisationRegistry.set(\.visual.fontScale, newValue)
-            }
-            .onChange(of: reduceMotion) { newValue in
-                customisationRegistry.set(\.accessibility.reduceMotion, newValue)
-            }
-            .onChange(of: disableWeatherAnimations) { newValue in
-                customisationRegistry.set(\.iconography.disableWeatherAnimations, newValue)
-            }
-            .onChange(of: increaseContrast) { newValue in
-                customisationRegistry.set(\.visual.increaseContrast, newValue)
-            }
-            .onChange(of: boldText) { newValue in
-                customisationRegistry.set(\.visual.boldText, newValue)
-            }
-            .onChange(of: enhancedVoiceOverLabels) { newValue in
-                customisationRegistry.set(\.accessibility.enhancedVoiceOverLabels, newValue)
-            }
-            .onChange(of: speakWeatherAlerts) { newValue in
-                customisationRegistry.set(\.behaviour.speakWeatherAlerts, newValue)
-            }
-            .onChange(of: enableHapticFeedback) { newValue in
-                customisationRegistry.set(\.behaviour.enableHapticFeedback, newValue)
-            }
+        if wrappedInNavigationStack {
+            NavigationStack { content }
+        } else {
+            content
         }
         #elseif os(macOS)
         ScrollView {
@@ -108,7 +87,73 @@ struct AccessibilitySettingsView: View {
         .navigationTitle("Accessibility")
         #endif
     }
-    
+
+    /// The iOS `Form` (and its `.onChange` modifiers) lifted out
+    /// of `body` so the wrapping `NavigationStack` is optional.
+    /// Returning a single view from a helper keeps the modifier
+    /// chain readable and avoids the nested-stack flash that
+    /// happens when SwiftUI pushes an inner `NavigationStack`
+    /// onto an outer one.
+    @ViewBuilder
+    private var accessibilityForm: some View {
+        #if os(iOS)
+        Form {
+            textSizeSection
+            motionSection
+            visualSection
+            voiceOverSection
+            hapticSection
+            extraSection
+            resetSection
+        }
+        .navigationTitle("Accessibility")
+        .navigationBarTitleDisplayMode(.inline)
+        // Phase 2 bridge — forward every accessibility setting
+        // write to the registry.
+        .onChange(of: useSystemTextSize) { newValue in
+            customisationRegistry.set(\.visual.useSystemTextSize, newValue)
+        }
+        .onChange(of: customTextSizeMultiplier) { newValue in
+            customisationRegistry.set(\.visual.fontScale, newValue)
+        }
+        .onChange(of: reduceMotion) { newValue in
+            customisationRegistry.set(\.accessibility.reduceMotion, newValue)
+        }
+        .onChange(of: reduceMotionForce) { newValue in
+            customisationRegistry.set(\.accessibility.reduceMotionForce, newValue)
+        }
+        .onChange(of: disableWeatherAnimations) { newValue in
+            customisationRegistry.set(\.iconography.disableWeatherAnimations, newValue)
+        }
+        .onChange(of: increaseContrast) { newValue in
+            customisationRegistry.set(\.visual.increaseContrast, newValue)
+        }
+        .onChange(of: highContrastOutline) { newValue in
+            customisationRegistry.set(\.accessibility.highContrastOutline, newValue)
+        }
+        .onChange(of: boldText) { newValue in
+            customisationRegistry.set(\.visual.boldText, newValue)
+        }
+        .onChange(of: enhancedVoiceOverLabels) { newValue in
+            customisationRegistry.set(\.accessibility.enhancedVoiceOverLabels, newValue)
+        }
+        .onChange(of: speakWeatherAlerts) { newValue in
+            customisationRegistry.set(\.behaviour.speakWeatherAlerts, newValue)
+        }
+        .onChange(of: enableHapticFeedback) { newValue in
+            customisationRegistry.set(\.behaviour.enableHapticFeedback, newValue)
+        }
+        .onChange(of: hapticOnSelection) { newValue in
+            customisationRegistry.set(\.accessibility.hapticOnSelection, newValue)
+        }
+        .onChange(of: tapticOnRefresh) { newValue in
+            customisationRegistry.set(\.accessibility.tapticOnRefresh, newValue)
+        }
+        #else
+        EmptyView()
+        #endif
+    }
+
     // MARK: - Sections
     
     private var textSizeSection: some View {
@@ -267,6 +312,49 @@ struct AccessibilitySettingsView: View {
         EmptyView()
     }
     
+    /// v2 — extra toggles added in the schema-v2 expansion.
+    /// Kept in their own section so the original six sections
+    /// stay byte-identical to the pre-v2 file (no merge risk).
+    private var extraSection: some View {
+        Group {
+            Toggle(isOn: $reduceMotionForce) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Force Reduce Motion", systemImage: "tortoise.circle.fill")
+                    Text("Always reduce motion, even when the system setting is off.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Divider()
+            Toggle(isOn: $highContrastOutline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("High-Contrast Outline", systemImage: "square.dashed")
+                    Text("Add an outline around text for low-vision users.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Divider()
+            Toggle(isOn: $hapticOnSelection) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Haptic on Selection", systemImage: "hand.point.up.left.fill")
+                    Text("Vibrate when a picker value changes.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Divider()
+            Toggle(isOn: $tapticOnRefresh) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Taptic on Refresh", systemImage: "arrow.triangle.2.circlepath")
+                    Text("Pulse the taptic engine when weather data refreshes.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
     private var resetSection: some View {
         Group {
             Button(role: .destructive) {

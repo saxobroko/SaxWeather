@@ -665,13 +665,13 @@ struct ForecastPane: View {
                     )
                 Text(day.weatherSymbol)
                     .font(.title2)
-                Text(String(format: "%.0f%@", day.tempMax, unitSystem == "Metric" ? "°C" : "°F"))
+                Text("\(UnitConverter.formatTemperature(day.tempMax))°")
                     .font(.headline)
                     .foregroundStyle(colorScheme == .dark ?
                         Color.white.opacity(0.9) :
                         Color.black.opacity(0.85)
                     )
-                Text(String(format: "%.0f%@", day.tempMin, unitSystem == "Metric" ? "°C" : "°F"))
+                Text("\(UnitConverter.formatTemperature(day.tempMin))°")
                     .font(.caption)
                     .foregroundStyle(colorScheme == .dark ?
                         Color.white.opacity(0.6) :
@@ -727,9 +727,9 @@ struct ForecastPane: View {
                     .foregroundColor(.secondary)
                 Text(day.weatherSymbol)
                     .font(.title2)
-                Text(String(format: "%.0f%@", day.tempMax, unitSystem == "Metric" ? "°C" : "°F"))
+                Text("\(UnitConverter.formatTemperature(day.tempMax))°")
                     .font(.headline)
-                Text(String(format: "%.0f%@", day.tempMin, unitSystem == "Metric" ? "°C" : "°F"))
+                Text("\(UnitConverter.formatTemperature(day.tempMin))°")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

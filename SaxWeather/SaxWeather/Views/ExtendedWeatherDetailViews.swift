@@ -35,7 +35,7 @@ struct AirQualityDetailView: View {
                     }
                     .padding(.vertical, 24)
                     .frame(maxWidth: .infinity)
-                    .glassCardBackground(colorScheme: colorScheme)
+                    .styledCard()
                     .padding(.horizontal)
                     
                     // Pollutant Levels
@@ -185,7 +185,7 @@ struct UVIndexDetailView: View {
                     }
                     .padding(.vertical, 24)
                     .frame(maxWidth: .infinity)
-                    .glassCardBackground(colorScheme: colorScheme)
+                    .styledCard()
                     .padding(.horizontal)
                     
                     // Time to Burn by Skin Type

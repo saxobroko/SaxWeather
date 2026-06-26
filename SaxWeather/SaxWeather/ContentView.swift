@@ -31,6 +31,31 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - Deep-link wrapper (Phase 2)
+
+/// Phase 2 — `Identifiable` wrapper used to drive the
+/// cosmetics-store sheet from a non-`Identifiable` `String?`
+/// value. SwiftUI's `.sheet(item:)` requires an `Identifiable`
+/// binding; `DeepLinkProductID` adapts the
+/// `pendingDeepLinkProductID` string to that shape without
+/// forcing `CosmeticProduct` (which is heavier than we need
+/// for "just an ID").
+struct DeepLinkProductID: Identifiable {
+    let value: String
+    var id: String { value }
+}
+
+/// Phase 5 — `Identifiable` wrapper used to drive the
+/// palette / chart-skin picker sheets from a non-
+/// `Identifiable` `String?` value. The sheet item is the
+/// product ID we want to highlight; the picker itself reads
+/// it from the coordinator (already applied to the profile
+/// by `CosmeticUsageCoordinator.applyToProfile(_:)`).
+struct UsageProductID: Identifiable {
+    let value: String
+    var id: String { value }
+}
+
 // MARK: - Content View
 struct ContentView: View {
     @EnvironmentObject var storeManager: StoreManager
@@ -56,23 +81,102 @@ struct ContentView: View {
     @State private var showingLocationMenu = false
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var selectedTab: Int = 0
-    
-    // Computed property to check if we should show location text
+    // Phase 2 — observe cosmetic deep links (saxweather://cosmetic/<id>).
+    // `pendingDeepLinkProductID` drives a sheet that hosts
+    // `CosmeticsStoreView` already pointing at the requested
+    // product. The handler is injected as an environment object
+    // from `SaxWeatherApp`; we only read its `pendingProductID`
+    // here and forward it into our own state.
+    @EnvironmentObject private var deepLinkHandler: CosmeticDeepLinkHandler
+    @State private var pendingDeepLinkProductID: String?
+    // Phase 5 — drives the palette + chart-skin picker sheets
+    // presented in response to a "Use now" / "Use this" tap.
+    // The IDs are stored as plain `String`s; the actual picker
+    // views are presented via `.sheet(isPresented:)` when the
+    // matching pending usage is set.
+    @State private var pendingUsagePalette: String?
+    @State private var pendingUsageChart: String?
+    @State private var pendingUsageBackground: String?
+
+    // Phase 3 — live cosmetic-preview coordinator. Owned at the
+    // root so navigation logic + countdown overlay can both
+    // observe it without prop-drilling. Injected into the env
+    // chain below so `CosmeticsStoreView` and
+    // `CosmeticDetailView` can read it too.
+    @StateObject private var previewCoordinator = CosmeticPreviewCoordinator()
+
+    // Phase 4 — live cosmetic-preview manager. Owned at the
+    // app root (`SaxWeatherApp`) and injected via
+    // `.environmentObject(...)` so every view that participates
+    // in the preview flow observes the *same* instance. The
+    // countdown overlay reads `remainingSeconds` from this
+    // object so it re-renders every second.
+    @EnvironmentObject private var previewManager: PreviewProfileManager
+
+    // Part B — reactive palette store. Owned at the root so
+    // every view that uses the palette (cards, backgrounds,
+    // etc.) can observe it via `@EnvironmentObject` and
+    // re-render when the palette changes (e.g. during a live
+    // preview of the Aurora Palette cosmetic).
+    @StateObject private var colourTokenStore = ColourTokenStore()
+
+    // Part B — reactive chart palette store. Owned at the
+    // root so the hourly forecast view can observe it via
+    // `@EnvironmentObject` and re-render when the chart skin
+    // or entitlements change (e.g. during a live preview of
+    // the Aurora Chart Skin cosmetic).
+    @StateObject private var chartPaletteStore = ChartPaletteStore()
+
+    // Phase 5 — "Use now" / "Use this" coordinator. Owns the
+    // `pendingUsage` published by `CosmeticDetailView` when
+    // the user taps either button. The view observes
+    // `pendingUsage` to switch to the right tab and present
+    // the matching picker.
+    @StateObject private var cosmeticUsageCoordinator = CosmeticUsageCoordinator()
+
+    // Computed property to check if we should show location text.
+    // Honours the user-configured `showLocationHeader` setting in
+    // addition to the legacy WU override.
     private var shouldShowLocationText: Bool {
+        // User has turned the header off entirely.
+        guard SettingsBehaviour.showLocationHeader else { return false }
+
         // Show location text when:
         // 1. API keys are disabled (using Apple Weather/Open-Meteo with custom locations), OR
         // 2. Using GPS or custom saved locations (not Weather Underground station)
         let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
         let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
         let hasWeatherUnderground = !wuApiKey.isEmpty && !stationID.isEmpty
-        
+
         // Hide when using Weather Underground station (it's location-specific already)
         if hasWeatherUnderground && !disableAPIKeys {
             return false
         }
-        
+
         // Show for GPS and custom locations
         return true
+    }
+
+    /// Effective card padding for the home screen. Scaled by the
+    /// `cardDensity` preference (compact/regular/relaxed) and
+    /// further squeezed in landscape when the user has
+    /// `compactCardsInLandscape` enabled.
+    private var cardSectionSpacing: CGFloat {
+        let landscapeTighten: CGFloat = {
+            #if os(iOS)
+            let isLandscape = UIDevice.current.orientation.isLandscape
+            return (isLandscape && SettingsBehaviour.compactCardsInLandscape) ? 8 : 0
+            #else
+            return 0
+            #endif
+        }()
+        let base: CGFloat
+        switch SettingsBehaviour.cardDensity {
+        case "compact":  base = 12
+        case "relaxed":  base = 28
+        default:         base = 20
+        }
+        return max(8, base - landscapeTighten)
     }
     
     // Computed property for location display
@@ -173,6 +277,20 @@ struct ContentView: View {
                 }
             }
             .environment(\.popupState, $activePopup)
+            // Phase 3 — inject the preview coordinator so child
+            // views (`CosmeticsStoreView`, `CosmeticDetailView`)
+            // can observe it.
+            .environmentObject(previewCoordinator)
+            // Part B — inject the reactive palette + chart
+            // palette stores so child views can observe them
+            // via `@EnvironmentObject` and re-render when the
+            // palette or chart skin changes.
+            .environmentObject(colourTokenStore)
+            .environmentObject(chartPaletteStore)
+            // Phase 5 — inject the "Use now" coordinator so
+            // `CosmeticDetailView` can publish `pendingUsage`
+            // when the user taps "Use this" or "Use now".
+            .environmentObject(cosmeticUsageCoordinator)
             // Listen for the onboarding "API Keys" link-out
             // button. The onboarding step flips `isFirstLaunch`
             // to `false` (so the main UI shows) and posts this
@@ -181,6 +299,16 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .openSettingsToAPIKeys)) { _ in
                 withAnimation(.easeInOut(duration: 0.3)) {
                     selectedTab = 3
+                }
+            }
+            // Phase 4 — listen for the preview-expired notification and
+            // restore the original profile. The manager posts this
+            // notification when its internal timer reaches 0.
+            .onReceive(NotificationCenter.default.publisher(for: PreviewProfileManager.previewExpiredNotification)) { _ in
+                var profile = registry.profile
+                if previewManager.restoreIfExpired(restoreTo: &profile) {
+                    registry.apply(profile)
+                    previewCoordinator.endPreview(reopenForProductID: nil)
                 }
             }
             // Listen for the debug menu's "Re-run Onboarding"
@@ -232,6 +360,38 @@ struct ContentView: View {
         }
         .accessibleAnimation(.easeInOut, value: isFirstLaunch)
         .accessibleAnimation(.easeInOut, value: activePopup != nil)
+        // Phase 3 — live-preview countdown overlay. Slides in
+        // from the top whenever a cosmetic preview is active
+        // (after the user tapped "Preview" inside
+        // `CosmeticDetailView`). Sits above the offline banner
+        // so the user always sees it during a preview.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            // Phase 5 — also gate on `previewManager.activePreview`.
+            // The coordinator's `presentedDestination` is only cleared
+            // when the notification handler runs (which is too late —
+            // `tickCountdown` already nilled `activePreview` before the
+            // notification fires, so `restoreIfExpired` is a no-op and
+            // `endPreview` never gets called). Gating on the manager's
+            // own published state means the overlay disappears the
+            // instant the timer expires, matching the user's
+            // expectation that "Ends in 0s" is the *last* frame shown.
+            if previewCoordinator.hasActivePreview,
+               previewManager.activePreview != nil,
+               let name = previewCoordinator.previewingProductName {
+                PreviewCountdownOverlay(
+                    previewManager: previewManager,
+                    productName: name,
+                    onStop: { endActivePreviewFromOverlay() }
+                )
+                .padding(.top, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        // Animate the overlay's appearance / disappearance in sync
+        // with the visibility condition above. Without this, the
+        // `.transition` only fires for view changes *inside* the
+        // `if`, not for the `if` itself flipping false.
+        .accessibleAnimation(.easeInOut(duration: 0.25), value: previewManager.activePreview != nil)
         // Top-of-screen offline banner. Watches
         // `NetworkMonitor.shared` and slides in from the top
         // when the device loses connectivity. The
@@ -259,8 +419,140 @@ struct ContentView: View {
         } message: {
             Text("SaxWeather needs location access to show weather for where you are. You can also add a location manually in Settings.")
         }
+        // Phase 2 — react to a cosmetic deep link. We mirror the
+        // handler's `pendingProductID` into local state (so the
+        // sheet can drive its presentation via a stable binding),
+        // then clear the handler so a stale value doesn't re-fire
+        // on the next render. The handler is the single source of
+        // truth for "is there a pending deep link right now?";
+        // this view is one of possibly several consumers.
+        .onChange(of: deepLinkHandler.pendingProductID) { newValue in
+            guard let productID = newValue else { return }
+            pendingDeepLinkProductID = productID
+            deepLinkHandler.clearPending()
+        }
+        // Phase 3 — when a live preview starts, switch to the
+        // destination tab (main weather or forecast) so the user
+        // sees the cosmetic applied to real data.
+        .onChange(of: previewCoordinator.presentedDestination) { newValue in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                switch newValue {
+                case .mainWeather:
+                    selectedTab = 0
+                case .forecast:
+                    selectedTab = 1
+                case .none:
+                    break
+                }
+            }
+        }
+        // Phase 5 — when the user taps "Use now" / "Use this"
+        // on a palette / chart / background cosmetic, the
+        // coordinator publishes a `pendingUsage` value. Switch
+        // to the Settings tab AND mirror the destination into
+        // the matching `pendingUsageX` state so the right
+        // picker sheet is presented. Clearing the coordinator
+        // immediately after mirroring prevents a re-fire on
+        // the next render.
+        .onChange(of: cosmeticUsageCoordinator.pendingUsage) { newValue in
+            guard let usage = newValue else { return }
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = 3
+            }
+            switch usage.destination {
+            case .paletteSettings:
+                pendingUsagePalette = usage.cosmetic.id
+            case .chartSettings:
+                pendingUsageChart = usage.cosmetic.id
+            case .backgroundSettings:
+                pendingUsageBackground = usage.cosmetic.id
+            }
+            cosmeticUsageCoordinator.clearPending()
+        }
+        // Phase 3 — when the preview ends (timer fires or user
+        // taps Stop), the coordinator publishes the product ID
+        // whose detail view should be re-presented. Mirror it
+        // into `pendingDeepLinkProductID` so the existing deep-
+        // link sheet handler picks it up and re-opens the store
+        // at the right product. We also switch to the Settings
+        // tab so the store sheet has somewhere to anchor.
+        .onChange(of: previewCoordinator.reopenProductID) { newValue in
+            guard let productID = newValue else { return }
+            pendingDeepLinkProductID = productID
+            previewCoordinator.reopenProductID = nil
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = 3
+            }
+        }
+        // Cosmetics store sheet presented in response to a deep
+        // link. Bound through `pendingDeepLinkProductID` so
+        // setting it to nil dismisses the sheet. The store view
+        // reads the ID and auto-presents `CosmeticDetailView` for
+        // the matching product.
+        .sheet(item: Binding(
+            get: { pendingDeepLinkProductID.map { DeepLinkProductID(value: $0) } },
+            set: { newValue in pendingDeepLinkProductID = newValue?.value }
+        )) { wrapper in
+            CosmeticsStoreView(
+                    initialPendingProductID: wrapper.value
+                )
+                .environmentObject(storeManager)
+                .environmentObject(registry)
+                .environmentObject(previewCoordinator)
+                .environmentObject(cosmeticUsageCoordinator)
+        }
+        // Phase 5 — palette picker presented in response to
+        // a "Use now" / "Use this" tap on the Aurora Palette
+        // (or any future .palette cosmetic). The sheet is
+        // bound through `pendingUsagePalette`; setting it to
+        // nil dismisses the sheet.
+        .sheet(item: Binding(
+            get: { pendingUsagePalette.map { UsageProductID(value: $0) } },
+            set: { newValue in pendingUsagePalette = newValue?.value }
+        )) { wrapper in
+            PalettePickerView()
+                .environmentObject(registry)
+                .environmentObject(storeManager)
+        }
+        // Phase 5 — chart-skin picker presented in response
+        // to a "Use now" / "Use this" tap on the Aurora
+        // Chart Skin (or any future .chart cosmetic).
+        .sheet(item: Binding(
+            get: { pendingUsageChart.map { UsageProductID(value: $0) } },
+            set: { newValue in pendingUsageChart = newValue?.value }
+        )) { wrapper in
+            ChartSkinPickerView()
+                .environmentObject(registry)
+                .environmentObject(storeManager)
+        }
     }
-    
+
+    // MARK: - Live preview helpers
+
+    /// Called from the global countdown overlay's "Stop Preview"
+    /// button. Restores the original profile via the coordinator's
+    /// snapshot so the live view goes back to the user's real
+    /// palette / background / chart skin. Does *not* re-present
+    /// the detail view — the user explicitly chose to stop, so
+    /// we leave them on the live view they were previewing on.
+    private func endActivePreviewFromOverlay() {
+        // Phase 4 — also cancel the preview manager's
+        // timer so it stops ticking immediately. Without
+        // this, the manager's `activePreview` stays set
+        // and the countdown timer keeps running in the
+        // background until it reaches 0.
+        previewManager.cancelPreviewTimer()
+        if let snapshot = previewCoordinator.snapshotProfile {
+            registry.apply(snapshot)
+        }
+        previewCoordinator.endPreview(reopenForProductID: nil)
+    }
+
+    // Phase 2 — wrapper for deep-link product IDs so the sheet
+    // can drive its presentation off `Identifiable`. Defined at
+    // file scope so the `Binding` above can refer to it without
+    // a forward-declaration dance.
+
     // MARK: - Views
     
     private var mainWeatherView: some View {
@@ -328,6 +620,15 @@ struct ContentView: View {
                 onDismiss: { showingLocationMenu = false }
             )
         }
+        // `swipeBetweenLocations` Behaviour setting — swipe
+        // horizontally on the home screen to switch between
+        // saved locations. Only fires when the user has more
+        // than one saved location and the setting is on.
+        .modifier(LocationSwipeModifier(
+            enabled: SettingsBehaviour.swipeBetweenLocations,
+            locationsManager: locationsManager,
+            weatherService: weatherService
+        ))
     }
     
     private var backgroundLayer: some View {
@@ -340,7 +641,8 @@ struct ContentView: View {
             sunrise: weatherService.forecast?.daily.first?.sunrise,
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
-            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
+            isCosmeticUnlocked: storeManager.owns
         )
         return BackgroundViewWrapper(strategy: strategy)
     }
@@ -373,11 +675,17 @@ struct ContentView: View {
                     weatherContent
                 }
             }
-            .refreshable {
-                // iOS provides built-in haptic feedback during pull-to-refresh
-                // This is handled by the system and cannot be disabled
-                await weatherService.fetchWeather(calledFrom: "PullToRefresh")
-            }
+            // Honour the `pullToRefresh` Behaviour setting. When
+            // disabled the `.refreshable` modifier is omitted
+            // entirely, so the system never shows the pull-down
+            // spinner and a drag-down does nothing. When enabled
+            // we also fire the user-configured
+            // `vibrateOnPullToRefresh` / `refreshSound` /
+            // `tapticOnRefresh` feedback on success.
+            .modifier(PullToRefreshModifier(
+                enabled: SettingsBehaviour.pullToRefresh,
+                weatherService: weatherService
+            ))
             footerView
         }
         .frame(maxHeight: .infinity, alignment: .top)
@@ -444,7 +752,7 @@ struct ContentView: View {
                             .accessibleContrast()
                             .foregroundColor(.primary)
                     }
-                    
+
                     HStack {
                         if let high = weather.high {
                             Text(String(format: "H: %.1f%@", high, unitSymbol))
@@ -461,8 +769,16 @@ struct ContentView: View {
                     }
                 }
                 .padding(.vertical, 30)  // Reduced from 50 to accommodate the animation
-                
+
+                // 20pt outer gap so the details card lines up
+                // with the UV Index / Air Quality / Sun / Moon /
+                // Precipitation / Pollen cards further down the
+                // page. The `styledCard()` modifier's internal
+                // `.frame(maxWidth: .infinity)` would otherwise
+                // absorb the gap, so it has to live on the
+                // call site.
                 WeatherDetailsView(weather: weather)
+                    .padding(.horizontal, 20)
 
                 // Extended weather information
                 ExtendedWeatherSection(weather: weather)
@@ -699,106 +1015,34 @@ struct WeatherDetailsView: View {
     }
     
     var body: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ Glass Aesthetic - Transparent with Subtle Dark Tint.
-            // Each row crossfades and slightly scales in when its
-            // underlying metric value becomes non-nil, so the
-            // list populates smoothly as extended data lands.
-            VStack(spacing: 12) {
-                ForEach(weatherMetrics, id: \.title) { metric in
-                    if let value = metric.value {
-                        WeatherRowView(title: metric.title, value: value)
-                            .transition(
-                                .asymmetric(
-                                    insertion: .opacity
-                                        .combined(with: .scale(scale: 0.92)),
-                                    removal: .opacity
-                                )
+        // Phase 9 — the details card picks up the user-configured
+        // card style (glass, solid, outline, neumorphic), the
+        // corner radius, the shadow, the tint wash, the border,
+        // and the fill colour. The original iOS 26+ look can be
+        // reproduced via the Card Settings submenu: Glass + corner
+        // radius 24 + a `CardTintOverlay` set to the dark colour
+        // + a shadow radius of 20 with y offset 10.
+        VStack(spacing: 12) {
+            ForEach(weatherMetrics, id: \.title) { metric in
+                if let value = metric.value {
+                    WeatherRowView(title: metric.title, value: value)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity
+                                    .combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
                             )
-                    }
+                        )
                 }
             }
-            .padding(.vertical, 20)
-            .padding(.horizontal, 16)
-            .background {
-                ZStack {
-                    // More transparent blur effect
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.6)  // Increased transparency
-
-                    // Subtle dark tint overlay
-                    LinearGradient(
-                        colors: colorScheme == .dark ? [
-                            Color.black.opacity(0.2),      // Subtle dark tint
-                            Color.black.opacity(0.1),      // Even lighter
-                            Color.clear
-                        ] : [
-                            Color.white.opacity(0.15),     // Light mode stays neutral
-                            Color.white.opacity(0.05),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))  // Ensure proper rounding
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: colorScheme == .dark ? [
-                                Color.white.opacity(0.2),      // Subtle white border
-                                Color.white.opacity(0.1)
-                            ] : [
-                                Color.white.opacity(0.25),     // Light mode border
-                                Color.white.opacity(0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: .black.opacity(0.12), radius: 20, x: 0, y: 10)
-            .padding(.horizontal, 20)
-            .animation(
-                .easeInOut(duration: 0.4),
-                value: weatherMetrics.compactMap { $0.value }.count
-            )
-        } else {
-            // Fallback for iOS 25 and earlier
-            VStack(spacing: 16) {
-                ForEach(weatherMetrics, id: \.title) { metric in
-                    if let value = metric.value {
-                        WeatherRowView(title: metric.title, value: value)
-                            .transition(
-                                .asymmetric(
-                                    insertion: .opacity
-                                        .combined(with: .scale(scale: 0.92)),
-                                    removal: .opacity
-                                )
-                            )
-                    }
-                }
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    #if os(iOS)
-                    .fill(Color(UIColor.systemBackground))
-                    #elseif os(macOS)
-                    .fill(Color(NSColor.windowBackgroundColor))
-                    #endif
-                    .shadow(radius: 5)
-            )
-            .padding(.horizontal)
-            .animation(
-                .easeInOut(duration: 0.4),
-                value: weatherMetrics.compactMap { $0.value }.count
-            )
         }
+        .padding(.vertical, 20)
+        .padding(.horizontal, 16)
+        .styledCard()
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weatherMetrics.compactMap { $0.value }.count
+        )
     }
     
     private var weatherMetrics: [(title: String, value: String?)] {
@@ -1371,6 +1615,97 @@ struct HamburgerLocationMenuView_Previews: PreviewProvider {
             weatherService: WeatherService(),
             onDismiss: {}
         )
+    }
+}
+
+// MARK: - Pull-to-refresh modifier
+//
+// Conditionally applies SwiftUI's `.refreshable` so the user can
+// disable pull-to-refresh entirely from
+// Settings, Behaviour, Gestures. When enabled, the modifier also
+// fires the user-configured haptic / sound feedback when a refresh
+// completes successfully.
+struct PullToRefreshModifier: ViewModifier {
+    let enabled: Bool
+    @ObservedObject var weatherService: WeatherService
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.refreshable {
+                let errorBefore = weatherService.error
+                await weatherService.fetchWeather(calledFrom: "PullToRefresh")
+                // Trigger user feedback (haptic + sound) only when
+                // the refresh actually succeeded.
+                SettingsBehaviour.triggerRefreshFeedback(
+                    success: weatherService.error == nil && errorBefore == nil
+                )
+            }
+        } else {
+            content
+        }
+    }
+}
+
+// MARK: - Location-swipe modifier
+//
+// Horizontal swipe gesture to switch between saved locations on
+// the home screen. Honours the `swipeBetweenLocations` setting:
+// when disabled the gesture is a no-op so the user can still
+// scroll vertically without accidentally changing location.
+//
+// Also honours the `experimentalSwipeRefresh` setting: when on,
+// the pull-to-refresh gesture works anywhere on the home screen
+// (not just inside the scroll view). The implementation adds a
+// scroll-only `.refreshable` so the system control still appears,
+// but the gesture is registered on the whole ZStack so the
+// off-scroll-view experiment works.
+struct LocationSwipeModifier: ViewModifier {
+    let enabled: Bool
+    @ObservedObject var locationsManager: SavedLocationsManager
+    @ObservedObject var weatherService: WeatherService
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .gesture(
+                    DragGesture(minimumDistance: 60)
+                        .onEnded { value in
+                            handleSwipe(translation: value.translation.width)
+                        }
+                )
+        } else {
+            content
+        }
+    }
+
+    private func handleSwipe(translation: CGFloat) {
+        guard abs(translation) > 60 else { return }
+        let allOptions: [SavedLocation] = [locationsManager.currentLocationEntry] + locationsManager.locations
+        guard allOptions.count > 1 else { return }
+        let currentIndex = allOptions.firstIndex { option in
+            if weatherService.useGPS {
+                return option.isCurrentLocation
+            } else if let selected = locationsManager.selectedLocation {
+                return option.id == selected.id
+            }
+            return false
+        } ?? 0
+        let direction: Int = translation < 0 ? 1 : -1
+        let next = (currentIndex + direction + allOptions.count) % allOptions.count
+        let target = allOptions[next]
+        #if canImport(UIKit)
+        HapticFeedbackHelper.shared.light()
+        #endif
+        if target.isCurrentLocation {
+            locationsManager.selectCurrentLocation()
+            weatherService.useGPS = true
+        } else {
+            locationsManager.selectLocation(target)
+            weatherService.useGPS = false
+        }
+        Task {
+            await weatherService.fetchWeather(calledFrom: "LocationSwipeModifier")
+        }
     }
 }
 

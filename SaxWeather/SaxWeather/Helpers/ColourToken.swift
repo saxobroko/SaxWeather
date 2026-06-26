@@ -138,6 +138,20 @@ enum ColourToken: Codable, Hashable, Sendable {
         case "black":       return .black
         case "gray", "grey": return .gray
 
+        // v3 — extended card / surface palette used by the
+        // Card Settings submenu. The CSS-style names are kept
+        // for readability in the picker (and so a user can type
+        // them straight into a `.saxtheme` JSON file).
+        case "cream":       return Color(red: 0.98, green: 0.96, blue: 0.90)
+        case "skyblue":     return Color(red: 0.62, green: 0.82, blue: 0.99)
+        case "sand":        return Color(red: 0.96, green: 0.89, blue: 0.74)
+        case "lavender":    return Color(red: 0.85, green: 0.80, blue: 0.96)
+        case "coral":       return Color(red: 1.00, green: 0.62, blue: 0.55)
+        case "charcoal":    return Color(red: 0.20, green: 0.20, blue: 0.22)
+        case "sky":         return Color(red: 0.53, green: 0.81, blue: 0.92)
+        case "rose":        return Color(red: 1.00, green: 0.71, blue: 0.76)
+        case "lemon":       return Color(red: 1.00, green: 0.94, blue: 0.55)
+
         // Semantic colours that adapt to colour scheme.
         case "system":      return .primary
         case "primary":     return .primary

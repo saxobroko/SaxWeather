@@ -22,6 +22,11 @@ struct AlertsView: View {
     // Phase 5 — observe the registry + overlay strength.
     @ObservedObject private var registry = CustomisationRegistry.shared
     @EnvironmentObject private var storeManager: StoreManager
+    // Part F — observe the reactive chart palette store so the
+    // precipitation timeline bar re-renders when the chart skin
+    // or entitlements change (e.g. during a live preview of the
+    // Aurora Chart Skin cosmetic).
+    @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
     private var alertsBackgroundStrategy: BackgroundStrategy {
         BackgroundResolver.resolve(
@@ -30,7 +35,8 @@ struct AlertsView: View {
             sunrise: weatherService.forecast?.daily.first?.sunrise,
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
-            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
+            isCosmeticUnlocked: storeManager.owns
         )
     }
 
@@ -213,11 +219,7 @@ struct AlertsView: View {
             .padding(.top, 8)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(secondarySystemBackgroundColor)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
+        .styledCard()
     }
 
     /// Formats a minutes value as "X minutes", "1 hour", "2 hours", "1 day", or "1 day 2 hours"
@@ -240,11 +242,23 @@ struct AlertsView: View {
     }
 
     private func precipitationTimelineBar(_ timeline: PrecipitationTimeline) -> some View {
-        GeometryReader { geometry in
+        // Part F — resolve the chart colour scheme for the
+        // precipitation timeline bar. Free users see blue tones;
+        // Aurora owners see the Aurora palette (ocean blue → teal).
+        // The reference to `chartPaletteStore.activeSkin` also
+        // ensures SwiftUI tracks the dependency and re-renders
+        // when the chart skin or entitlements change (e.g. during
+        // a live preview of the Aurora Chart Skin cosmetic).
+        let chartColors = ChartColorScheme.precipitationTimeline(
+            activeSkin: chartPaletteStore.activeSkin
+        )
+        return GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 // Background track
                 Rectangle()
-                    .fill(Color.gray.opacity(0.3))
+                    // Part F — use the resolved chart colour
+                    // scheme's `background` for the track.
+                    .fill(chartColors.background)
                     .frame(height: 24)
                     .cornerRadius(12)
 
@@ -264,7 +278,7 @@ struct AlertsView: View {
                         // Only show future points
                         if position >= 0 && position <= 1 {
                             Rectangle()
-                                .fill(precipitationColor(for: point))
+                                .fill(precipitationColor(for: point, scheme: chartColors))
                                 .frame(
                                     width: 12,
                                     height: 24
@@ -301,7 +315,11 @@ struct AlertsView: View {
 
                 // Current time indicator
                 Circle()
-                    .fill(Color.red)
+                    // Part F — use the resolved chart colour
+                    // scheme's `accent` for the current time
+                    // indicator so it matches the chart's
+                    // colour identity.
+                    .fill(chartColors.accent)
                     .frame(width: 8, height: 8)
                     .position(x: 0, y: 12)
             }
@@ -309,18 +327,25 @@ struct AlertsView: View {
         .frame(height: 24)
     }
 
-    private func precipitationColor(for point: PrecipitationTimePoint) -> Color {
+    private func precipitationColor(
+        for point: PrecipitationTimePoint,
+        scheme: ChartColorScheme
+    ) -> Color {
         if !point.isRaining { return Color.clear }
 
+        // Part F — use the resolved chart colour scheme's
+        // `primary` for the bar fill. Free users see blue tones;
+        // Aurora owners see the Aurora palette (ocean blue → teal).
+        let base = scheme.primary
         switch point.intensity {
         case .none:
             return Color.clear
         case .light:
-            return Color.blue.opacity(0.3)
+            return base.opacity(0.3)
         case .moderate:
-            return Color.blue.opacity(0.6)
+            return base.opacity(0.6)
         case .heavy:
-            return Color.blue.opacity(0.9)
+            return base.opacity(0.9)
         }
     }
 
@@ -362,11 +387,7 @@ struct AlertsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
                 .padding(.horizontal)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(secondarySystemBackgroundColor)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                )
+                .styledCard()
                 .padding(.horizontal)
             } else {
                 ForEach(alertManager.alerts) { alert in
@@ -452,11 +473,7 @@ struct AlertsView: View {
             .padding(.leading, 28)
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(secondarySystemBackgroundColor)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
+        .styledCard()
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(alertSeverityColor(alert.severity).opacity(0.3), lineWidth: 2)
@@ -543,11 +560,7 @@ struct AlertsView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(secondarySystemBackgroundColor)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
+        .styledCard()
         .padding(.horizontal)
     }
 

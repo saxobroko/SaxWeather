@@ -22,7 +22,7 @@ import SwiftUI
 
 /// The resolved background to render. One variant per
 /// `BackgroundMode`, with the data each variant needs baked in.
-enum BackgroundStrategy: Equatable, Hashable {
+enum BackgroundStrategy: Equatable, Hashable, Codable {
     /// Use the shipped `Assets.xcassets` image for `condition`.
     /// The view looks up `weather_background_<condition>` and
     /// falls back to `weather_background_default`.
@@ -38,14 +38,20 @@ enum BackgroundStrategy: Equatable, Hashable {
     /// `.colorMultiply(_:)`. Used to give the same photo a fresh
     /// mood without shipping new art.
     case dynamicAccent(tint: ColourToken, condition: String)
+    /// Phase 3 — one of the eight Aurora-themed background images
+    /// (`weather_background_aurora_<condition>`). The view looks
+    /// up `name` and falls back to the palette gradient if the
+    /// image can't be loaded (defensive — should only happen if
+    /// the asset was renamed and the build is stale).
+    case auroraImage(name: String)
 
     // MARK: - Codable (for the widget subset in Phase 8)
 
     private enum CodingKeys: String, CodingKey {
-        case kind, condition, data, top, bottom, topOpacity, bottomOpacity, tint
+        case kind, condition, data, top, bottom, topOpacity, bottomOpacity, tint, name
     }
     private enum Kind: String, Codable {
-        case preset, customImage, gradient, dynamicAccent
+        case preset, customImage, gradient, dynamicAccent, auroraImage
     }
 
     init(from decoder: Decoder) throws {
@@ -68,6 +74,8 @@ enum BackgroundStrategy: Equatable, Hashable {
                 tint: try c.decode(ColourToken.self, forKey: .tint),
                 condition: try c.decode(String.self, forKey: .condition)
             )
+        case .auroraImage:
+            self = .auroraImage(name: try c.decode(String.self, forKey: .name))
         }
     }
 
@@ -90,6 +98,9 @@ enum BackgroundStrategy: Equatable, Hashable {
             try c.encode(Kind.dynamicAccent, forKey: .kind)
             try c.encode(tint, forKey: .tint)
             try c.encode(condition, forKey: .condition)
+        case .auroraImage(let name):
+            try c.encode(Kind.auroraImage, forKey: .kind)
+            try c.encode(name, forKey: .name)
         }
     }
 }

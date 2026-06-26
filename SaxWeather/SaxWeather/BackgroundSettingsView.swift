@@ -50,6 +50,12 @@ struct BackgroundSettingsView: View {
     @State private var perConditionEditorTarget: String?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    // Phase 2 — per-row lock UI. When the user taps a locked
+    // BackgroundMode row we present CosmeticsStoreView (via
+    // `pendingLockedProductID`) pointing at the cosmetic they
+    // need to buy. The cosmetic detail sheet auto-presents
+    // inside the store, matching the deep-link flow.
+    @State private var pendingLockedProductID: String?
 
     private var knobs: Binding<KnobStorage> { registry.knobsBinding }
 
@@ -90,6 +96,15 @@ struct BackgroundSettingsView: View {
         .onChange(of: storeManager.purchaseError) { error in
             showingAlert = error != nil
         }
+        // Phase 2 — sheet presented when the user taps a locked
+        // BackgroundMode row. The CosmeticsStoreView auto-shows
+        // CosmeticDetailView for the requested product.
+        .sheet(item: Binding(
+            get: { pendingLockedProductID.map { LockedProductID(value: $0) } },
+            set: { pendingLockedProductID = $0?.value }
+        )) { wrapper in
+            CosmeticsStoreView(initialPendingProductID: wrapper.value)
+        }
     }
 
     // MARK: - Toolbar
@@ -115,6 +130,16 @@ struct BackgroundSettingsView: View {
                 gradientSection
             case .dynamicAccent:
                 dynamicAccentSection
+            case .aurora:
+                // Phase 4 — the single Aurora preset reuses
+                // the preset-mode UI. The BackgroundResolver
+                // does the actual visual swap (picking the
+                // right Aurora image based on the current
+                // weather condition); we show the same
+                // per-condition and time-of-day controls so
+                // the user has full customisation over their
+                // Aurora background.
+                presetSection
             }
             perConditionSection
             overlaySection
@@ -140,18 +165,51 @@ struct BackgroundSettingsView: View {
 
     private var modeSection: some View {
         Section {
-            Picker("Mode", selection: knobs.background.mode) {
-                Text("Preset").tag(BackgroundMode.preset)
-                Text("Custom Image").tag(BackgroundMode.customImage)
-                Text("Gradient").tag(BackgroundMode.gradient)
-                Text("Dynamic Accent").tag(BackgroundMode.dynamicAccent)
+            // Phase 2 — per-row lock UI. Each `BackgroundMode`
+            // gets its own row showing a thumbnail swatch,
+            // the display name, and a lock badge if it requires
+            // a cosmetic the user doesn't own.
+            //
+            // Tapping rules (per the locked spec):
+            //   • Free modes (preset / customImage / gradient /
+            //     dynamicAccent) commit the selection directly.
+            //   • Owned paid modes commit the selection directly.
+            //   • Locked paid modes (`.aurora` for users who
+            //     don't own the cosmetic) present the in-app
+            //     cosmetics store at the required product's
+            //     detail sheet — they do NOT commit the
+            //     selection, so a locked row can never become
+            //     the selected mode by accident.
+            ForEach(displayedBackgroundModes, id: \.self) { mode in
+                BackgroundModeRow(
+                    mode: mode,
+                    isSelected: knobs.wrappedValue.background.mode == mode,
+                    requiredProductID: mode.requiredProductID,
+                    isOwned: { pid in storeManager.owns(pid) },
+                    onTapOwned: {
+                        registry.set(\.background.mode, mode)
+                    },
+                    onTapLocked: { productID in
+                        pendingLockedProductID = productID
+                    }
+                )
             }
-            .pickerStyle(.segmented)
         } header: {
             Text("Background Mode")
         } footer: {
             Text(footerText(for: knobs.wrappedValue.background.mode))
         }
+    }
+
+    /// The full set of `BackgroundMode` cases displayed in
+    /// the per-row list. New themed modes (Neon, Seasonal)
+    /// will add their own cases here in later phases.
+    ///
+    /// Phase 4 — the single `.aurora` case is displayed as
+    /// one row in the picker. The resolver picks the right
+    /// Aurora image based on the current weather condition.
+    private var displayedBackgroundModes: [BackgroundMode] {
+        BackgroundMode.allCases
     }
 
     private func footerText(for mode: BackgroundMode) -> String {
@@ -164,6 +222,8 @@ struct BackgroundSettingsView: View {
             return "A two-stop vertical gradient. Free to set up — no extra IAP beyond the one that unlocked this screen."
         case .dynamicAccent:
             return "Tints the shipped preset image with your accent colour. A fresh mood without new art."
+        case .aurora:
+            return "Aurora-themed background that automatically picks the right image for the current weather condition. Requires the Aurora Backgrounds cosmetic."
         }
     }
 
@@ -665,4 +725,153 @@ struct BackgroundSettingsView_Previews: PreviewProvider {
         BackgroundSettingsView()
             .environmentObject(StoreManager.shared)
     }
+}
+
+// MARK: - BackgroundModeRow (Phase 2 — per-row lock UI)
+
+/// A single row in the per-mode list. Renders the mode's
+/// thumbnail swatch, display name, and either a checkmark
+/// (selected / free or owned) or a lock badge (paid and
+/// unowned). Tapping a free or owned row commits the
+/// selection; tapping a locked paid row fires
+/// `onTapLocked` instead.
+struct BackgroundModeRow: View {
+    let mode: BackgroundMode
+    let isSelected: Bool
+    let requiredProductID: String?
+    let isOwned: (String) -> Bool
+    let onTapOwned: () -> Void
+    let onTapLocked: (String) -> Void
+
+    private var isLocked: Bool {
+        guard let pid = requiredProductID else { return false }
+        return !isOwned(pid)
+    }
+
+    var body: some View {
+        Button {
+            if isLocked, let pid = requiredProductID {
+                onTapLocked(pid)
+            } else {
+                onTapOwned()
+            }
+        } label: {
+            HStack(spacing: 12) {
+                thumbnail
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(mode.displayName)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        if isLocked {
+                            Image(systemName: "lock.fill")
+                                .imageScale(.small)
+                                .foregroundStyle(.orange)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    Text(subtitle(for: mode, locked: isLocked))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
+                        .fontWeight(.semibold)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(mode.displayName)
+        .accessibilityValue(isSelected ? "Selected" : (isLocked ? "Locked" : "Available"))
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// Small colour-swatch thumbnail for the row. Free modes
+    /// get a neutral swatch; Aurora gets the palette-cosmicAurora
+    /// gradient. Cosmetic-specific thumbnails (Neon, Seasonal,
+    /// etc.) will plug in here in later phases.
+    @ViewBuilder
+    private var thumbnail: some View {
+        switch mode {
+        case .preset:
+            swatch(colors: [.blue.opacity(0.4), .gray.opacity(0.6)])
+        case .customImage:
+            swatch(colors: [.green.opacity(0.4), .teal.opacity(0.6)], system: "photo.fill")
+        case .gradient:
+            swatch(colors: [.purple.opacity(0.4), .pink.opacity(0.6)])
+        case .dynamicAccent:
+            swatch(colors: [.orange.opacity(0.4), .yellow.opacity(0.6)])
+        case .aurora:
+            // Phase 4 — the single Aurora preset uses the
+            // palette-driven swatch. The detail view (and the
+            // home screen) shows the actual per-condition image.
+            swatch(colors: [
+                Color(red: 0.36, green: 0.75, blue: 0.74),
+                Color(red: 0.04, green: 0.11, blue: 0.23)
+            ])
+        }
+    }
+
+    private func swatch(colors: [Color], system: String? = nil) -> some View {
+        ZStack {
+            LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+            if let system = system {
+                Image(systemName: system)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+        .frame(width: 36, height: 36)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary.opacity(0.25), lineWidth: 0.5)
+        )
+    }
+
+    private func subtitle(for mode: BackgroundMode, locked: Bool) -> String {
+        if locked, let pid = requiredProductID,
+           let product = CosmeticCatalog.product(id: pid) {
+            return String(
+                format: "Tap to buy %@ — $%.2f",
+                product.displayName,
+                Double(product.priceCents) / 100.0
+            )
+        }
+        switch mode {
+        case .preset: return "Shipped backgrounds for each condition."
+        case .customImage: return "Your own photo."
+        case .gradient: return "Two-stop vertical gradient."
+        case .dynamicAccent: return "Preset tinted by your accent colour."
+        case .aurora: return "Aurora-themed backgrounds that auto-pick the right image for the current weather."
+        }
+    }
+}
+
+extension BackgroundMode {
+    /// User-facing name for the per-row lock UI.
+    /// Phase 4 — the single Aurora preset uses the pack-level
+    /// name ("Aurora Backgrounds") so the picker reads as a
+    /// single row.
+    var displayName: String {
+        switch self {
+        case .preset:          return "Preset"
+        case .customImage:     return "Custom Image"
+        case .gradient:        return "Gradient"
+        case .dynamicAccent:   return "Dynamic Accent"
+        case .aurora:          return "Aurora Backgrounds"
+        }
+    }
+}
+
+/// Identifiable wrapper used to drive the locked-cosmetics
+/// sheet off a `String?` (the product ID).
+struct LockedProductID: Identifiable {
+    let value: String
+    var id: String { value }
 }

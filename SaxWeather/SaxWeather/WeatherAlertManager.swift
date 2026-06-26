@@ -614,13 +614,22 @@ class WeatherAlertManager: ObservableObject {
             self.notificationCenter.removePendingNotificationRequests(withIdentifiers: rainNotificationIds)
         }
 
+        // Honour the user's quiet-hours window. We still surface
+        // the rain timeline in-app (it drives the WeatherAlertsView
+        // banner), we just don't buzz their lock screen in the
+        // middle of the night.
+        guard !SettingsBehaviour.isInQuietHours else {
+            print("🤫 Rain notifications suppressed: inside quiet hours window")
+            return
+        }
+
         if let startTime = timeline.rainStartTime {
             let minutesUntilStart = Int(startTime.timeIntervalSince(Date()) / 60)
             if minutesUntilStart > 0 && minutesUntilStart <= 120 {
                 let content = UNMutableNotificationContent()
                 content.title = "Rain Alert"
                 content.body = "Rain expected to start in \(minutesUntilStart) minutes"
-                content.sound = .default
+                content.sound = SettingsBehaviour.weatherAlertSounds ? .default : nil
                 let triggerTime = max(1, minutesUntilStart - 5)
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(triggerTime * 60), repeats: false)
                 let request = UNNotificationRequest(identifier: "rain_start", content: content, trigger: trigger)
@@ -638,7 +647,7 @@ class WeatherAlertManager: ObservableObject {
                 let content = UNMutableNotificationContent()
                 content.title = "Rain Update"
                 content.body = "Rain expected to stop in \(minutesUntilEnd) minutes"
-                content.sound = .default
+                content.sound = SettingsBehaviour.weatherAlertSounds ? .default : nil
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 60, repeats: false)
                 let request = UNNotificationRequest(identifier: "rain_end", content: content, trigger: trigger)
                 notificationCenter.add(request) { error in
@@ -657,6 +666,14 @@ class WeatherAlertManager: ObservableObject {
         }
         guard authorizationStatus == .authorized else { return }
 
+        // Quiet hours: skip lock-screen delivery but leave the
+        // banner inside the app so the user still sees it next
+        // time they open SaxWeather.
+        guard !SettingsBehaviour.isInQuietHours else {
+            print("🤫 Alert notifications suppressed: inside quiet hours window")
+            return
+        }
+
         for alert in alerts {
             if alert.severity != .information &&
                 alert.date.timeIntervalSinceNow < 86400 &&
@@ -664,7 +681,7 @@ class WeatherAlertManager: ObservableObject {
                 let content = UNMutableNotificationContent()
                 content.title = "\(alert.severity.rawValue): \(alert.type)"
                 content.body = alert.description
-                content.sound = .default
+                content.sound = SettingsBehaviour.weatherAlertSounds ? .default : nil
                 let triggerDate = alert.date.addingTimeInterval(-10800)
                 let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: triggerDate)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
@@ -674,6 +691,15 @@ class WeatherAlertManager: ObservableObject {
                         print("❌ Error scheduling notification: \(error.localizedDescription)")
                     }
                 }
+                // `speakWeatherAlerts` Behaviour setting — read
+                // the alert out loud when the app is in the
+                // foreground. Background notifications are
+                // delivered silently; VoiceOver / lock-screen
+                // narration is left to the system.
+                SettingsBehaviour.speakWeatherAlert(
+                    title: "\(alert.severity.rawValue): \(alert.type)",
+                    body: alert.description
+                )
             }
         }
     }

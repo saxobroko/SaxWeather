@@ -6,6 +6,17 @@
 	<array>
 		<string>com.saxobroko.SaxWeather.refresh</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.saxweather.cosmetic</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>saxweather</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

@@ -15,6 +15,7 @@
 //
 
 import XCTest
+import CoreLocation
 @testable import SaxWeather
 
 final class WeatherErrorTests: XCTestCase {

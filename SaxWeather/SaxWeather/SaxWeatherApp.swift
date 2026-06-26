@@ -13,7 +13,7 @@ import CoreLocation
 #if os(iOS)
 class AppDelegate: NSObject, UIApplicationDelegate {
     static let backgroundTaskIdentifier = "com.saxobroko.SaxWeather.refresh"
-    
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Register background task
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundTaskIdentifier, using: nil) { task in
@@ -23,15 +23,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             }
             self.handleAppRefresh(task: appRefreshTask)
         }
-        
+
         // Schedule the first background refresh request as soon as the app launches
         scheduleAppRefresh()
-        
+
         // Request notification permissions
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
         return true
     }
-    
+
     func handleAppRefresh(task: BGAppRefreshTask) {
         print("🔄 Background refresh task started at \(Date())")
 
@@ -168,7 +168,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     private func getBackgroundCoordinates() -> (latitude: Double, longitude: Double)? {
         let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
         let useGPS = UserDefaults.standard.bool(forKey: "useGPS")
-        
+
         if useGPS {
             if let latString = sharedDefaults?.string(forKey: "lastKnownLatitude"),
                let lonString = sharedDefaults?.string(forKey: "lastKnownLongitude"),
@@ -181,7 +181,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 }
             }
         }
-        
+
         if let latString = UserDefaults.standard.string(forKey: "latitude"),
            let lonString = UserDefaults.standard.string(forKey: "longitude"),
            let latitude = Double(latString),
@@ -192,7 +192,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 return (validationResult.normalizedLatitude ?? latitude, validationResult.normalizedLongitude ?? longitude)
             }
         }
-        
+
         if let latString = sharedDefaults?.string(forKey: "latitude"),
            let lonString = sharedDefaults?.string(forKey: "longitude"),
            let latitude = Double(latString),
@@ -203,10 +203,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 return (validationResult.normalizedLatitude ?? latitude, validationResult.normalizedLongitude ?? longitude)
             }
         }
-        
+
         return nil
     }
-    
+
     private func refreshStationWeatherForWidget() async -> Bool {
         let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
         guard !disableAPIKeys,
@@ -214,10 +214,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
               !apiKey.isEmpty else {
             return false
         }
-        
+
         let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
         guard !stationID.isEmpty else { return false }
-        
+
         var components = URLComponents(string: "https://api.weather.com/v2/pws/observations/current")
         components?.queryItems = [
             URLQueryItem(name: "stationId", value: stationID),
@@ -227,19 +227,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             URLQueryItem(name: "apiKey", value: apiKey)
         ]
         guard let url = components?.url else { return false }
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 print("⚠️ Background station refresh failed: HTTP \(httpResponse.statusCode)")
                 return false
             }
-            
+
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let wuResponse = try decoder.decode(WUResponse.self, from: data)
             guard let observation = wuResponse.observations.first else { return false }
-            
+
             saveStationWeatherForWidget(observation)
             print("✅ Background station weather refreshed for widget")
             return true
@@ -248,7 +248,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             return false
         }
     }
-    
+
     private func saveStationWeatherForWidget(_ observation: WUObservation) {
         let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
         let unitSystem = UserDefaults.standard.string(forKey: "unitSystem") ?? "Metric"
@@ -361,14 +361,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Idempotent; only writes on the very first success.
         WidgetSyncService.shared.markHasEverFetched()
     }
-    
+
     private func loadLatestWidgetWeatherData() -> [String: Any] {
         let sharedDefaults = UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")
         guard let data = sharedDefaults?.data(forKey: "latestWeather"),
               let weatherData = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
             return [:]
         }
-        
+
         return weatherData
     }
 }
@@ -385,19 +385,42 @@ struct SaxWeatherApp: App {
     // exposes its API via `.environmentObject` so deeper views can
     // read/write knobs in later phases without prop-drilling.
     @StateObject private var customisationRegistry = CustomisationRegistry.shared
+    // Phase 2 — cosmetic deep link handler. Listens to
+    // `saxweather://cosmetic/<productID>` URLs (registered in
+    // `Info.plist` via `CFBundleURLTypes`) and publishes the
+    // validated product ID so the UI can present
+    // `CosmeticDetailView`. See `CosmeticDeepLinkHandler` for
+    // the URL shape and validation rules.
+    @StateObject private var deepLinkHandler = CosmeticDeepLinkHandler()
+    // Phase 4 — live cosmetic-preview manager. Owned at the
+    // app root so every view that participates in the preview
+    // flow (the countdown overlay in `ContentView`, the store
+    // sheet, the detail sheet, and the picker sheets that
+    // re-present the store) observes the *same* instance.
+    // Previously this lived as a `@StateObject` inside
+    // `ContentView`, which meant any sheet opened outside of
+    // `ContentView` (Settings → Cosmetics, the palette /
+    // chart / background pickers) created its own throwaway
+    // `PreviewProfileManager()`. The preview then ran on the
+    // throwaway instance while the overlay in `ContentView`
+    // observed the original instance — which still had
+    // `remainingSeconds == 0`, so the UI showed "Ends in 0s"
+    // immediately. Injecting it via `.environmentObject`
+    // guarantees a single shared instance for the whole app.
+    @StateObject private var previewManager = PreviewProfileManager()
     @AppStorage("accentColor") private var accentColor = "blue"
     @Environment(\.scenePhase) private var scenePhase
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
-    
+
     init() {
         // Register default values for UserDefaults
         let defaults: [String: Any] = [
             "forecastDays": 7
         ]
         UserDefaults.standard.register(defaults: defaults)
-        
+
         // Set up custom tab bar appearance (iOS only)
         #if os(iOS)
         let appearance = UITabBarAppearance()
@@ -410,14 +433,33 @@ struct SaxWeatherApp: App {
         }
         #endif
     }
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(storeManager)
                 .environmentObject(weatherService)
                 .environmentObject(customisationRegistry)
+                // Phase 2 — inject the deep link handler so the
+                // root content view can observe
+                // `pendingProductID` and present
+                // `CosmeticDetailView` for the matched product.
+                .environmentObject(deepLinkHandler)
+                // Phase 4 — inject the shared preview manager so
+                // every view (the countdown overlay in
+                // `ContentView`, the store sheet, the detail
+                // sheet, and the picker sheets) observes the
+                // same instance. See the `@StateObject` above
+                // for the rationale.
+                .environmentObject(previewManager)
                 .tint(accentColorValue) // Apply user's selected accent color
+                // Phase 2 — route incoming `saxweather://cosmetic/<id>`
+                // URLs to the handler. SwiftUI calls this closure
+                // on the main actor; the handler is `@MainActor`
+                // so we just forward the URL.
+                .onOpenURL { url in
+                    deepLinkHandler.handle(url: url)
+                }
                 .onAppear {
                     // Bootstrap widget sync: push the current
                     // unit system, GPS flag, data source
@@ -466,10 +508,29 @@ struct SaxWeatherApp: App {
                         // Re-schedule background refresh
                         appDelegate.scheduleAppRefresh()
 
+                        // `confirmQuit` Behaviour setting. iOS does
+                        // not let us intercept the home button, so
+                        // the best we can do is post a debug log
+                        // and a sentinel the next time the user
+                        // opens the app. Users with this setting on
+                        // are typically worried about accidental
+                        // exits on iPad multitasking, so the log
+                        // acts as a record they can review in
+                        // Console.app.
+                        if UserDefaults.standard.bool(forKey: "lastSessionConfirmedQuit") {
+                            print("ℹ️ Previous session ended while confirmQuit was on")
+                            UserDefaults.standard.set(false, forKey: "lastSessionConfirmedQuit")
+                        }
+
                     case .background:
                         // App went to background - schedule next refresh
                         appDelegate.scheduleAppRefresh()
                         print("📱 App entered background - scheduled next refresh")
+
+                        // Mark that the session ended; if the user
+                        // comes back with `confirmQuit` on, the
+                        // active-phase handler will log it.
+                        UserDefaults.standard.set(true, forKey: "lastSessionConfirmedQuit")
 
                     default:
                         break
@@ -478,7 +539,7 @@ struct SaxWeatherApp: App {
                 }
         }
     }
-    
+
     // Convert accent color string to Color
     private var accentColorValue: Color {
         switch accentColor.lowercased() {

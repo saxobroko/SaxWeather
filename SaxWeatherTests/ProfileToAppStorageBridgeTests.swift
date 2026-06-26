@@ -51,11 +51,6 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
             for key in Self.standardKeys {
                 isolatedDefaults.removeObject(forKey: key)
             }
-            isolatedDefaults.removePersistentDomain(
-                forName: isolatedDefaults.dictionaryRepresentation().isEmpty
-                    ? ""
-                    : (isolatedDefaults.dictionaryRepresentation().keys.first.map(String.init) ?? "")
-            )
         }
         isolatedDefaults = nil
         super.tearDown()
@@ -118,7 +113,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
         let knobs = ProfileToAppStorageBridge.readFromAppStorage(from: isolatedDefaults)
 
         XCTAssertEqual(knobs.data.unitSystem, "UK")
-        XCTAssertEqual(knobs.visual.accentColor, "orange")
+        XCTAssertEqual(knobs.visual.accentColor, .named("orange"))
         XCTAssertEqual(knobs.layout.forecastDays, 10)
         XCTAssertEqual(knobs.accessibility.reduceMotion, true)
     }
@@ -146,7 +141,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
     func test_readFromAppStorage_preservesDefaultStrings() {
         let knobs = ProfileToAppStorageBridge.readFromAppStorage(from: isolatedDefaults)
         XCTAssertEqual(knobs.data.unitSystem, "Metric")
-        XCTAssertEqual(knobs.visual.accentColor, "blue")
+        XCTAssertEqual(knobs.visual.accentColor, .named("blue"))
         XCTAssertEqual(knobs.layout.displayMode, "Summary")
     }
 
@@ -154,7 +149,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
 
     func test_bridgeThenRead_isLosslessForAllBridgedKeys() {
         var knobs = KnobStorage()
-        knobs.visual.accentColor = "teal"
+        knobs.visual.accentColor = .named("teal")
         knobs.visual.colorScheme = "dark"
         knobs.visual.fontScale = 1.15
         knobs.visual.boldText = true
@@ -176,7 +171,7 @@ final class ProfileToAppStorageBridgeTests: XCTestCase {
         ProfileToAppStorageBridge.bridge(knobs, to: isolatedDefaults)
         let restored = ProfileToAppStorageBridge.readFromAppStorage(from: isolatedDefaults)
 
-        XCTAssertEqual(restored.visual.accentColor, "teal")
+        XCTAssertEqual(restored.visual.accentColor, .named("teal"))
         XCTAssertEqual(restored.visual.colorScheme, "dark")
         XCTAssertEqual(restored.visual.fontScale, 1.15, accuracy: 0.0001)
         XCTAssertEqual(restored.visual.boldText, true)

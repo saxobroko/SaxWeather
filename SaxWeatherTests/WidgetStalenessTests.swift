@@ -13,7 +13,6 @@
 //
 
 import XCTest
-@testable import SaxWeather
 
 final class WidgetStalenessTests: XCTestCase {
 

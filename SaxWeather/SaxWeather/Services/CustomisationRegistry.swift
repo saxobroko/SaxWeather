@@ -42,6 +42,14 @@ final class CustomisationRegistry: ObservableObject {
     /// registry can persist + bump `versionToken`.
     @Published private(set) var profile: CustomisationProfile
 
+    /// User-saved profiles (named, mutable, deletable). The five
+    /// [`BuiltInProfile`](SaxWeather/SaxWeather/Models/CustomisationProfile.swift:73)s
+    /// are not stored here — they're factory-built on demand. This
+    /// list only contains profiles the user has explicitly saved
+    /// via `saveCurrentAs(name:)` or imported via `importProfile(from:)`.
+    /// Phase 7 — wired into the Settings UI's `ProfileSwitcherView`.
+    @Published private(set) var savedProfiles: [CustomisationProfile] = []
+
     /// Bumped whenever the *shape* of the profile changes (a
     /// section added, a section removed, a profile swap). Cheap
     /// value tweaks (toggles, sliders) propagate via
@@ -62,6 +70,9 @@ final class CustomisationRegistry: ObservableObject {
     /// Filename inside the App Group container holding the active
     /// profile as JSON.
     private static let activeProfileFilename = "current.saxtheme"
+    /// Filename inside the App Group container holding the saved-
+    /// profile index (an array of `CustomisationProfile`s).
+    private static let savedProfilesFilename = "saved-profiles.json"
 
     #if DEBUG
     /// File-system watcher that powers hot-reload.
@@ -105,6 +116,7 @@ final class CustomisationRegistry: ObservableObject {
             persist()
         }
         recomputeHash()
+        loadSavedProfiles()
         setupHotReload()
     }
 
@@ -113,6 +125,15 @@ final class CustomisationRegistry: ObservableObject {
     /// leakage across test cases.
     init(testProfile initial: CustomisationProfile = .makeDefault()) {
         self.profile = initial
+        self.savedProfiles = []
+        recomputeHash()
+    }
+
+    /// Test-only init that seeds a pre-populated saved-profiles
+    /// list. Used by unit tests for the saved-profile CRUD methods.
+    init(testProfile initial: CustomisationProfile, savedProfiles: [CustomisationProfile]) {
+        self.profile = initial
+        self.savedProfiles = savedProfiles
         recomputeHash()
     }
 
@@ -245,6 +266,115 @@ final class CustomisationRegistry: ObservableObject {
         let data = try Data(contentsOf: url)
         let imported = try ProfileMigrator.migrate(data)
         apply(imported)
+    }
+
+    // MARK: - Saved profiles (Phase 7)
+
+    /// Save the active profile under a new name. The saved profile
+    /// appears in `savedProfiles` and is persisted to the App
+    /// Group so it survives relaunches. If a saved profile with
+    /// the same name already exists, it's overwritten (same UUID
+    /// is preserved so the user doesn't see a duplicate row).
+    func saveCurrentAs(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var snapshot = profile
+        snapshot.name = trimmed
+        snapshot.id = savedProfiles.first(where: { $0.name == trimmed })?.id ?? UUID()
+        if let idx = savedProfiles.firstIndex(where: { $0.name == trimmed }) {
+            savedProfiles[idx] = snapshot
+        } else {
+            savedProfiles.append(snapshot)
+        }
+        persistSavedProfiles()
+    }
+
+    /// Delete a saved profile by ID. No-op if the profile isn't
+    /// in the list.
+    func deleteSavedProfile(id: UUID) {
+        savedProfiles.removeAll { $0.id == id }
+        persistSavedProfiles()
+    }
+
+    /// Rename a saved profile. No-op if the profile isn't in the
+    /// list. If `newName` collides with an existing saved profile,
+    /// the rename is rejected (no silent overwrite).
+    @discardableResult
+    func renameSavedProfile(id: UUID, to newName: String) -> Bool {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        guard let idx = savedProfiles.firstIndex(where: { $0.id == id }) else {
+            return false
+        }
+        if savedProfiles.contains(where: { $0.name == trimmed && $0.id != id }) {
+            return false
+        }
+        savedProfiles[idx].name = trimmed
+        persistSavedProfiles()
+        return true
+    }
+
+    /// Apply a saved profile by ID. No-op if not found.
+    func applySavedProfile(id: UUID) {
+        guard let saved = savedProfiles.first(where: { $0.id == id }) else { return }
+        apply(saved)
+    }
+
+    // MARK: - Saved-profile persistence
+
+    /// URL of the saved-profiles JSON file inside the App Group, or
+    /// `nil` if the container isn't available.
+    private var savedProfilesURL: URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupID)?
+            .appendingPathComponent(Self.savedProfilesFilename)
+    }
+
+    /// Load saved profiles from disk on init.
+    private func loadSavedProfiles() {
+        guard let url = savedProfilesURL,
+              let data = try? Data(contentsOf: url) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        if let profiles = try? decoder.decode([CustomisationProfile].self, from: data) {
+            self.savedProfiles = profiles
+        }
+    }
+
+    /// Persist the current `savedProfiles` array to disk.
+    private func persistSavedProfiles() {
+        guard let url = savedProfilesURL else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        do {
+            let data = try encoder.encode(savedProfiles)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            #if DEBUG
+            print("⚠️ CustomisationRegistry: failed to persist saved profiles — \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Knob catalogue (Phase 7 — Settings search)
+
+    /// Every knob the registry knows about, for the Settings
+    /// search UI. New knob = one new descriptor here. The search
+    /// matches against `searchTokens` (case-insensitive).
+    var allKnobs: [KnobDescriptor] {
+        KnobDescriptor.catalogue
+    }
+
+    /// Subset of `allKnobs` whose `searchTokens` contain the query
+    /// (case-insensitive). Empty query returns everything.
+    func searchKnobs(_ query: String) -> [KnobDescriptor] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return allKnobs }
+        let lower = trimmed.lowercased()
+        return allKnobs.filter { descriptor in
+            descriptor.searchTokens.contains { $0.lowercased().contains(lower) }
+        }
     }
 
     // MARK: - Hot reload (DEBUG)

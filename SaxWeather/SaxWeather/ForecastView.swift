@@ -15,6 +15,7 @@ import WeatherKit
 struct ForecastView: View {
     @ObservedObject var weatherService: WeatherService
     @State private var selectedDay: WeatherForecast.DailyForecast?
+    @State private var longPressedDay: WeatherForecast.DailyForecast?
     @State private var hourlyData: [HourlyWeatherData] = []
     @State private var conditionSummary: String = ""
     @State private var isLoadingHourly = true
@@ -33,7 +34,8 @@ struct ForecastView: View {
             sunrise: weatherService.forecast?.daily.first?.sunrise,
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
-            customBackgroundUnlocked: storeManager.customBackgroundUnlocked
+            customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
+            isCosmeticUnlocked: storeManager.owns
         )
     }
 
@@ -110,142 +112,162 @@ struct ForecastView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     
-                    // Improved hourly forecast section
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Section header
-                        HStack {
-                            Image(systemName: "clock")
-                                .font(.title3)
-                                .foregroundColor(.accentColor)
-                            
-                            Text("Hourly Forecast")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                        }
-                        .padding(.top, 16)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 4)
-
-                        // Weather condition summary.
-                        // While loading we render an animated skeleton
-                        // placeholder so the card height stays stable and
-                        // there's no jarring pop-in when the real text
-                        // arrives. When loaded, we crossfade in the real
-                        // string.
-                        Group {
-                            if isLoadingHourly {
-                                SkeletonView(cornerRadius: 4)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .frame(height: 16)
-                                    .padding(.horizontal, 20)
-                                    .transition(.opacity)
-                            } else if !conditionSummary.isEmpty {
-                                Text(conditionSummary)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal, 20)
-                                    .transition(
-                                        .opacity.combined(with: .move(edge: .top))
-                                    )
+                    // Hourly forecast section.
+                    // The header + condition summary live in a
+                    // styled card so they follow the user's
+                    // Card Settings. The `ScrollView` is
+                    // intentionally NOT inside the card —
+                    // wrapping a horizontal scroll in a clipped
+                    // + shadowed frame on iOS 16+ intermittently
+                    // swallows the pan gesture, and the items
+                    // themselves are already individual cards
+                    // (`.styledCard()` per item) so the visual
+                    // language is preserved.
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Section header + condition summary card
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "clock")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                                Text("Hourly Forecast")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
                             }
-                        }
-                        .animation(
-                            .easeInOut(duration: 0.35),
-                            value: isLoadingHourly
-                        )
-                        .animation(
-                            .easeInOut(duration: 0.35),
-                            value: conditionSummary
-                        )
-
-                        // Hourly forecast scrollable container.
-                        // Skeletons stay in place while loading, then we
-                        // crossfade to the real forecast items once the
-                        // data arrives — no abrupt swap.
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
+                            Group {
                                 if isLoadingHourly {
-                                    ForEach(0..<6, id: \.self) { _ in
-                                        hourlyForecastItemSkeleton()
-                                            .transition(.opacity)
-                                    }
-                                } else if hourlyData.isEmpty {
-                                    Text("No hourly data available")
-                                        .foregroundColor(.secondary)
-                                        .padding()
+                                    SkeletonView(cornerRadius: 4)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .frame(height: 16)
                                         .transition(.opacity)
-                                } else {
-                                    ForEach(hourlyData) { hour in
-                                        hourlyForecastItem(hour)
-                                            .transition(
-                                                .asymmetric(
-                                                    insertion: .opacity
-                                                        .combined(with: .scale(scale: 0.92)),
-                                                    removal: .opacity
-                                                )
-                                            )
-                                    }
+                                } else if !conditionSummary.isEmpty {
+                                    Text(conditionSummary)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .transition(
+                                            .opacity.combined(with: .move(edge: .top))
+                                        )
                                 }
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
+                            .animation(
+                                .easeInOut(duration: 0.35),
+                                value: isLoadingHourly
+                            )
+                            .animation(
+                                .easeInOut(duration: 0.35),
+                                value: conditionSummary
+                            )
                         }
-                        .animation(
-                            .easeInOut(duration: 0.4),
-                            value: isLoadingHourly
-                        )
-                        .animation(
-                            .easeInOut(duration: 0.4),
-                            value: hourlyData.count
-                        )
+                        .padding(16)
+                        .styledCard()
                     }
-                    .styledCard()
-                    .padding(.horizontal)
+                    .padding(.horizontal, 20)
+
+                    // Hourly forecast scrollable container.
+                    // Placed OUTSIDE the styled card so the pan
+                    // gesture is never clipped or shadowed.
+                    // Each item is its own small card so the
+                    // visual rhythm matches the rest of the app.
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            if isLoadingHourly {
+                                ForEach(0..<6, id: \.self) { _ in
+                                    hourlyForecastItemSkeleton()
+                                        .transition(.opacity)
+                                }
+                            } else if hourlyData.isEmpty {
+                                Text("No hourly data available")
+                                    .foregroundColor(.secondary)
+                                    .padding()
+                                    .transition(.opacity)
+                            } else {
+                                ForEach(hourlyData) { hour in
+                                    hourlyForecastItem(hour)
+                                        .transition(
+                                            .asymmetric(
+                                                insertion: .opacity
+                                                    .combined(with: .scale(scale: 0.92)),
+                                                removal: .opacity
+                                            )
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
+                    }
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: isLoadingHourly
+                    )
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: hourlyData.count
+                    )
                     
                     // YOUR ORIGINAL DAILY FORECAST SECTION
                     // Daily forecast cards in a vertical stack
                     if let forecast = weatherService.forecast {
-                        LazyVStack(spacing: 24) {
+                        LazyVStack(spacing: 16) {
                             ForEach(forecast.daily) { day in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    // Date header above the card
-                                    Text(formattedDate(day.date))
-                                        .font(.headline)
-                                        .padding(.horizontal, 4)
-                                    
-                                    // The card itself
-                                    ForecastDayCard(day: day, unitSystem: weatherService.unitSystem)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
+                                // The card itself — the date
+                                // header is now the first row of
+                                // the card so it follows the
+                                // user's Card Settings. The tap
+                                // and long-press gestures are gated
+                                // by the Behaviour settings so the
+                                // user can disable either one from
+                                // Settings, Behaviour, Gestures.
+                                ForecastDayCard(day: day, unitSystem: weatherService.unitSystem, dateText: formattedDate(day.date))
+                                    .padding(.horizontal, 20)
+                                    .contentShape(Rectangle())
+                                    .if(SettingsBehaviour.tapDayToExpand) { view in
+                                        view.onTapGesture {
+                                            #if canImport(UIKit)
+                                            if SettingsBehaviour.hapticOnSelection {
+                                                HapticFeedbackHelper.shared.light()
+                                            }
+                                            #endif
                                             selectedDay = day
                                         }
-                                }
+                                    }
+                                    .if(SettingsBehaviour.longPressToCustomise) { view in
+                                        view.onLongPressGesture(minimumDuration: 0.6) {
+                                            #if canImport(UIKit)
+                                            if SettingsBehaviour.enableHapticFeedback {
+                                                HapticFeedbackHelper.shared.medium()
+                                            }
+                                            #endif
+                                            longPressedDay = day
+                                        }
+                                    }
                             }
                         }
                         .padding(.horizontal)
                     } else {
-                        // Skeleton loading for daily forecasts
-                        LazyVStack(spacing: 24) {
+                        // Skeleton loading for daily forecasts.
+                        // Mirrors the new card layout (date
+                        // header inside the card) so the
+                        // placeholder height matches the
+                        // real card.
+                        LazyVStack(spacing: 16) {
                             ForEach(0..<5, id: \.self) { _ in
-                                VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 10) {
                                     // Date header skeleton
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.3))
+                                    SkeletonView(cornerRadius: 4)
                                         .frame(height: 20)
-                                        .cornerRadius(4)
-                                        .padding(.horizontal, 4)
-                                    
-                                    // Card skeleton
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(height: 120)
-                                        .cornerRadius(16)
+                                    Divider()
+                                        .opacity(0.4)
+                                    // Card body skeleton
+                                    SkeletonView(cornerRadius: 16)
+                                        .frame(height: 80)
                                 }
+                                .styledCard()
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 20)
                         .redacted(reason: .placeholder)
                     }
                     
@@ -263,6 +285,14 @@ struct ForecastView: View {
         }
         .sheet(item: $selectedDay) { day in
             DetailedForecastSheet(day: day, unitSystem: weatherService.unitSystem)
+        }
+        // Long-press customisation sheet. Triggered by the
+        // `longPressToCustomise` gesture on each day card.
+        .sheet(item: $longPressedDay) { day in
+            DayCustomiseSheet(
+                day: day,
+                unitSystem: weatherService.unitSystem
+            )
         }
         #if os(iOS)
         .navigationBarHidden(true)
@@ -315,15 +345,8 @@ struct ForecastView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(cardFillColor)
-                .shadow(color: colorScheme == .dark ?
-                        Color.black.opacity(0.2) :
-                        Color.gray.opacity(0.1),
-                       radius: 5, x: 0, y: 2)
-        )
         .frame(width: 80)
+        .styledCard()
     }
     
     private func hourlyForecastItemSkeleton() -> some View {
@@ -347,11 +370,8 @@ struct ForecastView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(cardFillColor)
-        )
         .frame(width: 80)
+        .styledCard()
     }
     
     // Helper to format temperature based on unit system
@@ -793,6 +813,11 @@ struct ForecastView: View {
 struct ForecastDayCard: View {
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
+    /// Day-of-week / date label rendered as the first row of
+    /// the card so it lives inside the styled card and follows
+    /// the user's Card Settings (corner radius, padding, fill,
+    /// shadow, border, tint).
+    let dateText: String
     @Environment(\.colorScheme) var colorScheme
     // Phase 6 — `loadingFailed` removed; `ConditionIcon` handles
     // the Lottie → SF Symbol fallback internally.
@@ -806,74 +831,235 @@ struct ForecastDayCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 20) {
-            // Left: Weather Lottie animation and temperatures
-            HStack(spacing: 12) {
-                // Phase 6 — migrated to `ConditionIcon` so the
-                // iconography knobs in `IconographySpec` are
-                // honoured automatically. The SF Symbol fallback
-                // replaces the previous text-emoji fallback for
-                // consistency with the rest of the app.
-                ConditionIcon(
-                    weatherCode: day.weatherCode,
-                    isNight: false,
-                    size: 44
-                )
-                .frame(width: 44, height: 44)
-                
-                VStack(alignment: .leading) {
-                    Text("\(Int(round(day.tempMax)))°")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .fixedSize(horizontal: true, vertical: false)
-                    
-                    Text("\(Int(round(day.tempMin)))°")
-                        .font(.system(size: 17, design: .rounded))
-                        .monospacedDigit()
-                        .fixedSize(horizontal: true, vertical: false)
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            // Day / date header — now lives inside the card
+            // so it follows the user's Card Settings (corner
+            // radius, padding, fill, shadow, border, tint).
+            HStack {
+                Text(dateText)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            Divider()
+                .opacity(0.4)
+            HStack(spacing: 20) {
+                // Left: Weather Lottie animation and temperatures
+                HStack(spacing: 12) {
+                    // Phase 6 — migrated to `ConditionIcon` so the
+                    // iconography knobs in `IconographySpec` are
+                    // honoured automatically. The SF Symbol fallback
+                    // replaces the previous text-emoji fallback for
+                    // consistency with the rest of the app.
+                    ConditionIcon(
+                        weatherCode: day.weatherCode,
+                        isNight: false,
+                        size: 44
+                    )
+                    .frame(width: 44, height: 44)
+
+                    VStack(alignment: .leading) {
+                        Text("\(UnitConverter.formatTemperature(day.tempMax))°")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .fixedSize(horizontal: true, vertical: false)
+
+                        Text("\(UnitConverter.formatTemperature(day.tempMin))°")
+                            .font(.system(size: 17, design: .rounded))
+                            .monospacedDigit()
+                            .fixedSize(horizontal: true, vertical: false)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // Right: Key weather data
+                HStack(spacing: 16) {
+                    WeatherDataColumn(
+                        icon: "💧",
+                        label: "Hum",
+                        value: "\(Int(round(day.humidity)))%"
+                    )
+
+                    WeatherDataColumn(
+                        icon: "🌧️",
+                        label: "Rain",
+                        value: "\(Int(round(day.precipitationProbability)))%"
+                    )
+
+                    WeatherDataColumn(
+                        icon: "💨",
+                        label: "Wind",
+                        value: "\(Int(round(day.windSpeed)))"
+                    )
                 }
             }
-            
-            Spacer()
-            
-            // Right: Key weather data
-            HStack(spacing: 16) {
-                WeatherDataColumn(
-                    icon: "💧",
-                    label: "Hum",
-                    value: "\(Int(round(day.humidity)))%"
-                )
-                
-                WeatherDataColumn(
-                    icon: "🌧️",
-                    label: "Rain",
-                    value: "\(Int(round(day.precipitationProbability)))%"
-                )
-                
-                WeatherDataColumn(
-                    icon: "💨",
-                    label: "Wind",
-                    value: "\(Int(round(day.windSpeed)))"
-                )
-            }
-            
-            // Chevron icon
-            Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
-                .font(.system(size: 14, weight: .semibold))
-                .padding(.leading, 5)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(cardFillColor6)
-                .shadow(color: colorScheme == .dark ?
-                        Color.black.opacity(0.3) :
-                        Color.gray.opacity(0.2),
-                        radius: 8, x: 0, y: 4)
+        // The styledCard() modifier handles the internal
+        // padding (driven by `cardPaddingH` / `cardPaddingV`
+        // from the user's Card Settings) and the frame. The
+        // outer 20pt gap is added at the call site so this
+        // card lines up with the hourly card and the main
+        // page's UV Index / Air Quality / Sun / Moon /
+        // Precipitation / Pollen cards.
+        .styledCard()
+    }
+}
+
+// MARK: - Day Customisation Sheet
+//
+// Long-press affordance for a single day card. Lets the user pin
+// the day's profile / temperature / unit override without leaving
+// the forecast. The gesture that presents this sheet is gated by
+// `SettingsBehaviour.longPressToCustomise`.
+
+struct DayCustomiseSheet: View {
+    let day: WeatherForecast.DailyForecast
+    let unitSystem: String
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("pinnedDayKeys") private var pinnedDayKeysData: String = ""
+    @AppStorage("dayNicknames") private var dayNicknamesData: String = ""
+
+    /// Stable per-day key used for persistence. `DailyForecast.id`
+    /// is auto-generated UUID that changes every time the
+    /// forecast reloads, so the `date` is the only thing we can
+    /// trust between fetches. Round to the day so the timezone
+    /// drift between fetches doesn't break pinning.
+    private var dayKey: String {
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: day.date)
+        return String(format: "%04d-%02d-%02d",
+                      comps.year ?? 0,
+                      comps.month ?? 0,
+                      comps.day ?? 0)
+    }
+
+    private var isPinned: Bool {
+        pinnedKeys.contains(dayKey)
+    }
+
+    private var pinnedKeys: Set<String> {
+        pinnedDayKeysData
+            .split(separator: ",")
+            .map(String.init)
+            .reduce(into: Set<String>()) { acc, key in
+                let trimmed = key.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty { acc.insert(trimmed) }
+            }
+    }
+
+    private var nickname: Binding<String> {
+        Binding(
+            get: { nicknames[dayKey] ?? "" },
+            set: { newValue in
+                var n = nicknames
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty {
+                    n.removeValue(forKey: dayKey)
+                } else {
+                    n[dayKey] = trimmed
+                }
+                dayNicknamesData = n
+                    .map { "\($0.key)=\($0.value)" }
+                    .joined(separator: ",")
+            }
         )
+    }
+
+    private var nicknames: [String: String] {
+        guard !dayNicknamesData.isEmpty else { return [:] }
+        var out: [String: String] = [:]
+        for pair in dayNicknamesData.split(separator: ",") {
+            let parts = pair.split(separator: "=", maxSplits: 1).map(String.init)
+            if parts.count == 2 {
+                out[parts[0]] = parts[1]
+            }
+        }
+        return out
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.accentColor)
+                        Text(day.date.formatted(date: .complete, time: .omitted))
+                        Spacer()
+                    }
+                } header: {
+                    Text("Day")
+                }
+
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { isPinned },
+                        set: { newValue in
+                            var keys = pinnedKeys
+                            if newValue {
+                                keys.insert(dayKey)
+                            } else {
+                                keys.remove(dayKey)
+                            }
+                            pinnedDayKeysData = keys.joined(separator: ",")
+                            #if canImport(UIKit)
+                            HapticFeedbackHelper.shared.light()
+                            #endif
+                        }
+                    )) {
+                        Label("Pin day", systemImage: "pin.fill")
+                    }
+                    TextField("Nickname (optional)", text: nickname)
+                } header: {
+                    Text("Customise")
+                } footer: {
+                    Text("Pinned days stay expanded in the forecast. Nicknames show in the daily header instead of the date.")
+                }
+
+                Section {
+                    HStack {
+                        Label("High", systemImage: "thermometer.sun")
+                        Spacer()
+                        Text(highString)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Label("Low", systemImage: "thermometer.snowflake")
+                        Spacer()
+                        Text(lowString)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Label("Condition", systemImage: "cloud")
+                        Spacer()
+                        Text(day.weatherDescription)
+                            .foregroundColor(.secondary)
+                    }
+                } header: {
+                    Text("Details")
+                }
+            }
+            .navigationTitle("Customise Day")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var highString: String {
+        String(format: "%.0f°", day.tempMax)
+    }
+
+    private var lowString: String {
+        String(format: "%.0f°", day.tempMin)
     }
 }
 

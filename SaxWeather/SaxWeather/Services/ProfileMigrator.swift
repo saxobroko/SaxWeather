@@ -15,6 +15,14 @@
 //  default) don't need a migration — Swift's `Codable` fills the
 //  default automatically. Only renames and removals do.
 //
+//  Phase 4 — Aurora Backgrounds single-preset refactor.
+//  The 8 specific `BackgroundMode` cases (`.auroraSunny`,
+//  `.auroraCloudy`, etc.) were removed and replaced with a
+//  single `.aurora` case. The resolver now picks the right
+//  Aurora image based on the current weather condition.
+//  Profiles saved with the old `.aurora*` modes are migrated
+//  to `.aurora`.
+//
 
 import Foundation
 
@@ -22,7 +30,30 @@ enum ProfileMigrator {
     /// The schema version this binary understands. Bump this every
     /// time a knob is renamed, removed, or its *meaning* changes
     /// in a way older files can't represent.
-    static let currentSchemaVersion: Int = 1
+    ///
+    /// ## Version history
+    ///
+    /// - **1** — initial schema. Eleven spec structs, ~50 knobs.
+    /// - **2** — "Infinitely customisable" expansion.
+    ///   * Surfaced ~25 existing-but-undocumented knobs as
+    ///     `KnobDescriptor`s so they show up in the Settings
+    ///     search.
+    ///   * Added new knobs for swipe-to-switch-location, hero
+    ///     layout density, hourly card size, daily card density,
+    ///     and two experimental flags.
+    ///   * Purely additive — every old `.saxtheme` still decodes
+    ///     via Swift's `Codable` defaults. This migration case is
+    ///     here for documentation and so future renames have a
+    ///     place to grow.
+    /// - **3** — Aurora Backgrounds single-preset refactor.
+    ///   * Removed the 8 specific `BackgroundMode` cases
+    ///     (`.auroraSunny`, `.auroraCloudy`, etc.) and replaced
+    ///     them with a single `.aurora` case.
+    ///   * The resolver now picks the right Aurora image based
+    ///     on the current weather condition.
+    ///   * Profiles saved with the old `.aurora*` modes are
+    ///     migrated to `.aurora`.
+    static let currentSchemaVersion: Int = 3
 
     /// Decode + migrate + return the up-to-date profile.
     /// Throws `ProfileMigratorError.invalidFormat` if the data
@@ -71,9 +102,42 @@ enum ProfileMigrator {
             // a default in its struct definition, and Swift's
             // `Codable` synthesis fills them in automatically.
             break
-        default:
-            // Future versions: add `case 2: …` etc. above this.
+        case 2:
+            // v2 is purely additive — every new knob has a default
+            // in its struct definition, so Swift's `Codable` synthesis
+            // fills them in automatically when the file is re-decoded
+            // after we bump the schemaVersion stamp. Nothing to do
+            // here beyond bump; the case is kept so the migration
+            // table has an obvious place to grow when a v3 renames a
+            // field.
             break
+        case 3:
+            // Phase 4 — Aurora Backgrounds single-preset refactor.
+            // The 8 specific `BackgroundMode` cases (`.auroraSunny`,
+            // `.auroraCloudy`, etc.) were removed and replaced with
+            // a single `.aurora` case. Profiles saved with the old
+            // `.aurora*` modes are migrated to `.aurora`.
+            migrateAuroraModesToSinglePreset(in: &dict)
+        default:
+            // Future versions: add `case 4: …` etc. above this.
+            break
+        }
+    }
+
+    /// Phase 4 migration — map any `.aurora*` `BackgroundMode`
+    /// to the single `.aurora` case. The resolver picks the
+    /// right Aurora image based on the current weather
+    /// condition, so the user-visible behaviour is identical.
+    private static func migrateAuroraModesToSinglePreset(in dict: inout [String: Any]) {
+        guard var knobs = dict["knobs"] as? [String: Any] else { return }
+        guard var background = knobs["background"] as? [String: Any] else { return }
+        guard let mode = background["mode"] as? String else { return }
+
+        // Map any `.aurora*` mode to `.aurora`.
+        if mode.hasPrefix("aurora") {
+            background["mode"] = "aurora"
+            knobs["background"] = background
+            dict["knobs"] = knobs
         }
     }
 }
