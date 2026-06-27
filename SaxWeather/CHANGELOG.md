@@ -2,7 +2,7 @@
 
 All notable changes to SaxWeather will be documented in this file.
 
-## [Unreleased]
+## [1.3.0] - 2026-06-27
 
 ### Added
 - **Per-chart colour scheme infrastructure** (Part F): a new `ChartColorScheme` struct (`Services/ChartColorScheme.swift`) defines per-chart default colour schemes (rain probability, precipitation timeline, hourly forecast) and the Aurora override. Each chart resolves its colours via `ChartColorScheme.resolve(defaultScheme:activeSkin:)`, which returns the Aurora override when the active skin is `.aurora` and the chart's own default otherwise. The chart skin is an override on top of the default, not a replacement.

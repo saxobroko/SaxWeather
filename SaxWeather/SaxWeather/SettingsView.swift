@@ -232,7 +232,9 @@ struct SettingsView: View {
                     List {
                         settingsTree
                     }
+                    #if os(iOS)
                     .listStyle(.insetGrouped)
+                    #endif
                 } else {
                     SettingsSearchResults(
                         query: settingsSearchQuery,
@@ -352,8 +354,6 @@ struct SettingsView: View {
     @ViewBuilder
     private func searchSheetView(for sheet: SettingsSheet) -> some View {
         switch sheet {
-        case .profileSwitcher:
-            ProfileSwitcherView()
         case .profileImporter:
             ProfileImporterView()
         case .tipJar:
@@ -375,6 +375,7 @@ struct SettingsView: View {
                 weatherService: weatherService
             )
         case .weatherData:
+            #if os(iOS)
             WeatherSourcesSettingsView(
                 weatherService: weatherService,
                 wuApiKey: $wuApiKey,
@@ -387,6 +388,19 @@ struct SettingsView: View {
                 saveAPIKeys: saveAPIKeys,
                 loadAPIKeys: loadAPIKeys
             )
+            #else
+            WeatherSourcesSettingsView(
+                weatherService: weatherService,
+                wuApiKey: $wuApiKey,
+                stationID: $stationID,
+                owmApiKey: $owmApiKey,
+                useOpenMeteoAsDefault: $useOpenMeteoAsDefault,
+                disableAPIKeys: $disableAPIKeys,
+                locationsManager: locationsManager,
+                saveAPIKeys: saveAPIKeys,
+                loadAPIKeys: loadAPIKeys
+            )
+            #endif
         case .preferences:
             PreferencesSettingsView(
                 unitSystem: $unitSystem,
@@ -456,6 +470,7 @@ struct SettingsView: View {
             }
 
             NavigationLink {
+                #if os(iOS)
                 WeatherSourcesSettingsView(
                     weatherService: weatherService,
                     wuApiKey: $wuApiKey,
@@ -468,6 +483,19 @@ struct SettingsView: View {
                     saveAPIKeys: saveAPIKeys,
                     loadAPIKeys: loadAPIKeys
                 )
+                #else
+                WeatherSourcesSettingsView(
+                    weatherService: weatherService,
+                    wuApiKey: $wuApiKey,
+                    stationID: $stationID,
+                    owmApiKey: $owmApiKey,
+                    useOpenMeteoAsDefault: $useOpenMeteoAsDefault,
+                    disableAPIKeys: $disableAPIKeys,
+                    locationsManager: locationsManager,
+                    saveAPIKeys: saveAPIKeys,
+                    loadAPIKeys: loadAPIKeys
+                )
+                #endif
             } label: {
                 Label("Weather Data", systemImage: "cloud.sun.fill")
             }
@@ -511,10 +539,9 @@ struct SettingsView: View {
             }
 
             // v2 — Customisation hub inlined with the other top-
-            // level tabs (no separate section header). Both rows
-            // surface the registry: one opens the full searchable
-            // catalogue, the other opens the built-in / saved
-            // profile switcher.
+            // level tabs (no separate section header). Opens the
+            // full searchable catalogue of every knob in the
+            // registry.
             Button {
                 searchSheet = .searchAllSettings
             } label: {
@@ -531,23 +558,21 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Search All Settings")
             .accessibilityHint("Search every customisation knob the registry knows about")
-
-            Button {
-                searchSheet = .profileSwitcher
-            } label: {
-                HStack {
-                    Label("Switch Profile", systemImage: "person.crop.circle.badge.checkmark")
-                    Spacer()
-                    Text(customisationRegistry.profile.name)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        } footer: {
+            // Experimental settings disclaimer. Some knobs in the
+            // registry (especially under Behaviour) are still being
+            // iterated on and may produce unexpected results. The
+            // footer keeps the warning visible without crowding the
+            // row list itself.
+            Label {
+                Text("Some settings are experimental and may have unintended consequences.")
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
             }
-            .accessibilityLabel("Switch Profile")
-            .accessibilityHint("Apply a built-in preset or one of your saved themes")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
         }
 
         // Empty section acts as a visual gap before Support /
@@ -564,7 +589,7 @@ struct SettingsView: View {
         } header: {
             Text("Data")
         } footer: {
-            Text("Switch between built-in backups, or share your settings as a .saxtheme file.")
+            Text("Back up your settings to a .saxtheme file, restore from one, or sync across your devices with iCloud.")
         }
 
         Section {
@@ -1659,7 +1684,9 @@ struct SettingsSearchResults: View {
                 }
             }
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
     }
 
     // MARK: - Filtering
@@ -1739,7 +1766,6 @@ enum SettingsSearchAction {
 
 /// Sheet identifiers the search results can present.
 enum SettingsSheet: Identifiable {
-    case profileSwitcher
     case profileImporter
     case tipJar
     /// v2 — “Search All Settings…” entry from the Customisation
@@ -1750,7 +1776,6 @@ enum SettingsSheet: Identifiable {
 
     var id: String {
         switch self {
-        case .profileSwitcher:    return "profileSwitcher"
         case .profileImporter:    return "profileImporter"
         case .tipJar:             return "tipJar"
         case .searchAllSettings:  return "searchAllSettings"
@@ -1812,7 +1837,7 @@ struct SettingsSearchItem: Identifiable {
     /// Every top-level row that the search bar can match against.
     static let all: [SettingsSearchItem] = [
         .init(id: "backupAndRestore", title: "Backup & Restore",
-              subtitle: "Switch built-in backups or share settings",
+              subtitle: "Back up, restore, or sync via iCloud",
               symbolName: "arrow.triangle.2.circlepath.circle.fill",
               action: .navigate(.backupAndRestore)),
         .init(id: "locations", title: "Locations",
@@ -2486,7 +2511,9 @@ struct LocationsSettingsView: View {
             }
         }
         .navigationTitle("Locations")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .sheet(isPresented: $showingAddLocationSheet) {
             addLocationSheet
         }
@@ -2540,7 +2567,9 @@ struct LocationsSettingsView: View {
                 }
             }
             .navigationTitle("Add Location")
+            #if os(iOS)
             .navigationBarItems(leading: Button("Cancel") { showingAddLocationSheet = false })
+            #endif
             .sheet(item: $addLocationMode) { mode in
                 switch mode {
                 case .manual:
@@ -2692,9 +2721,11 @@ struct LocationsSettingsView: View {
                 .padding(.top, 8)
             }
             .navigationTitle("Custom Coordinates")
+            #if os(iOS)
             .navigationBarItems(leading: Button("Cancel") {
                 addLocationMode = nil
             })
+            #endif
         }
     }
     
@@ -2838,9 +2869,11 @@ struct LocationsSettingsView: View {
                 }
             }
             .navigationTitle("Search City/Town")
+            #if os(iOS)
             .navigationBarItems(leading: Button("Cancel") {
                 addLocationMode = nil
             })
+            #endif
             .onAppear {
                 citySearchCompleter.resultTypes = .address
                 let delegate = CitySearchCompleterDelegate(
@@ -2871,7 +2904,9 @@ struct WeatherSourcesSettingsView: View {
     @Binding var useOpenMeteoAsDefault: Bool
     @Binding var disableAPIKeys: Bool
     @ObservedObject var locationsManager: SavedLocationsManager
+    #if os(iOS)
     @FocusState var focusedField: SettingsView.Field?
+    #endif
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     let saveAPIKeys: () -> Void
     let loadAPIKeys: () -> Void
@@ -3086,7 +3121,9 @@ struct WeatherSourcesSettingsView: View {
             }
         }
         .navigationTitle("Weather Data")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .onAppear {
             loadAPIKeys()
         }
@@ -3367,7 +3404,9 @@ struct PreferencesSettingsView: View {
             }
         }
         .navigationTitle("Preferences")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
@@ -3640,7 +3679,9 @@ struct AppearanceSettingsView: View {
             }
         }
         .navigationTitle("Appearance")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
@@ -3825,7 +3866,9 @@ struct BehaviourSettingsView: View {
             }
         }
         .navigationTitle("Behaviour")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 
     private func resetAllBehaviourToDefaults() {
@@ -3938,7 +3981,9 @@ struct AboutSettingsView: View {
             }
         }
         .navigationTitle("About")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
@@ -4053,7 +4098,9 @@ struct AttributionSettingsView: View {
             }
         }
         .navigationTitle("Attribution")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 

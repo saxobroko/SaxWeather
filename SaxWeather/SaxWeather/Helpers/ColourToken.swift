@@ -21,6 +21,9 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// A colour value expressed as one of three formats. Codable as
 /// a single `String` so it round-trips cleanly through both
@@ -157,8 +160,24 @@ enum ColourToken: Codable, Hashable, Sendable {
         case "primary":     return .primary
         case "secondary":   return .secondary
         case "label":       return .primary
-        case "background":  return Color(.systemBackground)
-        case "surface":     return Color(.secondarySystemBackground)
+        case "background":
+            #if canImport(UIKit)
+            return Color(.systemBackground)
+            #elseif canImport(AppKit)
+            return Color(NSColor.windowBackgroundColor)
+            #else
+            return colorScheme == .dark ? .black : .white
+            #endif
+        case "surface":
+            #if canImport(UIKit)
+            return Color(.secondarySystemBackground)
+            #elseif canImport(AppKit)
+            return Color(NSColor.controlBackgroundColor)
+            #else
+            return colorScheme == .dark
+                ? Color(white: 0.12)
+                : Color(white: 0.96)
+            #endif
         case "muted":       return .secondary
         case "danger":      return .red
 

@@ -62,7 +62,10 @@ struct ChartSkinPickerView: View {
                     localized: "Chart Style",
                     comment: "Title of the chart skin picker view."
                 ))
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
+                #if os(iOS)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(String(
@@ -73,6 +76,7 @@ struct ChartSkinPickerView: View {
                         }
                     }
                 }
+                #endif
                 .sheet(item: Binding(
                     get: { pendingLockedProductID.map { LockedProductID(value: $0) } },
                     set: { pendingLockedProductID = $0?.value }

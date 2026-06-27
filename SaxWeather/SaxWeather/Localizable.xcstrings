@@ -198,9 +198,6 @@
     "Active" : {
 
     },
-    "Active Backup" : {
-
-    },
     "Active Location" : {
 
     },
@@ -346,9 +343,6 @@
     "Apply" : {
 
     },
-    "Apply a built-in preset or one of your saved themes" : {
-
-    },
     "AQI" : {
 
     },
@@ -382,6 +376,9 @@
     "Back Up & Share Settings…" : {
 
     },
+    "Back up your settings to a .saxtheme file, restore from one, or sync across your devices with iCloud." : {
+
+    },
     "Background" : {
 
     },
@@ -401,6 +398,9 @@
 
     },
     "Background Settings" : {
+
+    },
+    "Backup" : {
 
     },
     "Backup & Restore" : {
@@ -434,9 +434,6 @@
 
     },
     "Built-in (Default)" : {
-
-    },
-    "Built-in Profiles" : {
 
     },
     "Built-in weather service" : {
@@ -1141,6 +1138,9 @@
     "Export Failed" : {
 
     },
+    "Export your current settings as a .saxtheme file. You can AirDrop it, save it to Files, or share it any other way." : {
+
+    },
     "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
 
     },
@@ -1207,9 +1207,6 @@
     "Get Started" : {
 
     },
-    "Give this theme a name so you can switch back to it later." : {
-
-    },
     "Glass" : {
 
     },
@@ -1264,6 +1261,9 @@
     "How many digits to show after the decimal point for each kind of value." : {
 
     },
+    "iCloud" : {
+
+    },
     "Icon Size" : {
 
     },
@@ -1274,6 +1274,9 @@
 
     },
     "Import" : {
+
+    },
+    "Import a .saxtheme file from Files, AirDrop, or another app. Your current settings will be replaced." : {
 
     },
     "Import Failed" : {
@@ -1316,6 +1319,9 @@
 
     },
     "Last Refresh" : {
+
+    },
+    "Last Synced" : {
 
     },
     "Lat: %.4f, Lon: %.4f" : {
@@ -1706,9 +1712,6 @@
     "Processing…" : {
 
     },
-    "Profile name" : {
-
-    },
     "Protection Recommendations" : {
 
     },
@@ -1778,13 +1781,7 @@
     "Refresh Sound" : {
 
     },
-    "Rename" : {
-
-    },
-    "Rename '%@'." : {
-
-    },
-    "Rename Profile" : {
+    "Remove iCloud Backup" : {
 
     },
     "Replaces the eight shipped weather background images with aurora-themed versions. Purely visual — your forecast, your data, your alerts, all work the same. Free alternatives: any custom image you supply, or any of the other built-in presets." : {
@@ -1815,6 +1812,15 @@
 
     },
     "Resets the consecutive-failure counter. The next background refresh will use the base 5-minute interval." : {
+
+    },
+    "Restore" : {
+
+    },
+    "Restore from .saxtheme File…" : {
+
+    },
+    "Restore from iCloud Now" : {
 
     },
     "Restore now" : {
@@ -1861,19 +1867,7 @@
     "Save API Keys" : {
 
     },
-    "Save Current as New…" : {
-
-    },
-    "Save Current Theme" : {
-
-    },
-    "Saved %@" : {
-
-    },
     "Saved Locations" : {
-
-    },
-    "Saved Profiles" : {
 
     },
     "SaxWeather needs location access to show weather for where you are. You can add a location manually later in Settings." : {
@@ -1945,9 +1939,6 @@
     "Settings" : {
 
     },
-    "Settings Backup and Restore" : {
-
-    },
     "Shadow" : {
 
     },
@@ -1986,6 +1977,9 @@
     },
     "Snowy cabin backgrounds, snowflake animations, and a red/green palette." : {
       "comment" : "Subtitle for the Christmas Pack cosmetic tile."
+    },
+    "Some settings are experimental and may have unintended consequences." : {
+
     },
     "Source Code" : {
 
@@ -2068,9 +2062,6 @@
     "Supporter Pack" : {
 
     },
-    "Swipe a profile to rename or delete it." : {
-
-    },
     "Swipe Between Locations" : {
 
     },
@@ -2080,25 +2071,16 @@
     "Swipe Refresh Anywhere" : {
 
     },
-    "Switch between built-in backups, or share your current settings as a .saxtheme file. Use the search bar above to find any setting." : {
-
-    },
-    "Switch between built-in backups, or share your settings as a .saxtheme file." : {
-
-    },
     "Switch between saved locations" : {
 
     },
     "Switch Location" : {
 
     },
-    "Switch Profile" : {
-
-    },
-    "Switching applies the preset immediately. You can tweak individual settings afterwards." : {
-
-    },
     "Symbol Variant" : {
+
+    },
+    "Sync Settings via iCloud" : {
 
     },
     "System" : {

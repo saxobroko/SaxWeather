@@ -46,6 +46,9 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// Theme-driven card styling. Reads from the active
 /// `CustomisationRegistry` by default; pass an explicit
@@ -96,109 +99,86 @@ struct StyledCardModifier: ViewModifier {
 
     @ViewBuilder
     private func cardBackground(for visual: VisualSpec) -> some View {
-        // Layer 1: the base fill (style-dependent).
-        Group {
-            switch visual.cardStyle {
-            case .glass:
-                // iOS 26 ships the official `glassEffect` /
-                // `Color.glass` style. We fall back to
-                // `.ultraThinMaterial` so the build still works
-                // on older SDKs and the modifier is previewable.
-                // The intensity knob scales between thin and
-                // regular materials. The `cardGlassOpacity`
-                // knob matches the original
-                // `WeatherDetailsView` treatment
-                // (`.ultraThinMaterial.opacity(0.6)`).
-                let material: AnyShapeStyle = {
-                    if visual.cardBlurIntensity < 0.34 {
-                        return AnyShapeStyle(Material.ultraThin)
-                    } else if visual.cardBlurIntensity < 0.67 {
-                        return AnyShapeStyle(Material.thin)
-                    } else {
-                        return AnyShapeStyle(Material.regular)
-                    }
-                }()
-                Rectangle()
-                    .fill(material)
-                    .opacity(visual.cardGlassOpacity)
-                // Part E (reverted) — Aurora Palette visibility
-                // tint. The always-on tint was removed because
-                // it changed the default look of the app even
-                // when the Aurora Palette was not selected. The
-                // tint is now applied via `CardColorScheme.tint`
-                // and only when the Aurora Palette is selected
-                // AND owned (see `CardColorScheme.resolve`).
-                // Previously the `.glass` style used
-                // `Material.ultraThin` etc. which doesn't
-                // consume any palette colours, so the Aurora
-                // Palette was invisible on the default home
-                // screen even with the reactivity fix.
-                if visual.palette == .cosmeticAurora {
-                    Rectangle()
-                        .fill(
-                            visual.palette.surface.color
-                                .opacity(0.15)
-                        )
-                }
-            case .solid:
-                // Honour the user-picked fill colour. When the
-                // token is empty we fall back to `palette.surface`
-                // so the legacy look is preserved.
-                if visual.cardFillColor.isEmpty {
-                    Rectangle().fill(
-                        visual.palette.surface.color
-                            .opacity(visual.cardOpacity)
-                    )
-                } else {
-                    Rectangle().fill(
-                        visual.cardFillColor.color
-                            .opacity(visual.cardOpacity)
-                    )
-                }
-            case .outline:
-                Color.clear
-            case .neumorphic:
-                if visual.cardFillColor.isEmpty {
-                    Rectangle().fill(
-                        Color(.systemGray6).opacity(visual.cardOpacity)
-                    )
-                } else {
-                    Rectangle().fill(
-                        visual.cardFillColor.color
-                            .opacity(visual.cardOpacity)
-                    )
-                }
-            }
+        cardBackgroundBase(for: visual)
+}
+    @ViewBuilder
+    private func cardBackgroundBase(for visual: VisualSpec) -> some View {
+switch visual.cardStyle {
+case .glass:
+    // iOS 26 ships the official `glassEffect` /
+    // `Color.glass` style. We fall back to
+    // `.ultraThinMaterial` so the build still works
+    // on older SDKs and the modifier is previewable.
+    // The intensity knob scales between thin and
+    // regular materials. The `cardGlassOpacity`
+    // knob matches the original
+    // `WeatherDetailsView` treatment
+    // (`.ultraThinMaterial.opacity(0.6)`).
+    let material: AnyShapeStyle = {
+        if visual.cardBlurIntensity < 0.34 {
+            return AnyShapeStyle(Material.ultraThin)
+        } else if visual.cardBlurIntensity < 0.67 {
+            return AnyShapeStyle(Material.thin)
+        } else {
+            return AnyShapeStyle(Material.regular)
         }
-        // Layer 2: the optional tint wash. Skipped when the
-        // token resolves to a no-op (`rawString == ""`).
-        .overlay {
-            if !visual.cardTint.isEmpty {
-                Rectangle().fill(
-                    visual.cardTint.color.opacity(0.18)
-                )
-            }
-        }
-        // Layer 3: an optional warm/cool overlay rendered as a
-        // top-leading → bottom-trailing linear gradient. The
-        // original WeatherDetailsView used this exact treatment
-        // (3 stops, dark mode vs light mode) so the user can
-        // reproduce it through the Card Settings submenu.
-        .overlay {
-            if !visual.cardTintOverlay.isEmpty {
-                LinearGradient(
-                    colors: [
-                        visual.cardTintOverlay.color
-                            .opacity(visual.cardTintOverlayOpacity),
-                        visual.cardTintOverlay.color
-                            .opacity(visual.cardTintOverlayOpacity * 0.5),
-                        .clear
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        }
+    }()
+    Rectangle()
+        .fill(material)
+        .opacity(visual.cardGlassOpacity)
+    // Part E (reverted) — Aurora Palette visibility
+    // tint. The always-on tint was removed because
+    // it changed the default look of the app even
+    // when the Aurora Palette was not selected. The
+    // tint is now applied via `CardColorScheme.tint`
+    // and only when the Aurora Palette is selected
+    // AND owned (see `CardColorScheme.resolve`).
+    // Previously the `.glass` style used
+    // `Material.ultraThin` etc. which doesn't
+    // consume any palette colours, so the Aurora
+    // Palette was invisible on the default home
+    // screen even with the reactivity fix.
+    if visual.palette == .cosmeticAurora {
+        Rectangle()
+            .fill(
+                visual.palette.surface.color
+                    .opacity(0.15)
+            )
+    }
+case .solid:
+    // Honour the user-picked fill colour. When the
+    // token is empty we fall back to `palette.surface`
+    // so the legacy look is preserved.
+    if visual.cardFillColor.isEmpty {
+        Rectangle().fill(
+            visual.palette.surface.color
+                .opacity(visual.cardOpacity)
+        )
+    } else {
+        Rectangle().fill(
+            visual.cardFillColor.color
+                .opacity(visual.cardOpacity)
+        )
+    }
+case .outline:
+    Color.clear
+case .neumorphic:
+    if visual.cardFillColor.isEmpty {
+        #if canImport(UIKit)
+        let fillColor: Color = Color(.systemGray6)
+        #elseif canImport(AppKit)
+        let fillColor: Color = Color(NSColor.controlBackgroundColor)
+        #else
+        let fillColor: Color = Color.gray
+        #endif
+        Rectangle().fill(fillColor.opacity(visual.cardOpacity))
+    } else {
+        Rectangle().fill(
+            visual.cardFillColor.color
+                .opacity(visual.cardOpacity)
+        )
+    }
+}
     }
 
     // MARK: - Overlay (borders, neumorphic highlights)
@@ -240,7 +220,6 @@ struct ThemedCardModifier: ViewModifier {
 
     @ViewBuilder
     private var themedBackground: some View {
-        Group {
             switch visual.cardStyle {
             case .glass:
                 // Match the original `WeatherDetailsView`
@@ -294,9 +273,14 @@ struct ThemedCardModifier: ViewModifier {
                 Color.clear
             case .neumorphic:
                 if visual.cardFillColor.isEmpty {
-                    Rectangle().fill(
-                        Color(.systemGray6).opacity(visual.cardOpacity)
-                    )
+                    #if canImport(UIKit)
+                    let fillColor: Color = Color(.systemGray6)
+                    #elseif canImport(AppKit)
+                    let fillColor: Color = Color(NSColor.controlBackgroundColor)
+                    #else
+                    let fillColor: Color = Color.gray
+                    #endif
+                    Rectangle().fill(fillColor.opacity(visual.cardOpacity))
                 } else {
                     Rectangle().fill(
                         visual.cardFillColor.color
@@ -304,27 +288,6 @@ struct ThemedCardModifier: ViewModifier {
                     )
                 }
             }
-        }
-        .overlay {
-            if !visual.cardTint.isEmpty {
-                Rectangle().fill(visual.cardTint.color.opacity(0.18))
-            }
-        }
-        .overlay {
-            if !visual.cardTintOverlay.isEmpty {
-                LinearGradient(
-                    colors: [
-                        visual.cardTintOverlay.color
-                            .opacity(visual.cardTintOverlayOpacity),
-                        visual.cardTintOverlay.color
-                            .opacity(visual.cardTintOverlayOpacity * 0.5),
-                        .clear
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        }
     }
 
     @ViewBuilder

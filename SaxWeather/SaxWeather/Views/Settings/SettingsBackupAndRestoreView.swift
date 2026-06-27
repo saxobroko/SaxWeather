@@ -2,77 +2,162 @@
 //  SettingsBackupAndRestoreView.swift
 //  SaxWeather
 //
-//  Phase 7 — Settings UI rebuild.
+//  Phase 9 — Settings UI rebuild.
 //
-//  A dedicated sub-page that surfaces the "infinitely customisable"
-//  features under the "Settings Backup and Restore" branding. The
-//  underlying mechanism is still theme/profile switching plus
-//  `.saxtheme` import/export, but it is now framed for users as
-//  backing up their settings and restoring them — either from a
-//  built-in preset or from a shared `.saxtheme` file.
+//  A dedicated sub-page that surfaces the "backup and restore"
+//  features under a single, focused roof:
 //
-//  Two rows are exposed inside a single Section:
+//    1. **Backup** — exports the active profile to a `.saxtheme`
+//       file in the user's Documents directory and presents a
+//       `ShareLink` so the user can AirDrop it, save it to Files,
+//       or share it any other way. Credentials
+//       (`wuApiKey` / `stationID` / `owmApiKey`) are stripped from
+//       the export by default — honouring `shareThemeOnExport`.
 //
-//    1. **Active Backup** — opens `ProfileSwitcherView` so the user
-//       can switch to a built-in preset (functionally a "restore
-//       from a bundled backup").
-//    2. **Back Up & Share Settings…** — opens `ProfileImporterView`
-//       so the user can export their current settings as a
-//       `.saxtheme` file, or restore from one they have received.
+//    2. **Restore** — opens a `.fileImporter` for `.saxtheme`
+//       files. The selected file is read, validated, migrated via
+//       `ProfileMigrator`, and a confirmation alert appears before
+//       the imported profile is applied via
+//       `CustomisationRegistry.apply(_:)`.
+//
+//    3. **iCloud Sync** — opt-in toggle that mirrors the active
+//       profile to `NSUbiquitousKeyValueStore` so it follows the
+//       user across every device signed in to the same iCloud
+//       account. Last-modified-wins conflict resolution. The
+//       section surfaces the current sync status, the timestamp
+//       of the last successful sync, and buttons to force a pull
+//       from iCloud or delete the remote copy.
 //
 //  Designed to be reached via a `NavigationLink` from the main
 //  Settings list — it owns its own `navigationTitle` so it reads
 //  correctly when pushed onto the settings stack.
 //
+//
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsBackupAndRestoreView: View {
     @EnvironmentObject private var customisation: CustomisationRegistry
+    @StateObject private var iCloud = iCloudSyncService.shared
 
-    @State private var showingProfileSwitcher = false
     @State private var showingProfileImporter = false
 
     var body: some View {
         List {
-            Section {
-                Button {
-                    showingProfileSwitcher = true
-                } label: {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Active Backup")
-                            Text(customisation.profile.name)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: customisation.profile.builtIn.symbolName)
-                            .foregroundStyle(customisation.profile.builtIn.tint)
+            backupSection
+            restoreSection
+            iCloudSection
+        }
+        #if os(iOS)
+        .listStyle(.insetGrouped)
+        #endif
+        .navigationTitle("Backup & Restore")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .sheet(isPresented: $showingProfileImporter) {
+            ProfileImporterView()
+        }
+    }
+
+    // MARK: - Backup
+
+    private var backupSection: some View {
+        Section {
+            Button {
+                showingProfileImporter = true
+            } label: {
+                Label("Back Up & Share Settings…", systemImage: "square.and.arrow.up.on.square")
+            }
+            .buttonStyle(.plain)
+        } header: {
+            Text("Backup")
+        } footer: {
+            Text("Export your current settings as a .saxtheme file. You can AirDrop it, save it to Files, or share it any other way.")
+        }
+    }
+
+    // MARK: - Restore
+
+    private var restoreSection: some View {
+        Section {
+            Button {
+                showingProfileImporter = true
+            } label: {
+                Label("Restore from .saxtheme File…", systemImage: "square.and.arrow.down.on.square")
+            }
+            .buttonStyle(.plain)
+        } header: {
+            Text("Restore")
+        } footer: {
+            Text("Import a .saxtheme file from Files, AirDrop, or another app. Your current settings will be replaced.")
+        }
+    }
+
+    // MARK: - iCloud Sync
+
+    private var iCloudSection: some View {
+        Section {
+            Toggle(isOn: $iCloud.isEnabled) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sync Settings via iCloud")
+                        Text(iCloud.status.displayLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+                } icon: {
+                    Image(systemName: "icloud")
+                        .foregroundStyle(.tint)
+                }
+            }
+
+            if iCloud.isEnabled {
+                if let lastSynced = iCloud.lastSyncedAt {
+                    HStack {
+                        Label("Last Synced", systemImage: "clock")
+                        Spacer()
+                        Text(lastSynced, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Button {
+                    iCloud.forcePull { remote in
+                        customisation.apply(remote)
+                    }
+                } label: {
+                    Label("Restore from iCloud Now", systemImage: "arrow.down.icloud")
                 }
                 .buttonStyle(.plain)
 
-                Button {
-                    showingProfileImporter = true
+                Button(role: .destructive) {
+                    iCloud.deleteRemoteBackup()
                 } label: {
-                    Label("Back Up & Share Settings…", systemImage: "square.and.arrow.up.on.square")
+                    Label("Remove iCloud Backup", systemImage: "trash")
                 }
                 .buttonStyle(.plain)
-            } header: {
-                Text("Settings Backup and Restore")
-            } footer: {
-                Text("Switch between built-in backups, or share your current settings as a .saxtheme file. Use the search bar above to find any setting.")
             }
+        } header: {
+            Text("iCloud")
+        } footer: {
+            Text(iCloudFooterText)
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Backup & Restore")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingProfileSwitcher) {
-            ProfileSwitcherView()
-        }
-        .sheet(isPresented: $showingProfileImporter) {
-            ProfileImporterView()
+    }
+
+    private var iCloudFooterText: String {
+        if iCloud.isEnabled {
+            switch iCloud.status {
+            case .unavailable(let reason):
+                return reason
+            case .error(let reason):
+                return reason
+            default:
+                return "Your settings are mirrored to iCloud and will follow you to every device signed in to the same account."
+            }
+        } else {
+            return "Turn on iCloud sync to automatically mirror your settings across every device signed in to the same iCloud account."
         }
     }
 }

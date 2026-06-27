@@ -74,7 +74,9 @@ struct CardSettingsView: View {
                 previewHeader
             }
             .navigationTitle("Card Style")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .onAppear {
                 // Pull the latest values from the registry so
                 // the preview starts in sync with whatever the

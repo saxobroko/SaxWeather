@@ -69,7 +69,10 @@ struct PalettePickerView: View {
                     localized: "Palette",
                     comment: "Title of the palette picker view."
                 ))
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
+                #if os(iOS)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(String(
@@ -80,6 +83,7 @@ struct PalettePickerView: View {
                         }
                     }
                 }
+                #endif
                 .sheet(item: Binding(
                     get: { pendingLockedProductID.map { LockedProductID(value: $0) } },
                     set: { pendingLockedProductID = $0?.value }

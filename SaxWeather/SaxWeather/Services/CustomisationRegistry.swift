@@ -47,7 +47,8 @@ final class CustomisationRegistry: ObservableObject {
     /// are not stored here — they're factory-built on demand. This
     /// list only contains profiles the user has explicitly saved
     /// via `saveCurrentAs(name:)` or imported via `importProfile(from:)`.
-    /// Phase 7 — wired into the Settings UI's `ProfileSwitcherView`.
+    /// Phase 7 — previously surfaced via the Settings UI's
+    /// `ProfileSwitcherView` (now removed).
     @Published private(set) var savedProfiles: [CustomisationProfile] = []
 
     /// Bumped whenever the *shape* of the profile changes (a
@@ -118,6 +119,11 @@ final class CustomisationRegistry: ObservableObject {
         recomputeHash()
         loadSavedProfiles()
         setupHotReload()
+        // If iCloud sync is enabled, pull the remote profile and
+        // apply it if it's newer than the local one. This runs
+        // after the local load so the local copy is the fallback
+        // if iCloud is unavailable.
+        pullFromiCloudIfEnabled()
     }
 
     /// Test-only init. Starts fresh from `initial`, no disk I/O, no
@@ -154,6 +160,9 @@ final class CustomisationRegistry: ObservableObject {
         // `@AppStorage` view continues to reflect the new profile.
         ProfileToAppStorageBridge.bridge(profile.knobs)
         reloadWidgets()
+        // Mirror the new profile to iCloud if sync is enabled.
+        // No-op when sync is off or iCloud is unavailable.
+        pushToiCloudIfEnabled()
     }
 
     /// Convenience: switch to a built-in preset.
@@ -185,6 +194,8 @@ final class CustomisationRegistry: ObservableObject {
         // views see the new value on the next render pass.
         ProfileToAppStorageBridge.bridge(profile.knobs)
         reloadWidgets()
+        // Mirror the new profile to iCloud if sync is enabled.
+        pushToiCloudIfEnabled()
     }
 
     /// Read a single knob via a key path.
@@ -225,6 +236,33 @@ final class CustomisationRegistry: ObservableObject {
         persist()
         ProfileToAppStorageBridge.bridge(profile.knobs)
         reloadWidgets()
+        // Mirror the new profile to iCloud if sync is enabled.
+        pushToiCloudIfEnabled()
+    }
+
+    // MARK: - iCloud sync
+
+    /// Push the active profile to iCloud if sync is enabled. No-op
+    /// when sync is off or iCloud is unavailable. Called after every
+    /// mutation so the remote copy stays in lockstep with the local
+    /// one.
+    private func pushToiCloudIfEnabled() {
+        guard iCloudSyncService.shared.isEnabled else { return }
+        iCloudSyncService.shared.push(profile: profile)
+    }
+
+    /// Pull the remote profile from iCloud and apply it if it's
+    /// newer than the local one. Called once on init so the local
+    /// copy reflects the latest remote state on first launch.
+    private func pullFromiCloudIfEnabled() {
+        guard iCloudSyncService.shared.isEnabled else { return }
+        iCloudSyncService.shared.pullIfNeeded { [weak self] remote in
+            guard let self else { return }
+            // Last-modified-wins: only apply if the remote copy is
+            // newer than the local one.
+            guard remote.updatedAt > self.profile.updatedAt else { return }
+            self.apply(remote)
+        }
     }
 
     // MARK: - Profile I/O

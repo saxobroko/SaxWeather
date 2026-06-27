@@ -109,7 +109,10 @@ struct AirQualityDetailView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Air Quality")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -117,6 +120,7 @@ struct AirQualityDetailView: View {
                     }
                 }
             }
+            #endif
         }
     }
     
@@ -262,7 +266,10 @@ struct UVIndexDetailView: View {
                 .padding(.vertical)
             }
             .navigationTitle("UV Index")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -270,6 +277,7 @@ struct UVIndexDetailView: View {
                     }
                 }
             }
+            #endif
         }
     }
     
@@ -519,7 +527,10 @@ struct SunMoonDetailView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Sun & Moon")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -527,6 +538,7 @@ struct SunMoonDetailView: View {
                     }
                 }
             }
+            #endif
         }
     }
 }
@@ -604,7 +616,10 @@ struct PrecipitationDetailView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Precipitation")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -612,6 +627,7 @@ struct PrecipitationDetailView: View {
                     }
                 }
             }
+            #endif
         }
     }
 }

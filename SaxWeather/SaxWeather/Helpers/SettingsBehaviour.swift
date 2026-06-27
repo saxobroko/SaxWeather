@@ -249,7 +249,9 @@ enum SettingsBehaviour {
         #if canImport(AVFoundation)
         guard speakWeatherAlerts else { return }
         // Avoid double-narration when VoiceOver is active.
+        #if canImport(UIKit)
         if UIAccessibility.isVoiceOverRunning { return }
+        #endif
         let utterance = AVSpeechUtterance(string: "\(title). \(body)")
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.pitchMultiplier = 1.0

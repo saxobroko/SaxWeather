@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 import MapKit
 import CoreLocation
 
@@ -53,7 +56,23 @@ struct LocationPickerView: View {
         }
         return []
     }
-    
+
+    /// Background colour for the location info card. Uses the
+    /// platform-appropriate secondary background so the card
+    /// reads as a distinct surface on both iOS and macOS.
+    /// `#if`/`#else`/`#endif` must live at the statement level
+    /// (not inline inside a view modifier argument), so this is
+    /// extracted into its own computed property.
+    private var cardBackgroundColor: Color {
+        #if canImport(UIKit)
+        return Color(.secondarySystemBackground)
+        #elseif canImport(AppKit)
+        return Color(NSColor.controlBackgroundColor)
+        #else
+        return Color.gray.opacity(0.1)
+        #endif
+    }
+
     var body: some View {
         NavigationView {
             VStack {
@@ -113,14 +132,17 @@ struct LocationPickerView: View {
                     }
                 }
                 .padding()
-                .background(Color(.secondarySystemBackground))
+                .background(cardBackgroundColor)
                 .cornerRadius(10)
                 .padding(.horizontal)
                 
                 Spacer()
             }
             .navigationTitle("Select Location")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .navigationBarItems(
                 leading: Button("Cancel") {
                     presentationMode.wrappedValue.dismiss()
@@ -132,6 +154,7 @@ struct LocationPickerView: View {
                 }
                 .disabled(markerCoordinate == nil)
             )
+            #endif
             .onChange(of: region.center.latitude) { _ in
                 // Update marker coordinate when map is moved
                 let newCenter = region.center

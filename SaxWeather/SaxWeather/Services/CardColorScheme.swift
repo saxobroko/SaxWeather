@@ -36,6 +36,9 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// A colour scheme for a single card surface. Each card in
 /// the app defines its own default `CardColorScheme`; the
@@ -47,6 +50,22 @@ import SwiftUI
 /// the temperature value text; the precipitation card uses
 /// `accent` for the rain icon.
 struct CardColorScheme: Equatable, Sendable {
+    /// Platform-appropriate default card background colour.
+    /// On iOS this is `UIColor.secondarySystemBackground`
+    /// (adapts to light/dark mode); on macOS it is
+    /// `NSColor.controlBackgroundColor` (the equivalent
+    /// semantic colour); on other platforms it falls back to
+    /// a neutral light grey that works in both colour schemes.
+    static var defaultCardBackground: Color {
+        #if canImport(UIKit)
+        return Color(.secondarySystemBackground)
+        #elseif canImport(AppKit)
+        return Color(NSColor.controlBackgroundColor)
+        #else
+        return Color(white: 0.96)
+        #endif
+    }
+
     /// The accent colour for the card's content (e.g. icon,
     /// value text). This is the colour the user sees most
     /// prominently on the card.
@@ -91,7 +110,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let temperatureCardDefault = CardColorScheme(
         accent:    Color.orange,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.orange.opacity(0.3),
         tint:      Color.clear
     )
@@ -102,7 +121,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let precipitationCardDefault = CardColorScheme(
         accent:    Color.blue,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.blue.opacity(0.3),
         tint:      Color.clear
     )
@@ -113,7 +132,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let windCardDefault = CardColorScheme(
         accent:    Color.teal,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.teal.opacity(0.3),
         tint:      Color.clear
     )
@@ -125,7 +144,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let sunriseCardDefault = CardColorScheme(
         accent:    Color.orange,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.orange.opacity(0.3),
         tint:      Color.clear
     )
@@ -136,7 +155,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let uvIndexCardDefault = CardColorScheme(
         accent:    Color.purple,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.purple.opacity(0.3),
         tint:      Color.clear
     )
@@ -147,7 +166,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let airQualityCardDefault = CardColorScheme(
         accent:    Color.green,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.green.opacity(0.3),
         tint:      Color.clear
     )
@@ -158,7 +177,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let pollenCardDefault = CardColorScheme(
         accent:    Color.green,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.green.opacity(0.3),
         tint:      Color.clear
     )
@@ -169,7 +188,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let hourlyForecastCardDefault = CardColorScheme(
         accent:    Color.accentColor,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.accentColor.opacity(0.3),
         tint:      Color.clear
     )
@@ -180,7 +199,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let dailyForecastCardDefault = CardColorScheme(
         accent:    Color.accentColor,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.accentColor.opacity(0.3),
         tint:      Color.clear
     )
@@ -191,7 +210,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let weatherAlertCardDefault = CardColorScheme(
         accent:    Color.red,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.red.opacity(0.3),
         tint:      Color.clear
     )
@@ -202,7 +221,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let heroCardDefault = CardColorScheme(
         accent:    Color.accentColor,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.accentColor.opacity(0.3),
         tint:      Color.clear
     )
@@ -213,7 +232,7 @@ struct CardColorScheme: Equatable, Sendable {
     static let weatherDetailsCardDefault = CardColorScheme(
         accent:    Color.accentColor,
         secondary: Color.secondary,
-        background: Color(.secondarySystemBackground),
+        background: Self.defaultCardBackground,
         border:    Color.accentColor.opacity(0.3),
         tint:      Color.clear
     )

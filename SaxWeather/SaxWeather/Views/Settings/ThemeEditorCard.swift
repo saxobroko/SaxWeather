@@ -85,7 +85,13 @@ struct ThemeEditorCard: View {
                 .padding(8)
         }
         .frame(maxHeight: 240)
+        #if canImport(UIKit)
         .background(Color(.systemBackground).opacity(0.6))
+        #elseif canImport(AppKit)
+        .background(Color(NSColor.windowBackgroundColor).opacity(0.6))
+        #else
+        .background(Color.white.opacity(0.6))
+        #endif
         .cornerRadius(8)
     }
 

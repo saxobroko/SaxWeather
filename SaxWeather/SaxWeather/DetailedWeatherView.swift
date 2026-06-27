@@ -6,6 +6,9 @@
 
 import Foundation
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 import CoreLocation
 
 struct DetailedWeatherView: View {
@@ -514,7 +517,13 @@ struct SunriseCard: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            #if canImport(UIKit)
             .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
@@ -623,7 +632,13 @@ struct PrecipitationCard: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            #if canImport(UIKit)
             .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
@@ -638,7 +653,13 @@ struct WeatherGraphView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color(.systemBackground)
+                #if canImport(UIKit)
+Color(.systemBackground)
+#elseif canImport(AppKit)
+Color(NSColor.windowBackgroundColor)
+#else
+Color.white
+#endif
                 Text("[Hourly Temperature Graph]")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -734,7 +755,13 @@ struct ForecastPane: View {
                     .foregroundColor(.secondary)
             }
             .frame(width: 70, height: 100)
+            #if canImport(UIKit)
             .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }

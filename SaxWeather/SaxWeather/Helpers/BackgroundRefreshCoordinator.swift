@@ -234,6 +234,7 @@ final class BackgroundRefreshCoordinator {
     private func submit(taskIdentifier: String,
                         interval: TimeInterval,
                         reason: String) {
+        #if canImport(UIKit)
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: interval)
         do {
@@ -248,5 +249,15 @@ final class BackgroundRefreshCoordinator {
             // benign; log and move on.
             print("❌ Could not schedule app refresh (\(reason)): \(error)")
         }
+        #else
+        // macOS does not expose `BGTaskScheduler` /
+        // `BGAppRefreshTaskRequest`. The widget timeline is
+        // refreshed by the widget extension itself on macOS, so
+        // there is nothing to schedule from the host app. Log
+        // the intent so the debug UI still shows the interval
+        // we *would* have used.
+        let minutes = Int((interval / 60).rounded())
+        print("ℹ️ Background refresh skipped on macOS (would have been \(minutes) min) — \(reason)")
+        #endif
     }
 }

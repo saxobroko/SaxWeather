@@ -12,6 +12,9 @@ import SwiftUI
 import CoreLocation
 import UserNotifications
 import Lottie
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - Notifications
 
@@ -67,6 +70,34 @@ struct OnboardingView: View {
         #endif
     }
 
+    /// Platform-appropriate dark-mode background colour.
+    /// On iOS this is `UIColor.systemBackground`; on macOS it
+    /// is `NSColor.windowBackgroundColor`; on other platforms
+    /// it falls back to black.
+    static var darkBackgroundColor: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.systemBackground)
+        #elseif canImport(AppKit)
+        return Color(NSColor.windowBackgroundColor)
+        #else
+        return .black
+        #endif
+    }
+
+    /// Platform-appropriate light-mode background colour.
+    /// On iOS this is `UIColor.systemGroupedBackground`; on
+    /// macOS it is `NSColor.windowBackgroundColor`; on other
+    /// platforms it falls back to white.
+    static var lightBackgroundColor: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.systemGroupedBackground)
+        #elseif canImport(AppKit)
+        return Color(NSColor.windowBackgroundColor)
+        #else
+        return .white
+        #endif
+    }
+
     var body: some View {
         ZStack {
             // Clean, app-matching background. A subtle
@@ -115,7 +146,9 @@ struct OnboardingView: View {
                     )
                     .tag(8)
                 }
+                #if os(iOS)
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                #endif
                 .animation(.spring(response: 0.5, dampingFraction: 0.85), value: currentStep)
 
                 // Bottom chrome: progress + back/next.
@@ -131,8 +164,8 @@ struct OnboardingView: View {
         ZStack {
             // Base surface colour, matching the main app.
             (colorScheme == .dark
-             ? Color(UIColor.systemBackground)
-             : Color(UIColor.systemGroupedBackground))
+             ? Self.darkBackgroundColor
+             : Self.lightBackgroundColor)
 
             // Soft accent-tinted radial highlight at the top.
             // Gives the page a hint of personality without

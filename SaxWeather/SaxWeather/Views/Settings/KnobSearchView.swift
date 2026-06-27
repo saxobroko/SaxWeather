@@ -40,6 +40,8 @@ struct KnobSearchView: View {
             .navigationTitle("Search Settings")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(iOS)
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
                         prompt: "Search every setting…")
             #else
@@ -104,7 +106,9 @@ struct KnobSearchView: View {
                 }
             }
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
     }
 }
 
@@ -201,12 +205,12 @@ struct KnobEditorSheet: View {
             .navigationTitle(descriptor.displayName)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
-            #endif
         }
     }
 

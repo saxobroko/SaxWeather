@@ -651,8 +651,10 @@ struct ColorPickerRow: View {
                 Text("Hex")
                     .foregroundColor(.secondary)
                 TextField("#RRGGBB", text: $customHex)
+                    #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    #endif
                     .onSubmit { applyHex() }
                 Button("Apply") { applyHex() }
                     .disabled(customHex.isEmpty)

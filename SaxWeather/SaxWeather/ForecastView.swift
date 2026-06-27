@@ -1045,7 +1045,9 @@ struct DayCustomiseSheet: View {
                 }
             }
             .navigationTitle("Customise Day")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
