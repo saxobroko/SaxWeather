@@ -10,7 +10,8 @@ Stateless Cloudflare Worker that serves rich **HTTPS** share links for SaxWeathe
 |-------|---------|
 | `GET /share?lat=&lon=&name=&temp=&unit=&condition=...` | Rich preview page + "Open in SaxWeather" deep link |
 | `GET /apple-app-site-association` | Universal Links (optional) |
-| `GET /` | Simple landing page |
+| `GET /assets/*` | Static Lottie animations and background images (served from `./public`) |
+| `GET /` | Product landing page (`weather.saxobroko.com`) — hero, features, live accent theming, animated Lottie icons, and background gallery |
 
 ## Example URL
 
