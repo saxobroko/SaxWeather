@@ -53,3 +53,9 @@ fastlane/test_output
 # Console output examples
 *.txt
 !SaxWeather/SaxWeather/**/*.txt
+
+# Local tooling / side projects (not part of SaxWeather app)
+.roo/
+plans/
+SaxTrack/
+saxtrack/
