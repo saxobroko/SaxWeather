@@ -324,7 +324,7 @@ struct HourlyForecastView: View {
         let weatherDescription = weatherCodeToDescription(dominantCondition)
 
         // Format the wind gust info
-        let windUnit = unitSystem == "Metric" ? "km/h" : "mph"
+        let windUnit = UnitSystem.from(rawValue: unitSystem).speedLabel
 
         var adjustedMaxWindGust = maxWindGust
         if unitSystem == "Imperial" {

@@ -130,7 +130,7 @@ struct DetailedForecastSheet: View {
                     WeatherDetailCard(
                         icon: "wind",
                         label: "Wind Speed",
-                        value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
+                        value: "\(Int(round(day.windSpeed))) \(UnitSystem.from(rawValue: unitSystem).speedLabel)",
                         color: .teal
                     )
                     .transition(cardTransition)

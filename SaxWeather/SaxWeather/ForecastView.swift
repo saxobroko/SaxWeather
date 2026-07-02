@@ -630,7 +630,7 @@ struct ForecastView: View {
         let weatherDescription = weatherCodeToDescription(dominantCondition)
         
         // Format the wind gust info
-        let windUnit = weatherService.unitSystem == "Metric" ? "km/h" : "mph"
+        let windUnit = UnitSystem.from(rawValue: weatherService.unitSystem).speedLabel
         
         var adjustedMaxWindGust = maxWindGust
         if weatherService.unitSystem == "Imperial" {
@@ -743,7 +743,7 @@ struct ForecastView: View {
         let weatherDescription = weatherKitConditionToDescription(dominantCondition)
         
         let adjustedMaxWindGust = maxWindGust * 3.6 // m/s to km/h
-        let windUnit = weatherService.unitSystem == "Metric" ? "km/h" : "mph"
+        let windUnit = UnitSystem.from(rawValue: weatherService.unitSystem).speedLabel
         
         let windInfo = adjustedMaxWindGust >= 10 ? "Wind gusts up to \(Int(adjustedMaxWindGust)) \(windUnit)." : ""
         
