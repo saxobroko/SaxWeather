@@ -35,14 +35,19 @@ struct SavedLocation: Identifiable, Codable, Equatable {
         self.isCurrentLocation = isCurrentLocation
     }
     
-    // Convenience initializer for the special current location entry
-    static var currentLocationEntry: SavedLocation {
-        return try! SavedLocation(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
-            name: "Current Location (GPS)",
-            latitude: 0,
-            longitude: 0,
-            isCurrentLocation: true
-        )
+    /// Bypasses coordinate validation for the fixed GPS sentinel (coordinates are placeholders).
+    private init(currentLocationSentinel id: UUID, name: String, latitude: Double, longitude: Double) {
+        self.id = id
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.isCurrentLocation = true
     }
+    
+    static let currentLocationEntry = SavedLocation(
+        currentLocationSentinel: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+        name: "Current Location (GPS)",
+        latitude: 0,
+        longitude: 0
+    )
 }
