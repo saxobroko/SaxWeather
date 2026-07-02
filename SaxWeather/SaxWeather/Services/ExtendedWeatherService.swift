@@ -1,0 +1,421 @@
+//
+//  ExtendedWeatherService.swift
+//  SaxWeather
+//
+//  Created on 13/01/2026
+//
+
+import Foundation
+
+#if canImport(WeatherKit)
+import WeatherKit
+import CoreLocation
+#endif
+
+class ExtendedWeatherService {
+    static let shared = ExtendedWeatherService()
+    
+    private init() {}
+    
+    /// Fetch extended weather data respecting the app's data source priority
+    /// - Parameters:
+    ///   - latitude: Location latitude
+    ///   - longitude: Location longitude
+    ///   - dataSource: Current primary data source ("weatherkit", "openweathermap", "weatherunderground", "openmeteo")
+    ///   - existingWeather: Optional Weather object that may already contain some extended data
+    func fetchExtendedData(
+        latitude: Double,
+        longitude: Double,
+        dataSource: String,
+        existingWeather: Weather? = nil
+    ) async throws -> (airQuality: AirQualityData?, pollen: PollenData?, sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+        
+        var airQuality: AirQualityData?
+        var sunMoon: SunMoonData?
+        var hourlyPrecip: [HourlyPrecipitation] = []
+        let pollen: PollenData? = nil // No data source available yet
+        
+        // Strategy: Extract from primary source first, then fill gaps with Open-Meteo
+        switch dataSource {
+        case "weatherkit":
+            #if canImport(WeatherKit)
+            if #available(iOS 16.0, macOS 13.0, *) {
+                (sunMoon, hourlyPrecip) = await fetchFromWeatherKit(latitude: latitude, longitude: longitude)
+            }
+            #endif
+            
+        case "openweathermap":
+            // OpenWeatherMap has limited extended data in free tier
+            // UV index and sunrise/sunset would be in the One Call API (requires subscription)
+            // So we'll fall back to Open-Meteo for everything
+            break
+            
+        case "weatherunderground":
+            // Weather Underground typically provides station-specific data
+            // Extended features not available through PWS API
+            // Explicitly fetch from Open-Meteo
+            print("📍 WU detected - fetching extended data from Open-Meteo")
+            break
+            
+        case "openmeteo":
+            // Already using Open-Meteo as primary, fetch everything
+            (airQuality, sunMoon, hourlyPrecip) = await fetchFromOpenMeteo(latitude: latitude, longitude: longitude)
+            return (airQuality, pollen, sunMoon, hourlyPrecip)
+            
+        default:
+            break
+        }
+        
+        // Fill gaps with Open-Meteo (always fetch Air Quality from Open-Meteo as fallback)
+        if sunMoon == nil || hourlyPrecip.isEmpty || airQuality == nil {
+            print("📍 Fetching missing extended data from Open-Meteo (sunMoon: \(sunMoon == nil), precip: \(hourlyPrecip.isEmpty), aqi: \(airQuality == nil))")
+            
+            let (openMeteoAQI, openMeteoSun, openMeteoPrecip) = await fetchFromOpenMeteo(
+                latitude: latitude,
+                longitude: longitude
+            )
+            
+            airQuality = airQuality ?? openMeteoAQI
+            sunMoon = sunMoon ?? openMeteoSun
+            if hourlyPrecip.isEmpty {
+                hourlyPrecip = openMeteoPrecip
+            }
+            
+            print("📍 After Open-Meteo fallback - sunMoon: \(sunMoon != nil), precip: \(hourlyPrecip.count) hours, aqi: \(airQuality?.aqi ?? -1)")
+        }
+        
+        return (airQuality, pollen, sunMoon, hourlyPrecip)
+    }
+    
+    // MARK: - WeatherKit Data Extraction
+    #if canImport(WeatherKit)
+    @available(iOS 16.0, macOS 13.0, *)
+    private func fetchFromWeatherKit(latitude: Double, longitude: Double) async -> (sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        
+        do {
+            let weather = try await WeatherKit.WeatherService.shared.weather(for: location)
+            
+            // Extract sun/moon data from daily forecast
+            var sunMoon: SunMoonData?
+            if let today = weather.dailyForecast.first,
+               let sunrise = today.sun.sunrise,
+               let sunset = today.sun.sunset {
+                let moonPhase = calculateMoonPhase(for: Date())
+                sunMoon = SunMoonData(
+                    sunrise: sunrise,
+                    sunset: sunset,
+                    moonPhase: moonPhase,
+                    moonrise: today.moon.moonrise,
+                    moonset: today.moon.moonset
+                )
+            }
+            
+            // Extract hourly precipitation (next 24 hours)
+            let hourlyPrecip = weather.hourlyForecast.forecast.prefix(24).map { hour in
+                HourlyPrecipitation(
+                    hour: hour.date,
+                    probability: Int(hour.precipitationChance * 100),
+                    amount: hour.precipitationAmount.value
+                )
+            }
+            
+            print("✅ Extended data from WeatherKit: Sun/Moon + \(hourlyPrecip.count)h precipitation")
+            return (sunMoon, Array(hourlyPrecip))
+            
+        } catch {
+            print("⚠️ Failed to fetch WeatherKit extended data: \(error)")
+            return (nil, [])
+        }
+    }
+    #endif
+    
+    // MARK: - Open-Meteo Fallback
+    private func fetchFromOpenMeteo(latitude: Double, longitude: Double) async -> (airQuality: AirQualityData?, sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+        print("🌍 fetchFromOpenMeteo called with coordinates: \(latitude), \(longitude)")
+        
+        // Fetch each component independently to avoid one failure blocking others
+        async let airQualityResult = fetchAirQuality(latitude: latitude, longitude: longitude)
+        async let sunMoonResult = fetchSunMoon(latitude: latitude, longitude: longitude)
+        async let hourlyPrecipResult = fetchHourlyPrecipitation(latitude: latitude, longitude: longitude)
+        
+        let airQuality = await airQualityResult
+        let sunMoon = await sunMoonResult
+        let hourlyPrecip = await hourlyPrecipResult
+        
+        print("✅ Extended data from Open-Meteo:")
+        print("   - AQI: \(airQuality != nil ? "✓ (AQI \(airQuality!.aqi))" : "✗")")
+        print("   - Sun/Moon: \(sunMoon != nil ? "✓" : "✗")")
+        print("   - Precipitation: \(hourlyPrecip.count > 0 ? "✓ (\(hourlyPrecip.count)h)" : "✗")")
+        
+        return (airQuality, sunMoon, hourlyPrecip)
+    }
+    
+    // MARK: - Air Quality
+    private func fetchAirQuality(latitude: Double, longitude: Double) async -> AirQualityData? {
+        // Open-Meteo Air Quality API
+        let urlString = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=\(latitude)&longitude=\(longitude)&current=european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone"
+        
+        guard let url = URL(string: urlString) else {
+            return nil
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AirQualityResponse.self, from: data)
+            
+            guard let current = response.current else { return nil }
+            
+            // European AQI scale (0-100+)
+            let aqi = Int(current.european_aqi ?? 50)
+            let category = AirQualityData.AQICategory.from(aqi: aqi)
+            
+            let pollutants = AirQualityData.Pollutants(
+                pm25: current.pm2_5,
+                pm10: current.pm10,
+                o3: current.ozone,
+                no2: current.nitrogen_dioxide,
+                so2: current.sulphur_dioxide,
+                co: current.carbon_monoxide
+            )
+            
+            return AirQualityData(aqi: aqi, category: category, pollutants: pollutants)
+        } catch {
+            print("❌ Air Quality fetch error: \(error)")
+            return nil
+        }
+    }
+    
+    // MARK: - Sun/Moon Data
+    private func fetchSunMoon(latitude: Double, longitude: Double) async -> SunMoonData? {
+        let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&daily=sunrise,sunset&timezone=auto&forecast_days=1"
+        
+        print("🌅 Fetching Sun/Moon data from: \(urlString)")
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Sun/Moon: Invalid URL")
+            return nil
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌅 Sun/Moon API response status: \(httpResponse.statusCode)")
+            }
+            
+            // Debug: Print raw response
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("🌅 Sun/Moon raw response: \(jsonString.prefix(200))...")
+            }
+            
+            let decodedResponse = try JSONDecoder().decode(SunMoonResponse.self, from: data)
+            
+            guard let daily = decodedResponse.daily,
+                  let sunriseString = daily.sunrise.first,
+                  let sunsetString = daily.sunset.first else {
+                print("❌ Sun/Moon: Missing daily data or sunrise/sunset")
+                print("   - daily exists: \(decodedResponse.daily != nil)")
+                print("   - sunrise count: \(decodedResponse.daily?.sunrise.count ?? 0)")
+                print("   - sunset count: \(decodedResponse.daily?.sunset.count ?? 0)")
+                return nil
+            }
+            
+            print("🌅 Sun/Moon strings: sunrise=\(sunriseString), sunset=\(sunsetString)")
+            print("🌅 Timezone from API: \(decodedResponse.timezone ?? "unknown")")
+            
+            // Create a date formatter that handles the Open-Meteo format (without timezone suffix)
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+            
+            // Use the timezone provided by the API
+            if let timezone = decodedResponse.timezone {
+                dateFormatter.timeZone = TimeZone(identifier: timezone)
+            } else {
+                dateFormatter.timeZone = TimeZone.current
+            }
+            
+            guard let sunrise = dateFormatter.date(from: sunriseString),
+                  let sunset = dateFormatter.date(from: sunsetString) else {
+                print("❌ Sun/Moon: Failed to parse dates from strings")
+                print("   - Tried format: yyyy-MM-dd'T'HH:mm")
+                print("   - Timezone: \(dateFormatter.timeZone.identifier)")
+                return nil
+            }
+            
+            // Calculate moon phase (simplified - based on date)
+            let moonPhase = calculateMoonPhase(for: Date())
+            
+            // Debug: Print formatted times
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "HH:mm"
+            timeFormatter.timeZone = dateFormatter.timeZone
+            print("✅ Sun/Moon data created:")
+            print("   - Sunrise: \(timeFormatter.string(from: sunrise)) (\(sunrise))")
+            print("   - Sunset: \(timeFormatter.string(from: sunset)) (\(sunset))")
+            print("   - Moon Phase: \(moonPhase)")
+            
+            return SunMoonData(
+                sunrise: sunrise,
+                sunset: sunset,
+                moonPhase: moonPhase,
+                moonrise: nil, // Open-Meteo doesn't provide this
+                moonset: nil   // Open-Meteo doesn't provide this
+            )
+        } catch {
+            print("❌ Sun/Moon fetch error: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("   - Missing key: \(key.stringValue) in \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("   - Type mismatch: expected \(type) at \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("   - Value not found: \(type) at \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("   - Data corrupted at \(context.codingPath)")
+                @unknown default:
+                    print("   - Unknown decoding error")
+                }
+            }
+            return nil
+        }
+    }
+    
+    // MARK: - Hourly Precipitation
+    private func fetchHourlyPrecipitation(latitude: Double, longitude: Double) async -> [HourlyPrecipitation] {
+        let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=precipitation_probability,precipitation&timezone=auto&forecast_days=2"
+        
+        print("🌧️ Fetching Precipitation data from: \(urlString)")
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Precipitation: Invalid URL")
+            return []
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌧️ Precipitation API response status: \(httpResponse.statusCode)")
+            }
+            
+            // Debug: Print raw response
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("🌧️ Precipitation raw response: \(jsonString.prefix(300))...")
+            }
+            
+            let decodedResponse = try JSONDecoder().decode(HourlyPrecipResponse.self, from: data)
+            
+            guard let hourly = decodedResponse.hourly else {
+                print("❌ Precipitation: Missing hourly data")
+                return []
+            }
+            
+            print("🌧️ Precipitation data received: \(hourly.time.count) hours")
+            print("🌧️ Timezone from API: \(decodedResponse.timezone ?? "unknown")")
+            
+            // Create a date formatter that handles the Open-Meteo format
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+            
+            // Use the timezone provided by the API
+            if let timezone = decodedResponse.timezone {
+                dateFormatter.timeZone = TimeZone(identifier: timezone)
+            } else {
+                dateFormatter.timeZone = TimeZone.current
+            }
+            
+            var precipData: [HourlyPrecipitation] = []
+            
+            for (index, timeString) in hourly.time.enumerated() {
+                guard let date = dateFormatter.date(from: timeString) else {
+                    print("⚠️ Failed to parse time: \(timeString)")
+                    continue
+                }
+                
+                let probability = hourly.precipitation_probability[index]
+                let amount = hourly.precipitation[index]
+                
+                precipData.append(
+                    HourlyPrecipitation(
+                        hour: date,
+                        probability: probability,
+                        amount: amount
+                    )
+                )
+            }
+            
+            print("✅ Precipitation data created: \(precipData.count) hours")
+            
+            return precipData
+        } catch {
+            print("❌ Hourly precipitation fetch error: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("   - Missing key: \(key.stringValue) in \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("   - Type mismatch: expected \(type) at \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("   - Value not found: \(type) at \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("   - Data corrupted at \(context.codingPath)")
+                @unknown default:
+                    print("   - Unknown decoding error")
+                }
+            }
+            return []
+        }
+    }
+    
+    // MARK: - Helper: Moon Phase Calculation
+    private func calculateMoonPhase(for date: Date) -> SunMoonData.MoonPhase {
+        // Known new moon: January 1, 2000
+        let knownNewMoon = Date(timeIntervalSince1970: 946684800) // Jan 1, 2000
+        let daysSinceKnownNewMoon = date.timeIntervalSince(knownNewMoon) / 86400
+        
+        // Lunar cycle is approximately 29.53 days
+        let lunarCycle = 29.53
+        let phase = (daysSinceKnownNewMoon.truncatingRemainder(dividingBy: lunarCycle)) / lunarCycle
+        
+        return SunMoonData.MoonPhase.from(phase: phase)
+    }
+}
+
+// MARK: - Response Models
+
+struct AirQualityResponse: Codable {
+    let current: CurrentAirQuality?
+    
+    struct CurrentAirQuality: Codable {
+        let european_aqi: Double?
+        let pm10: Double?
+        let pm2_5: Double?
+        let carbon_monoxide: Double?
+        let nitrogen_dioxide: Double?
+        let sulphur_dioxide: Double?
+        let ozone: Double?
+    }
+}
+
+struct SunMoonResponse: Codable {
+    let daily: DailySunMoon?
+    let timezone: String?
+    
+    struct DailySunMoon: Codable {
+        let sunrise: [String]
+        let sunset: [String]
+    }
+}
+
+struct HourlyPrecipResponse: Codable {
+    let hourly: HourlyPrecip?
+    let timezone: String?
+    
+    struct HourlyPrecip: Codable {
+        let time: [String]
+        let precipitation_probability: [Int]
+        let precipitation: [Double]
+    }
+}

@@ -6,112 +6,167 @@
 
 import Foundation
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 import CoreLocation
 
 struct DetailedWeatherView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var weatherService: WeatherService
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @StateObject private var locationsManager = SavedLocationsManager()
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                // HERO SECTION
-                VStack(spacing: 8) {
-                    HStack(alignment: .center, spacing: 20) {
-                        if let condition = weatherService.weather?.condition {
-                            LottieView(name: getAnimationName(for: condition))
-                                .frame(width: 120, height: 120)
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(locationDisplayName)
-                                .font(.title.bold())
-                            Text(Date(), style: .date)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text(weatherService.weather?.condition ?? "-")
-                                .font(.title2)
-                            if let temp = weatherService.weather?.temperature {
-                                Text(String(format: "%.1f%@", temp, unitSymbol))
-                                    .font(.system(size: 54, weight: .bold))
-                            }
-                            if let feels = weatherService.weather?.feelsLike {
-                                Text("Feels like " + String(format: "%.1f%@", feels, unitSymbol))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        Spacer()
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.ultraThinMaterial)
-                .cornerRadius(28)
-                .shadow(radius: 8)
-                .padding(.horizontal)
+            VStack(spacing: 16) {
+                // HERO SECTION — fades in when the underlying
+                // weather data becomes available.
+                heroSection
+                    .padding(.horizontal, 16)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .top))
+                    )
 
-                // GRID OF CARDS (2 columns)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "-", icon: "thermometer")
-                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "-", icon: "sun.max")
-                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "-", icon: "humidity")
+                // GRID OF CARDS (2 columns).
+                // Each card gets an asymmetric fade+scale
+                // transition so the grid populates smoothly
+                // instead of snapping in once data arrives.
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "—", icon: "thermometer")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "—", icon: "sun.max")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "—", icon: "humidity")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
+                    WeatherCard(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—", icon: "gauge")
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                                removal: .opacity
+                            )
+                        )
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.feelsLike
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.uvIndex
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.humidity
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.weather?.pressure
+                )
 
-                // WIND CARD (full width)
+                // WIND CARD (full width).
                 if let wind = weatherService.weather?.windSpeed, let gust = weatherService.weather?.windGust {
-                    // Try to get wind direction from forecast if available
                     let direction = weatherService.forecast?.daily.first?.windDirection ?? 0
                     WindCard(wind: wind, gust: gust, direction: direction, unit: windUnit)
-                        .padding(.horizontal)
+                        .padding(.horizontal, 16)
+                        .transition(
+                            .opacity.combined(with: .move(edge: .bottom))
+                        )
                 }
 
                 // SUNRISE/SUNSET & PRECIPITATION CARDS (side by side)
-                HStack(spacing: 16) {
-                    // Use first daily forecast for sunrise/sunset and precipitation if available
+                HStack(spacing: 12) {
                     if let day = weatherService.forecast?.daily.first {
                         if let sunrise = day.sunrise, let sunset = day.sunset {
                             SunriseCard(sunrise: sunrise, sunset: sunset)
+                                .transition(.opacity)
                         }
                         PrecipitationCard(amount: day.precipitation)
+                            .transition(.opacity)
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.forecast?.daily.first?.sunrise
+                )
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: weatherService.forecast?.daily.first?.precipitation
+                )
 
                 // HOURLY FORECAST GRAPH
                 if !weatherService.hourlyData.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Hourly Forecast")
-                            .font(.headline)
-                            .padding(.leading, 8)
-                        WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
-                            .frame(height: 180)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(18)
-                            .padding(.horizontal, 4)
-                    }
-                    .padding(.horizontal)
+                    hourlyForecastSection
+                        .padding(.horizontal, 16)
+                        .transition(
+                            .opacity.combined(with: .move(edge: .bottom))
+                        )
                 }
 
                 // DAILY FORECAST
                 if let forecast = weatherService.forecast?.daily {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Next Days")
+                        Text("7-Day Forecast")
                             .font(.headline)
-                            .padding(.leading, 8)
+                            .padding(.leading, 4)
+                            .transition(.opacity)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(forecast.prefix(7)) { day in
                                     ForecastPane(day: day, unitSystem: unitSystem)
+                                        .transition(
+                                            .asymmetric(
+                                                insertion: .opacity
+                                                    .combined(with: .scale(scale: 0.92)),
+                                                removal: .opacity
+                                            )
+                                        )
                                 }
                             }
+                            .padding(.horizontal, 16)
                         }
-                        .padding(.horizontal)
+                        .animation(
+                            .easeInOut(duration: 0.4),
+                            value: forecast.count
+                        )
                     }
+                    .transition(.opacity)
+                    .animation(
+                        .easeInOut(duration: 0.4),
+                        value: forecast.count
+                    )
                 }
             }
             .padding(.vertical, 16)
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.weather?.temperature
+            )
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.weather?.condition
+            )
+            .animation(
+                .easeInOut(duration: 0.4),
+                value: weatherService.hourlyData.count
+            )
         }
     }
     
@@ -137,89 +192,209 @@ struct DetailedWeatherView: View {
         }
         return "Location"
     }
+    
+    // MARK: - Hero Section
+    // Phase 3 — styling delegated to `.styledCard()`. The if/else
+    // branches were collapsed because `.styledCard()` does its own
+    // iOS-availability check internally. The dark/light text
+    // colours are unchanged.
+    private var heroSection: some View {
+        VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 16) {
+                if let condition = weatherService.weather?.condition {
+                    // Phase 6 — migrated to `ConditionIcon` so the
+                    // iconography knobs in `IconographySpec` are
+                    // honoured automatically.
+                    ConditionIcon(condition: condition, size: 100)
+                        .frame(width: 100, height: 100)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(locationDisplayName)
+                        .font(.title2.bold())
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.9) :
+                            Color.black.opacity(0.85)
+                        )
+                    Text(Date(), style: .date)
+                        .font(.caption)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.6) :
+                            Color.black.opacity(0.5)
+                        )
+                    Text(weatherService.weather?.condition ?? "-")
+                        .font(.headline)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.7) :
+                            Color.black.opacity(0.6)
+                        )
+                    if let temp = weatherService.weather?.temperature {
+                        Text(String(format: "%.1f%@", temp, unitSymbol))
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.95) :
+                                Color.black.opacity(0.9)
+                            )
+                    }
+                    if let feels = weatherService.weather?.feelsLike {
+                        Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                    }
+                }
+                Spacer()
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .styledCard()
+    }
+    
+    // MARK: - Hourly Forecast Section
+    // Phase 3 — styling delegated to `.styledCard()`.
+    private var hourlyForecastSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hourly Forecast")
+                .font(.headline)
+                .padding(.leading, 4)
+                .foregroundStyle(colorScheme == .dark ?
+                    Color.white.opacity(0.9) :
+                    Color.black.opacity(0.85)
+                )
+            WeatherGraphView(hourly: weatherService.hourlyData, unitSystem: unitSystem)
+                .frame(height: 180)
+                .styledCard()
+        }
+    }
 }
 
 // MARK: - WeatherCard
 struct WeatherCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let value: String
     let icon: String
+
+    // Phase 3 — styling (background / border / corner radius) is
+    // delegated to `.styledCard()` which reads cardStyle, cornerRadius,
+    // cardOpacity and the palette from the customisation registry.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.title2)
+                    .font(.body)
                     .foregroundColor(.accentColor)
                 Text(title.uppercased())
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.7) :
+                        Color.black.opacity(0.6)
+                    )
             }
             Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(colorScheme == .dark ?
+                    Color.white.opacity(0.9) :
+                    Color.black.opacity(0.85)
+                )
         }
-        .padding()
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .cornerRadius(18)
-        .shadow(radius: 2)
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+        .styledCard()
     }
 }
 
 // MARK: - WindCard
 struct WindCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let wind: Double
     let gust: Double
     let direction: Double
     let unit: String
+
+    // Phase 3 — styling delegated to `.styledCard()`. Reads
+    // cardStyle, cornerRadius, cardOpacity and palette from the
+    // customisation registry. The if/available branches are
+    // removed because `.styledCard()` does its own availability
+    // check internally.
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
                 Image(systemName: "wind")
-                    .font(.title2)
+                    .font(.body)
                     .foregroundColor(.accentColor)
                 Text("WIND")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.7) :
+                        Color.black.opacity(0.6)
+                    )
             }
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Wind")
-                        .font(.subheadline)
-                    Text(String(format: "%.0f %@", wind, unit))
-                        .font(.title2.bold())
-                    Text("Gusts")
-                        .font(.subheadline)
-                    Text(String(format: "%.0f %@", gust, unit))
-                        .font(.body)
-                    Text("Direction")
-                        .font(.subheadline)
-                    Text(String(format: "%.0f°", direction))
-                        .font(.body)
+
+            HStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Speed")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f %@", wind, unit))
+                            .font(.title2.bold())
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Gusts")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f %@", gust, unit))
+                            .font(.headline)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Direction")
+                            .font(.caption)
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.6) :
+                                Color.black.opacity(0.5)
+                            )
+                        Text(String(format: "%.0f°", direction))
+                            .font(.headline)
+                    }
                 }
+
                 Spacer()
+
                 // Compass
                 ZStack {
-                    Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 2)
-                    ForEach([0, 90, 180, 270], id: \ .self) { deg in
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
+                        .frame(width: 80, height: 80)
+
+                    ForEach([0, 90, 180, 270], id: \.self) { deg in
                         Text(["N", "E", "S", "W"][deg/90])
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .offset(y: -40)
                             .rotationEffect(.degrees(Double(deg)))
                     }
+
                     Arrow()
                         .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                         .frame(width: 40, height: 40)
                         .rotationEffect(.degrees(direction))
                 }
-                .frame(width: 80, height: 80)
             }
         }
-        .padding()
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .cornerRadius(18)
-        .shadow(radius: 2)
+        .styledCard()
     }
 }
 
@@ -237,30 +412,123 @@ struct Arrow: Shape {
 
 // MARK: - SunriseCard
 struct SunriseCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let sunrise: Date
     let sunset: Date
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "sunrise")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                Text("SUNRISE")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+        if #available(iOS 26.2, *) {
+            // iOS 26+ Glass Effect
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sunrise")
+                        .font(.body)
+                        .foregroundColor(.orange)
+                    Text("SUNRISE")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.7) :
+                            Color.black.opacity(0.6)
+                        )
+                }
+                Text(timeString(sunrise))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.9) :
+                        Color.black.opacity(0.85)
+                    )
+                HStack(spacing: 4) {
+                    Image(systemName: "sunset")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Text("Sunset: " + timeString(sunset))
+                        .font(.caption)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.6) :
+                            Color.black.opacity(0.5)
+                        )
+                }
             }
-            Text(timeString(sunrise))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-            Text("Sunset: " + timeString(sunset))
-                .font(.caption)
-                .foregroundColor(.secondary)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.6)
+                    
+                    LinearGradient(
+                        colors: colorScheme == .dark ? [
+                            Color.black.opacity(0.2),
+                            Color.black.opacity(0.1),
+                            Color.clear
+                        ] : [
+                            Color.white.opacity(0.15),
+                            Color.white.opacity(0.05),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: colorScheme == .dark ? [
+                                Color.white.opacity(0.2),
+                                Color.white.opacity(0.1)
+                            ] : [
+                                Color.white.opacity(0.25),
+                                Color.white.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+        } else {
+            // Fallback for iOS 25 and earlier
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sunrise")
+                        .font(.body)
+                        .foregroundColor(.orange)
+                    Text("SUNRISE")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+                Text(timeString(sunrise))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                HStack(spacing: 4) {
+                    Image(systemName: "sunset")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Text("Sunset: " + timeString(sunset))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            #if canImport(UIKit)
+            .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
-        .padding()
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .cornerRadius(18)
-        .shadow(radius: 2)
     }
+    
     private func timeString(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
@@ -270,42 +538,130 @@ struct SunriseCard: View {
 
 // MARK: - PrecipitationCard
 struct PrecipitationCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let amount: Double
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "drop.fill")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                Text("PRECIPITATION")
+        if #available(iOS 26.2, *) {
+            // iOS 26+ Glass Effect
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "drop.fill")
+                        .font(.body)
+                        .foregroundColor(.blue)
+                    Text("PRECIPITATION")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.7) :
+                            Color.black.opacity(0.6)
+                        )
+                }
+                Text(String(format: "%.0f mm", amount))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.9) :
+                        Color.black.opacity(0.85)
+                    )
+                Text("Today")
+                    .font(.caption)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.6) :
+                        Color.black.opacity(0.5)
+                    )
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.6)
+                    
+                    LinearGradient(
+                        colors: colorScheme == .dark ? [
+                            Color.black.opacity(0.2),
+                            Color.black.opacity(0.1),
+                            Color.clear
+                        ] : [
+                            Color.white.opacity(0.15),
+                            Color.white.opacity(0.05),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: colorScheme == .dark ? [
+                                Color.white.opacity(0.2),
+                                Color.white.opacity(0.1)
+                            ] : [
+                                Color.white.opacity(0.25),
+                                Color.white.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+        } else {
+            // Fallback for iOS 25 and earlier
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "drop.fill")
+                        .font(.body)
+                        .foregroundColor(.blue)
+                    Text("PRECIPITATION")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+                Text(String(format: "%.0f mm", amount))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                Text("Today")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            Text(String(format: "%.0f mm", amount))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-            Text("Today")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+            #if canImport(UIKit)
+            .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
-        .padding()
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .cornerRadius(18)
-        .shadow(radius: 2)
     }
 }
 
-// MARK: - WeatherGraphView (stub)
+// MARK: - WeatherGraphView
 struct WeatherGraphView: View {
     let hourly: [HourlyWeatherData]
     let unitSystem: String
+    
     var body: some View {
-        // Placeholder for a temperature line graph
         GeometryReader { geo in
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
+                #if canImport(UIKit)
+Color(.systemBackground)
+#elseif canImport(AppKit)
+Color(NSColor.windowBackgroundColor)
+#else
+Color.white
+#endif
                 Text("[Hourly Temperature Graph]")
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
@@ -314,24 +670,101 @@ struct WeatherGraphView: View {
 
 // MARK: - ForecastPane
 struct ForecastPane: View {
+    @Environment(\.colorScheme) private var colorScheme
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
+    
     var body: some View {
-        VStack(spacing: 6) {
-            Text(day.date, style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Text(day.weatherSymbol)
-                .font(.title2)
-            Text(String(format: "%.0f%@", day.tempMax, unitSystem == "Metric" ? "°C" : "°F"))
-                .font(.headline)
-            Text(String(format: "%.0f%@", day.tempMin, unitSystem == "Metric" ? "°C" : "°F"))
-                .font(.caption)
-                .foregroundColor(.secondary)
+        if #available(iOS 26.2, *) {
+            // iOS 26+ Glass Effect
+            VStack(spacing: 6) {
+                Text(day.date, style: .date)
+                    .font(.caption2)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.6) :
+                        Color.black.opacity(0.5)
+                    )
+                Text(day.weatherSymbol)
+                    .font(.title2)
+                Text("\(UnitConverter.formatTemperature(day.tempMax))°")
+                    .font(.headline)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.9) :
+                        Color.black.opacity(0.85)
+                    )
+                Text("\(UnitConverter.formatTemperature(day.tempMin))°")
+                    .font(.caption)
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.6) :
+                        Color.black.opacity(0.5)
+                    )
+            }
+            .frame(width: 70, height: 100)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.6)
+                    
+                    LinearGradient(
+                        colors: colorScheme == .dark ? [
+                            Color.black.opacity(0.2),
+                            Color.black.opacity(0.1),
+                            Color.clear
+                        ] : [
+                            Color.white.opacity(0.15),
+                            Color.white.opacity(0.05),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: colorScheme == .dark ? [
+                                Color.white.opacity(0.2),
+                                Color.white.opacity(0.1)
+                            ] : [
+                                Color.white.opacity(0.25),
+                                Color.white.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+        } else {
+            // Fallback for iOS 25 and earlier
+            VStack(spacing: 6) {
+                Text(day.date, style: .date)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Text(day.weatherSymbol)
+                    .font(.title2)
+                Text("\(UnitConverter.formatTemperature(day.tempMax))°")
+                    .font(.headline)
+                Text("\(UnitConverter.formatTemperature(day.tempMin))°")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 70, height: 100)
+            #if canImport(UIKit)
+            .background(Color(.systemBackground))
+            #elseif canImport(AppKit)
+            .background(Color(NSColor.windowBackgroundColor))
+            #else
+            .background(Color.white)
+            #endif
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
-        .frame(width: 60, height: 90)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
     }
 }
 
@@ -348,17 +781,8 @@ private func getSymbol(for condition: String) -> String {
     }
 }
 
-private func getAnimationName(for condition: String) -> String {
-    switch condition.lowercased() {
-    case let c where c.contains("cloud"): return "cloudy"
-    case let c where c.contains("rain"): return "rainy"
-    case let c where c.contains("snow"): return "snowy"
-    case let c where c.contains("sun"): return "sunny"
-    case let c where c.contains("clear"): return "clear-day"
-    case let c where c.contains("thunder"): return "thunder"
-    default: return "default"
-    }
-}
+// Phase 6 — `getAnimationName(for:)` removed; `ConditionIcon`
+// resolves the animation name via `AnimationRegistry`.
 
 // MARK: - Preview
 #Preview {

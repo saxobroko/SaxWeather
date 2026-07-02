@@ -20,6 +20,26 @@ struct Weather: Codable {
     var windGust: Double?
     var uvIndex: Int?
     var solarRadiation: Double?
+    // Current (live) wind direction in degrees (0-360).
+    // Distinct from `forecasts[0].windDirection` which is the
+    // day's prevailing direction. Populated from WU
+    // (`winddir`), Open-Meteo `current.wind_direction_10m`,
+    // or WeatherKit's `currentWeather.wind.direction`.
+    var currentWindDirection: Double?
+    // Human-readable location label (e.g. Weather Underground
+    // neighbourhood name, "Current Location", saved-location
+    // name). Surfaces in the header so the user always knows
+    // which place they're looking at.
+    var locationName: String?
+    // Extended metrics fetched separately by
+    // `ExtendedWeatherService` and merged onto the base
+    // weather record by `WeatherService`. Kept optional /
+    // empty-initialised so a missing extended fetch doesn't
+    // prevent the basic forecast from displaying.
+    var airQuality: AirQualityData?
+    var sunData: SunMoonData?
+    var pollen: PollenData?
+    var hourlyPrecipitation: [HourlyPrecipitation] = []
     private let cachedCondition: String
     let lastUpdateTime: Date
     var forecasts: [Forecast] = []
@@ -104,11 +124,76 @@ struct Weather: Codable {
         return saturationVaporPressure * humidityDecimal
     }
     
+    private func calculateHeatIndex(temperatureC: Double, humidity: Double) -> Double {
+        // Convert to Fahrenheit for the formula
+        let T = temperatureC * 9/5 + 32
+        let RH = humidity
+        
+        // Rothfusz regression (used by US National Weather Service)
+        let c1 = -42.379
+        let c2 = 2.04901523
+        let c3 = 10.14333127
+        let c4 = -0.22475541
+        let c5 = -0.00683783
+        let c6 = -0.05481717
+        let c7 = 0.00122874
+        let c8 = 0.00085282
+        let c9 = -0.00000199
+        
+        let HI = c1 + (c2 * T) + (c3 * RH) + (c4 * T * RH) + (c5 * T * T) + 
+                 (c6 * RH * RH) + (c7 * T * T * RH) + (c8 * T * RH * RH) + 
+                 (c9 * T * T * RH * RH)
+        
+        // Convert back to Celsius
+        return (HI - 32) * 5/9
+    }
+    
+    private func calculateWindChill(temperatureC: Double, windSpeedMS: Double) -> Double {
+        // Convert wind speed from m/s to km/h for the formula
+        let windSpeedKMH = windSpeedMS * 3.6
+        
+        // Wind chill formula (Environment Canada / US National Weather Service)
+        // Only valid for temperatures <= 10°C and wind speeds >= 4.8 km/h
+        guard windSpeedKMH >= 4.8 else {
+            return temperatureC // Not enough wind for wind chill effect
+        }
+        
+        let windChill = 13.12 + 0.6215 * temperatureC - 11.37 * pow(windSpeedKMH, 0.16) + 
+                       0.3965 * temperatureC * pow(windSpeedKMH, 0.16)
+        
+        return windChill
+    }
+    
     private func calculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double) -> Double {
-        let vaporPressure = calculateVaporPressure(temperature: temperature, relativeHumidity: humidity)
-        // AT = Ta + 0.33E - 0.70WS - 4.00
-        let apparentTemperature = temperature + 0.33 * vaporPressure - 0.70 * windSpeed - 4.00
-        return apparentTemperature
+        // Use different formulas based on temperature:
+        // - Hot weather (>= 27°C): Heat Index (accounts for humidity making it feel hotter)
+        // - Cold weather (<= 10°C): Wind Chill (accounts for wind making it feel colder)
+        // - Moderate weather: Australian Apparent Temperature
+        
+        let feelsLike: Double
+        let method: String
+        
+        if temperature >= 27.0 {
+            // Hot weather - use Heat Index
+            feelsLike = calculateHeatIndex(temperatureC: temperature, humidity: humidity)
+            method = "Heat Index"
+        } else if temperature <= 10.0 {
+            // Cold weather - use Wind Chill
+            feelsLike = calculateWindChill(temperatureC: temperature, windSpeedMS: windSpeed)
+            method = "Wind Chill"
+        } else {
+            // Moderate weather - use Australian Apparent Temperature
+            let vaporPressure = calculateVaporPressure(temperature: temperature, relativeHumidity: humidity)
+            // AT = Ta + 0.33E - 0.70WS - 4.00
+            feelsLike = temperature + 0.33 * vaporPressure - 0.70 * windSpeed - 4.00
+            method = "Apparent Temp"
+        }
+        
+        #if DEBUG
+        print("🌡️ Feels Like Calculation: temp=\(String(format: "%.1f", temperature))°C, humidity=\(String(format: "%.0f", humidity))%, wind=\(String(format: "%.1f", windSpeed))m/s → feels=\(String(format: "%.1f", feelsLike))°C (using \(method))")
+        #endif
+        
+        return feelsLike
     }
     
     private func ensureMetricAndCalculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double, currentUnit: String) -> Double {
@@ -148,6 +233,40 @@ struct Weather: Codable {
         self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
         self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
         self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
+
+        // Current wind direction in degrees (0-360). WU exposes
+        // it as Int, Open-Meteo returns Double on the current
+        // snapshot. Promote to a single Double so callers
+        // (cardinal-direction helpers, etc.) only have to handle
+        // one type. Nil when the active source didn't provide
+        // one — callers fall back to forecasts[0].windDirection
+        // in that case.
+        if let wuDir = wuObservation?.winddir {
+            self.currentWindDirection = Double(wuDir)
+        } else if let omDir = openMeteoResponse?.current?.wind_direction_10m {
+            self.currentWindDirection = omDir
+        } else {
+            self.currentWindDirection = nil
+        }
+
+        // Location label: prefer WU's neighbourhood string when
+        // available, otherwise defer to the caller (ContentView
+        // falls back to GPS / saved-location name).
+        if let neighborhood = wuObservation?.neighborhood, !neighborhood.isEmpty {
+            self.locationName = neighborhood
+        } else {
+            self.locationName = nil
+        }
+
+        // Extended payloads (AQI / sun-moon / hourly precip) are
+        // populated after the fact by ExtendedWeatherService.
+        // Initialising them to nil / empty keeps this constructor
+        // self-contained and avoids forcing the basic fetch to
+        // block on the extended one.
+        self.airQuality = nil
+        self.sunData = nil
+        self.pollen = nil
+        self.hourlyPrecipitation = []
         
         // Initialize forecasts if OpenMeteo data is available
         if let openMeteoDaily = openMeteoResponse?.daily {

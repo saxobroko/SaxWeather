@@ -20,8 +20,18 @@ struct DetailedForecastSheet: View {
     let unitSystem: String
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
-    @State private var loadingFailed: Bool = false
-    
+    // Phase 6 — `loadingFailed` removed; `ConditionIcon` handles
+    // the Lottie → SF Symbol fallback internally.
+
+    // Shared asymmetric transition reused across the
+    // detail grid so each card fades and scales in uniformly.
+    private var cardTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.9)),
+            removal: .opacity
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -47,22 +57,18 @@ struct DetailedForecastSheet: View {
                 VStack(spacing: 16) {
                     // Lottie animation with temperature
                     HStack(spacing: 25) {
-                        // Use Lottie animation instead of text emoji
-                        if loadingFailed {
-                            Text(day.weatherSymbol)
-                                .font(.system(size: 80))
-                                .minimumScaleFactor(0.7)
-                        } else {
-                            let isNight = WeatherAnimationHelper.isNighttime(sunrise: day.sunrise, sunset: day.sunset)
-                            LottieView(
-                                name: WeatherAnimationHelper.animationNameFromCode(
-                                    for: day.weatherCode,
-                                    isNight: isNight
-                                ),
-                                loadingFailed: $loadingFailed
-                            )
-                            .frame(width: 120, height: 120)
-                        }
+                        // Phase 6 — migrated to `ConditionIcon` so the
+                        // iconography knobs in `IconographySpec` are
+                        // honoured automatically. The SF Symbol
+                        // fallback replaces the previous text-emoji
+                        // fallback for consistency with the rest of
+                        // the app.
+                        ConditionIcon(
+                            weatherCode: day.weatherCode,
+                            isNight: false,
+                            size: 120
+                        )
+                        .frame(width: 120, height: 120)
                         
                         // Temperature
                         VStack(alignment: .leading, spacing: 4) {
@@ -87,12 +93,7 @@ struct DetailedForecastSheet: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(backgroundFillColor(colorScheme))
-                        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.gray.opacity(0.2),
-                               radius: 8, x: 0, y: 4)
-                )
+                .styledCard()
                 .padding(.horizontal)
                 
                 // Detailed weather data
@@ -104,6 +105,7 @@ struct DetailedForecastSheet: View {
                         value: day.sunrise != nil ? formattedTime(day.sunrise!) : "N/A",
                         color: .orange
                     )
+                    .transition(cardTransition)
                     
                     // Sunset
                     WeatherDetailCard(
@@ -112,6 +114,7 @@ struct DetailedForecastSheet: View {
                         value: day.sunset != nil ? formattedTime(day.sunset!) : "N/A",
                         color: .orange
                     )
+                    .transition(cardTransition)
                     
                     // Humidity
                     WeatherDetailCard(
@@ -120,6 +123,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.humidity)))%",
                         color: .blue
                     )
+                    .transition(cardTransition)
                     
                     // UV Index
                     WeatherDetailCard(
@@ -128,6 +132,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.uvIndex)))",
                         color: .purple
                     )
+                    .transition(cardTransition)
                     
                     // Wind Speed
                     WeatherDetailCard(
@@ -136,6 +141,7 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
                         color: .teal
                     )
+                    .transition(cardTransition)
                     
                     // Precipitation
                     WeatherDetailCard(
@@ -144,9 +150,16 @@ struct DetailedForecastSheet: View {
                         value: "\(Int(round(day.precipitationProbability)))%",
                         color: .blue
                     )
+                    .transition(cardTransition)
                 }
                 .padding(.horizontal)
-                
+                // Stable identity drives the transition when the
+                // sheet is re-presented for a different day.
+                .animation(
+                    .easeInOut(duration: 0.4),
+                    value: day.date
+                )
+
                 Spacer(minLength: 20)
             }
         }
@@ -218,12 +231,7 @@ struct WeatherDetailCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(backgroundFillColor(colorScheme))
-                .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.gray.opacity(0.15),
-                       radius: 6, x: 0, y: 3)
-        )
+        .styledCard()
     }
 }
 
@@ -252,11 +260,7 @@ struct DetailBox: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(backgroundFillColor(colorScheme))
-                .shadow(radius: 3)
-        )
+        .styledCard()
     }
 }
 

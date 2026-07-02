@@ -1,2 +1,49 @@
+# Xcode user state
 *.xcuserstate
-*.xcuserstate
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Documentation & Implementation Notes (root level only)
+/*.md
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+!CONTRIBUTING.md
+
+# Helper Scripts
+/test_widget_refresh.sh
+/add_widget_files.sh
+
+# Build artifacts
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Swift Package Manager
+.swiftpm/
+*.xcworkspace
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Console output examples
+*.txt
+!SaxWeather/SaxWeather/**/*.txt
