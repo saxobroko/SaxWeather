@@ -376,6 +376,7 @@ struct SaxWeatherApp: App {
     // read/write knobs in later phases without prop-drilling.
     @StateObject private var customisationRegistry = CustomisationRegistry.shared
     @StateObject private var deepLinkHandler = CosmeticDeepLinkHandler()
+    @StateObject private var locationDeepLinkHandler = WeatherLocationDeepLinkHandler()
     @StateObject private var previewManager = PreviewProfileManager()
     @AppStorage("accentColor") private var accentColor = "blue"
     @Environment(\.scenePhase) private var scenePhase
@@ -410,6 +411,7 @@ struct SaxWeatherApp: App {
                 .environmentObject(weatherService)
                 .environmentObject(customisationRegistry)
                 .environmentObject(deepLinkHandler)
+                .environmentObject(locationDeepLinkHandler)
                 .environmentObject(previewManager)
                 .tint(accentColorValue) // Apply user's selected accent color
                 // Phase 2 — route incoming `saxweather://cosmetic/<id>`
@@ -417,7 +419,9 @@ struct SaxWeatherApp: App {
                 // on the main actor; the handler is `@MainActor`
                 // so we just forward the URL.
                 .onOpenURL { url in
-                    deepLinkHandler.handle(url: url)
+                    if !deepLinkHandler.handle(url: url) {
+                        _ = locationDeepLinkHandler.handle(url: url)
+                    }
                 }
                 .onAppear {
                     // Bootstrap widget sync: push the current

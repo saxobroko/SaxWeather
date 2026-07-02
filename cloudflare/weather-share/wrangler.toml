@@ -2,10 +2,10 @@ name = "weather-share"
 main = "src/index.js"
 compatibility_date = "2025-07-01"
 
-# Route: weather.saxobroko.com/*
-# After first deploy, attach this route in the Cloudflare dashboard
-# or uncomment the lines below once the zone is on your account.
-#
-# routes = [
-#   { pattern = "weather.saxobroko.com/*", zone_name = "saxobroko.com" }
-# ]
+routes = [
+  { pattern = "weather.saxobroko.com/*", zone_name = "saxobroko.com" }
+]
+
+[vars]
+APPLE_TEAM_ID = "F2AHYWP9BX"
+IOS_BUNDLE_ID = "com.saxobroko.SaxWeather"

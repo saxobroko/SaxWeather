@@ -27,5 +27,9 @@
 	<array>
 		<string>group.com.saxobroko.SaxWeather</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:weather.saxobroko.com</string>
+	</array>
 </dict>
 </plist>

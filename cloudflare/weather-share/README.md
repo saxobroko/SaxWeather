@@ -1,46 +1,24 @@
 # SaxWeather Share Worker
 
-Stateless Cloudflare Worker that serves HTTPS share links with Open Graph metadata so iMessage and other apps show rich weather previews. Tapping the link opens SaxWeather via Universal Links or the custom URL scheme.
+Stateless Cloudflare Worker that serves rich **HTTPS** share links for SaxWeather. iMessage and other apps fetch Open Graph metadata from these URLs instead of failing on custom `saxweather://` schemes.
 
-**Cost: $0** — uses only Workers (no KV, D1, R2, Queues, or paid add-ons).
+**Cost:** $0 on Cloudflare Workers free tier (100,000 requests/day, no KV/D1/R2).
 
-## Routes
+## What it does
 
-| Route | Description |
-|-------|-------------|
-| `GET /share` | Weather preview page + Open Graph / Twitter Card meta |
-| `GET /apple-app-site-association` | Universal Links JSON for iOS |
-| `GET /.well-known/apple-app-site-association` | Same AASA file (Apple alternate path) |
+| Route | Purpose |
+|-------|---------|
+| `GET /share?lat=&lon=&name=&temp=&unit=&condition=...` | Rich preview page + "Open in SaxWeather" deep link |
+| `GET /apple-app-site-association` | Universal Links (optional) |
 | `GET /` | Simple landing page |
 
-### Share query parameters
-
-| Param | Required | Description |
-|-------|----------|-------------|
-| `lat` | yes | Latitude |
-| `lon` | yes | Longitude |
-| `name` | no | Location name |
-| `temp` | no | Current temperature |
-| `unit` | no | `C` or `F` (default `C`) |
-| `condition` | no | Weather condition text |
-| `feels` | no | Feels-like temperature |
-| `high` | no | Today's high |
-| `low` | no | Today's low |
-| `station` | no | PWS station ID |
-
-### Example
+## Example URL
 
 ```
-https://weather.saxobroko.com/share?lat=-33.868820&lon=151.209290&name=Sydney&temp=24&unit=C&condition=Partly%20Cloudy&feels=22&high=26&low=18
+https://weather.saxobroko.com/share?lat=-33.868820&lon=151.209296&name=Sydney&temp=24.0&unit=°C&condition=Partly%20Cloudy&feels=22.0&high=26&low=18
 ```
 
 ## Deploy
-
-### Prerequisites
-
-- [Cloudflare account](https://dash.cloudflare.com/sign-up) (free)
-- `saxobroko.com` zone on Cloudflare
-- [Node.js](https://nodejs.org/) 18+
 
 ### 1. Install dependencies
 
@@ -55,64 +33,51 @@ npm install
 npx wrangler login
 ```
 
-### 3. Deploy the Worker
+### 3. Set secrets / vars (optional, for Universal Links)
 
 ```bash
-npx wrangler deploy
+npx wrangler secret put APPLE_TEAM_ID
+npx wrangler secret put IOS_BUNDLE_ID   # default: com.saxobroko.SaxWeather
 ```
 
-### 4. Attach the custom domain route
+Until `APPLE_TEAM_ID` is set, `apple-app-site-association` uses `REPLACE_WITH_TEAM_ID` — Universal Links will not work until you update this.
 
-In the [Cloudflare dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **weather-share** → **Settings** → **Triggers** → **Add route**:
-
-- **Route:** `weather.saxobroko.com/*`
-- **Zone:** `saxobroko.com`
-
-Or uncomment the `routes` block in `wrangler.toml` and redeploy.
-
-### 5. DNS (CNAME)
-
-In **DNS** for `saxobroko.com`, add:
-
-| Type | Name | Target | Proxy |
-|------|------|--------|-------|
-| CNAME | `weather` | `weather-share.<your-subdomain>.workers.dev` or route via Workers | Proxied (orange cloud) |
-
-When using a Workers route on `weather.saxobroko.com/*`, Cloudflare routes traffic to the Worker automatically; the CNAME/AAAA record must exist and be proxied.
-
-### 6. iOS Universal Links (app side)
-
-1. In Apple Developer → App ID → enable **Associated Domains**
-2. Add `applinks:weather.saxobroko.com` to `SaxWeather.entitlements`
-3. Rebuild and install the app
-4. Apple fetches `https://weather.saxobroko.com/apple-app-site-association` automatically
-
-## Local development
+### 4. Deploy
 
 ```bash
-npm run dev
-# open http://localhost:8787/share?lat=-33.87&lon=151.21&name=Sydney&temp=24&unit=C&condition=Sunny
+npm run deploy
 ```
+
+### 5. Attach custom domain
+
+In the Cloudflare dashboard:
+
+1. **Workers & Pages** → `weather-share` → **Settings** → **Domains & Routes**
+2. Add route: `weather.saxobroko.com/*`
+3. Ensure DNS has a proxied record for `weather.saxobroko.com` (CNAME to your worker or A/AAAA as appropriate)
+
+Or uncomment the `routes` block in `wrangler.toml` once the zone is on your account.
+
+## iOS app setup (Universal Links)
+
+1. Enable **Associated Domains** capability in Xcode.
+2. Add `applinks:weather.saxobroko.com` to `SaxWeather.entitlements`.
+3. Deploy this worker with your real `APPLE_TEAM_ID`.
+4. Verify AASA: `curl https://weather.saxobroko.com/apple-app-site-association`
+
+Without Universal Links, users can still tap **Open in SaxWeather** on the share page (custom URL scheme).
 
 ## Free tier limits
 
-Cloudflare Workers free plan (as of 2025):
+- **Workers:** 100,000 requests/day
+- **No** KV, D1, R2, Queues, or paid add-ons required
+- HTML is generated at the edge per request (tiny CPU per hit)
 
-| Limit | Value |
-|-------|-------|
-| Requests | 100,000 / day |
-| CPU time | 10 ms per request |
-| Workers | 100 per account |
+Typical share-link traffic is well within free limits.
 
-This Worker only generates HTML — no storage bindings — so it stays entirely on the free tier for typical personal-app share traffic.
+## Local dev
 
-## Files
-
-```
-cloudflare/weather-share/
-├── package.json
-├── wrangler.toml
-├── README.md
-└── src/
-    └── index.js
+```bash
+npm run dev
+# open http://localhost:8787/share?lat=-33.87&lon=151.21&name=Sydney&temp=24&unit=°C&condition=Clear
 ```
