@@ -259,6 +259,9 @@ struct LayoutSpec: Codable, Hashable {
     /// v2 — show the "Weather for X" location header above the
     /// hero card. Off hides it for a cleaner minimal look.
     var showLocationHeader: Bool = true
+    /// v2 — show the "Last updated" button below the location
+    /// header on the hero card. Off hides it for a cleaner look.
+    var showHeroLastUpdated: Bool = false
     /// v2 — shrink card padding when the device is in landscape so
     /// more sections fit on screen at once.
     var compactCardsInLandscape: Bool = true

@@ -255,6 +255,16 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "showLocationHeader")
     }
 
+    /// `true` → display the “Last updated” button on the
+    /// hero card. Matches
+    /// `@AppStorage("showHeroLastUpdated")` (default `false`).
+    static var showHeroLastUpdated: Bool {
+        if UserDefaults.standard.object(forKey: "showHeroLastUpdated") == nil {
+            return false
+        }
+        return UserDefaults.standard.bool(forKey: "showHeroLastUpdated")
+    }
+
     /// Hourly-forecast window length. Matches
     /// `@AppStorage("hourlyHours")` (default 24).
     static var hourlyHours: Int {

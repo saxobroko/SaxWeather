@@ -212,6 +212,8 @@ struct KnobEditorSheet: View {
             bool(\.layout.swipeBetweenLocations)
         case "showLocationHeader":
             bool(\.layout.showLocationHeader)
+        case "showHeroLastUpdated":
+            bool(\.layout.showHeroLastUpdated)
         case "compactCardsInLandscape":
             bool(\.layout.compactCardsInLandscape)
 
@@ -566,6 +568,8 @@ struct KnobEditorSheet: View {
             customisation.set(\.layout.swipeBetweenLocations, defaults.layout.swipeBetweenLocations)
         case "showLocationHeader":
             customisation.set(\.layout.showLocationHeader, defaults.layout.showLocationHeader)
+        case "showHeroLastUpdated":
+            customisation.set(\.layout.showHeroLastUpdated, defaults.layout.showHeroLastUpdated)
         case "compactCardsInLandscape":
             customisation.set(\.layout.compactCardsInLandscape, defaults.layout.compactCardsInLandscape)
         // Forecast

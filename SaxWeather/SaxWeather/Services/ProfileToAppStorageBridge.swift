@@ -70,6 +70,7 @@ enum ProfileToAppStorageBridge {
         defaults.set(knobs.layout.cardDensity.rawValue, forKey: "cardDensity")
         defaults.set(knobs.layout.swipeBetweenLocations, forKey: "swipeBetweenLocations")
         defaults.set(knobs.layout.showLocationHeader, forKey: "showLocationHeader")
+        defaults.set(knobs.layout.showHeroLastUpdated, forKey: "showHeroLastUpdated")
         defaults.set(knobs.layout.compactCardsInLandscape, forKey: "compactCardsInLandscape")
 
         // Data
@@ -316,6 +317,10 @@ enum ProfileToAppStorageBridge {
             knobs.layout.showLocationHeader =
                 defaults.bool(forKey: "showLocationHeader")
         }
+        if defaults.object(forKey: "showHeroLastUpdated") != nil {
+            knobs.layout.showHeroLastUpdated =
+                defaults.bool(forKey: "showHeroLastUpdated")
+        }
         if defaults.object(forKey: "compactCardsInLandscape") != nil {
             knobs.layout.compactCardsInLandscape =
                 defaults.bool(forKey: "compactCardsInLandscape")
@@ -528,7 +533,7 @@ enum ProfileToAppStorageBridge {
         // Layout
         "forecastDays", "displayMode", "showHamburgerMenu",
         "hourlyHours", "cardDensity", "swipeBetweenLocations",
-        "showLocationHeader", "compactCardsInLandscape",
+        "showLocationHeader", "showHeroLastUpdated", "compactCardsInLandscape",
         // Data
         "unitSystem", "useOpenMeteoAsDefault", "disableAPIKeys",
         "preferredDataSource", "refreshCadence",

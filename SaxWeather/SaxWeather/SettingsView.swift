@@ -1945,6 +1945,7 @@ enum SearchKnobValueFormatter {
         case "showHamburgerMenu":           return k.layout.showHamburgerMenu ? "On" : "Off"
         case "swipeBetweenLocations":       return k.layout.swipeBetweenLocations ? "On" : "Off"
         case "showLocationHeader":          return k.layout.showLocationHeader ? "On" : "Off"
+        case "showHeroLastUpdated":         return k.layout.showHeroLastUpdated ? "On" : "Off"
         case "compactCardsInLandscape":     return k.layout.compactCardsInLandscape ? "On" : "Off"
 
         // Forecast
@@ -3085,6 +3086,7 @@ struct PreferencesSettingsView: View {
     @AppStorage("cardDensity") private var cardDensity: String = CardDensity.regular.rawValue
     @AppStorage("swipeBetweenLocations") private var swipeBetweenLocations: Bool = true
     @AppStorage("showLocationHeader") private var showLocationHeader: Bool = true
+    @AppStorage("showHeroLastUpdated") private var showHeroLastUpdated: Bool = false
     @AppStorage("compactCardsInLandscape") private var compactCardsInLandscape: Bool = true
     @AppStorage("showLocationLabel") private var showLocationLabel: Bool = true
 
@@ -3260,6 +3262,18 @@ struct PreferencesSettingsView: View {
                 }
                 .onChange(of: showLocationHeader) { newValue in
                     customisationRegistry.set(\.layout.showLocationHeader, newValue)
+                }
+                Toggle(isOn: $showHeroLastUpdated) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Hero Last Updated")
+                            .font(.body)
+                        Text("Display the “Last updated” button on the hero card.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .onChange(of: showHeroLastUpdated) { newValue in
+                    customisationRegistry.set(\.layout.showHeroLastUpdated, newValue)
                 }
                 Toggle(isOn: $swipeBetweenLocations) {
                     VStack(alignment: .leading, spacing: 4) {
