@@ -276,11 +276,17 @@ struct ContentView: View {
     }
 
     private func addAndUsePreviewLocation(_ request: LocationWeatherPreviewRequest) {
-        let locationName = request.name ?? String(
+        let rawName = request.name ?? String(
             format: "%.4f, %.4f",
             request.latitude,
             request.longitude
         )
+        let locationName = ShareLocationPlaceholder.isPlaceholder(rawName)
+            ? ShareLocationResolver.coordinateFallback(
+                latitude: request.latitude,
+                longitude: request.longitude
+            )
+            : rawName
 
         if locationsManager.addLocation(
             name: locationName,
@@ -739,13 +745,11 @@ struct ContentView: View {
                        let weather = weatherService.weather,
                        weather.hasData {
                         WeatherShareButton(
-                            context: WeatherShareContext.make(
-                                weather: weather,
-                                locationName: currentLocationText,
-                                unitSystem: unitSystem,
-                                weatherService: weatherService,
-                                locationsManager: locationsManager
-                            )
+                            weather: weather,
+                            displayLocationName: currentLocationText,
+                            unitSystem: unitSystem,
+                            weatherService: weatherService,
+                            locationsManager: locationsManager
                         )
                     }
 

@@ -287,13 +287,20 @@ struct LocationWeatherPreviewSheet: View {
     // MARK: - Helpers
 
     private var locationTitle: String {
-        if let name = request.name, !name.isEmpty {
+        if let name = request.name,
+           !name.isEmpty,
+           !ShareLocationPlaceholder.isPlaceholder(name) {
             return name
         }
-        if let weatherName = previewWeatherService.weather?.locationName, !weatherName.isEmpty {
+        if let weatherName = previewWeatherService.weather?.locationName,
+           !weatherName.isEmpty,
+           !ShareLocationPlaceholder.isPlaceholder(weatherName) {
             return weatherName
         }
-        return String(format: "%.4f, %.4f", request.latitude, request.longitude)
+        return ShareLocationResolver.coordinateFallback(
+            latitude: request.latitude,
+            longitude: request.longitude
+        )
     }
 
     private var shouldShowLocationHeader: Bool {

@@ -4,6 +4,96 @@
 //
 
 import Foundation
+import CoreLocation
+
+// MARK: - Place name resolution
+
+enum ShareLocationPlaceholder {
+    private static let names: Set<String> = [
+        "Current Location",
+        "Current Location (GPS)"
+    ]
+
+    static func isPlaceholder(_ name: String?) -> Bool {
+        guard let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return true
+        }
+        return names.contains { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+    }
+}
+
+@MainActor
+final class ShareLocationResolver {
+    static let shared = ShareLocationResolver()
+
+    private struct CacheEntry {
+        let name: String
+        let timestamp: Date
+    }
+
+    private var cache: [String: CacheEntry] = [:]
+    private let cacheTTL: TimeInterval = 5 * 60
+    private let geocoder = CLGeocoder()
+
+    private func cacheKey(latitude: Double, longitude: Double) -> String {
+        String(format: "%.4f,%.4f", latitude, longitude)
+    }
+
+    static func coordinateFallback(latitude: Double, longitude: Double) -> String {
+        String(format: "%.4f, %.4f", latitude, longitude)
+    }
+
+    func resolveName(
+        latitude: Double,
+        longitude: Double,
+        preferredName: String?,
+        weatherLocationName: String?
+    ) async -> String {
+        if let weatherName = weatherLocationName,
+           !weatherName.isEmpty,
+           !ShareLocationPlaceholder.isPlaceholder(weatherName) {
+            return weatherName
+        }
+
+        if let preferredName,
+           !ShareLocationPlaceholder.isPlaceholder(preferredName) {
+            return preferredName
+        }
+
+        let key = cacheKey(latitude: latitude, longitude: longitude)
+        if let entry = cache[key],
+           Date().timeIntervalSince(entry.timestamp) < cacheTTL {
+            return entry.name
+        }
+
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        let resolvedName: String
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            resolvedName = placemarkName(placemarks.first)
+                ?? Self.coordinateFallback(latitude: latitude, longitude: longitude)
+        } catch {
+            resolvedName = Self.coordinateFallback(latitude: latitude, longitude: longitude)
+        }
+
+        cache[key] = CacheEntry(name: resolvedName, timestamp: Date())
+        return resolvedName
+    }
+
+    private func placemarkName(_ placemark: CLPlacemark?) -> String? {
+        guard let placemark else { return nil }
+
+        var parts: [String] = []
+        if let locality = placemark.locality, !locality.isEmpty {
+            parts.append(locality)
+        }
+        if let administrativeArea = placemark.administrativeArea, !administrativeArea.isEmpty {
+            parts.append(administrativeArea)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+}
 
 /// Inputs needed to build share links and text summaries.
 struct WeatherShareContext {
@@ -38,6 +128,53 @@ struct WeatherShareContext {
         return WeatherShareContext(
             weather: weather,
             locationName: locationName,
+            unitSystem: unitSystem,
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            stationID: activeStation
+        )
+    }
+
+    /// Resolves GPS / placeholder names before building share URLs.
+    static func makeResolving(
+        weather: Weather,
+        locationName: String,
+        unitSystem: String,
+        weatherService: WeatherService,
+        locationsManager: SavedLocationsManager
+    ) async -> WeatherShareContext {
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        let wuKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let activeStation: String? = (
+            weatherService.currentDataSource == "weatherunderground"
+            && !wuKey.isEmpty
+            && !stationID.isEmpty
+        ) ? stationID : nil
+
+        let coordinates = resolveCoordinates(
+            weatherService: weatherService,
+            locationsManager: locationsManager
+        )
+
+        let resolvedName: String
+        if let latitude = coordinates.latitude, let longitude = coordinates.longitude {
+            resolvedName = await ShareLocationResolver.shared.resolveName(
+                latitude: latitude,
+                longitude: longitude,
+                preferredName: locationName,
+                weatherLocationName: weather.locationName
+            )
+        } else if !ShareLocationPlaceholder.isPlaceholder(locationName) {
+            resolvedName = locationName
+        } else if let weatherName = weather.locationName, !weatherName.isEmpty {
+            resolvedName = weatherName
+        } else {
+            resolvedName = "Unknown Location"
+        }
+
+        return WeatherShareContext(
+            weather: weather,
+            locationName: resolvedName,
             unitSystem: unitSystem,
             latitude: coordinates.latitude,
             longitude: coordinates.longitude,

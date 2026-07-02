@@ -32,12 +32,14 @@ struct LocationWeatherPreviewRequest: Identifiable, Equatable, Codable {
 
 extension LocationWeatherPreviewRequest {
     static func sharedLink(from link: PendingWeatherLink) -> LocationWeatherPreviewRequest {
-        LocationWeatherPreviewRequest(
+        let sanitizedName = ShareLocationPlaceholder.isPlaceholder(link.name) ? nil : link.name
+
+        return LocationWeatherPreviewRequest(
             id: UUID(),
             mode: .sharedLink,
             latitude: link.latitude,
             longitude: link.longitude,
-            name: link.name,
+            name: sanitizedName,
             stationID: link.stationID,
             savedLocationID: nil
         )

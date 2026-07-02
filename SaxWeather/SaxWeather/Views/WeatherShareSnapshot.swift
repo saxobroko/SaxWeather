@@ -221,8 +221,14 @@ enum WeatherShareSnapshotExporter {
 // MARK: - Share button
 
 struct WeatherShareButton: View {
-    let context: WeatherShareContext
+    let weather: Weather
+    let displayLocationName: String
+    let unitSystem: String
+    let weatherService: WeatherService
+    let locationsManager: SavedLocationsManager
 
+    @State private var shareContext: WeatherShareContext?
+    @State private var isPreparingShare = false
     @State private var shareImage: PlatformImage?
     @State private var shareImageURL: URL?
     @State private var showingOptions = false
@@ -248,20 +254,35 @@ struct WeatherShareButton: View {
         }
         .accessibilityLabel("Share Weather")
         .accessibilityHint("Choose how to share the current weather")
+        .disabled(isPreparingShare)
+        .overlay {
+            if isPreparingShare {
+                ZStack {
+                    Color.black.opacity(0.25)
+                        .clipShape(Circle())
+                    ProgressView()
+                        .tint(.white)
+                }
+                .frame(width: 40, height: 40)
+                .accessibilityLabel("Preparing share")
+            }
+        }
         #if os(iOS)
         .confirmationDialog("Share Weather", isPresented: $showingOptions, titleVisibility: .visible) {
-            Button("Weather Snapshot") {
-                presentSnapshotPreview()
-            }
-            if WeatherShareLinkBuilder.makePublicShareURL(from: context) != nil {
-                Button("Share Location Link") {
-                    linkShareText = WeatherShareLinkBuilder.makeLinkShareText(from: context)
-                    showingLinkShare = true
+            if let shareContext {
+                Button("Weather Snapshot") {
+                    presentSnapshotPreview(using: shareContext)
                 }
-            }
-            Button("Share Text Summary") {
-                summaryShareText = WeatherShareLinkBuilder.summaryText(from: context)
-                showingTextShare = true
+                if WeatherShareLinkBuilder.makePublicShareURL(from: shareContext) != nil {
+                    Button("Share Location Link") {
+                        linkShareText = WeatherShareLinkBuilder.makeLinkShareText(from: shareContext)
+                        showingLinkShare = true
+                    }
+                }
+                Button("Share Text Summary") {
+                    summaryShareText = WeatherShareLinkBuilder.summaryText(from: shareContext)
+                    showingTextShare = true
+                }
             }
             Button("Cancel", role: .cancel) {}
         }
@@ -280,19 +301,21 @@ struct WeatherShareButton: View {
         }
         #elseif os(macOS)
         .popover(isPresented: $showingOptions, arrowEdge: .top) {
-            WeatherShareOptionsMacView(
-                context: context,
-                onSnapshot: presentSnapshotPreview,
-                onLink: {
-                    linkShareText = WeatherShareLinkBuilder.makeLinkShareText(from: context)
-                    showingLinkShare = true
-                },
-                onSummary: {
-                    summaryShareText = WeatherShareLinkBuilder.summaryText(from: context)
-                    showingTextShare = true
-                }
-            )
-            .frame(width: 280)
+            if let shareContext {
+                WeatherShareOptionsMacView(
+                    context: shareContext,
+                    onSnapshot: { presentSnapshotPreview(using: shareContext) },
+                    onLink: {
+                        linkShareText = WeatherShareLinkBuilder.makeLinkShareText(from: shareContext)
+                        showingLinkShare = true
+                    },
+                    onSummary: {
+                        summaryShareText = WeatherShareLinkBuilder.summaryText(from: shareContext)
+                        showingTextShare = true
+                    }
+                )
+                .frame(width: 280)
+            }
         }
         .popover(isPresented: $showingSnapshotPreview, arrowEdge: .top) {
             if let shareImage {
@@ -307,10 +330,23 @@ struct WeatherShareButton: View {
         #if canImport(UIKit)
         HapticFeedbackHelper.shared.light()
         #endif
-        showingOptions = true
+
+        Task {
+            isPreparingShare = true
+            let context = await WeatherShareContext.makeResolving(
+                weather: weather,
+                locationName: displayLocationName,
+                unitSystem: unitSystem,
+                weatherService: weatherService,
+                locationsManager: locationsManager
+            )
+            shareContext = context
+            isPreparingShare = false
+            showingOptions = true
+        }
     }
 
-    private func presentSnapshotPreview() {
+    private func presentSnapshotPreview(using context: WeatherShareContext) {
         guard let data = WeatherShareSnapshotData.make(
             weather: context.weather,
             locationName: context.locationName,
