@@ -475,31 +475,13 @@ struct PrecipitationGraphView: View {
     let hourlyData: [HourlyPrecipitation]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingDetail = false
-    // Part F — observe the reactive chart palette store so the
-    // rain probability chart re-renders when the chart skin or
-    // entitlements change (e.g. during a live preview of the
-    // Aurora Chart Skin cosmetic). The store observes
-    // `CustomisationRegistry` and `StoreManager` and updates its
-    // `@Published var activeSkin` when either changes.
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
-    /// Resolved colour scheme for the rain probability chart.
-    /// Free users always get the default blue tones; users who
-    /// own the Aurora Chart Skin IAP (or the Supporter Pack)
-    /// get the Aurora palette (ocean blue → teal → coral).
-    ///
-    /// Part F — reads `chartPaletteStore.activeSkin` directly so
-    /// SwiftUI tracks the dependency and re-renders when the
-    /// chart skin changes (e.g. during a live preview).
     private var chartColors: ChartColorScheme {
         ChartColorScheme.rainProbability(activeSkin: chartPaletteStore.activeSkin)
     }
 
     var body: some View {
-        // Part F — direct reference to `chartPaletteStore.activeSkin`
-        // so SwiftUI tracks the dependency and re-renders when
-        // the chart skin or entitlements change (e.g. during a
-        // live preview of the Aurora Chart Skin cosmetic).
         let _ = chartPaletteStore.activeSkin
         Button(action: {
             showingDetail = true
@@ -512,9 +494,6 @@ struct PrecipitationGraphView: View {
                 HStack {
                     Image(systemName: "cloud.rain.fill")
                         .font(.system(size: 20))
-                        // Part F — use the resolved chart colour
-                        // scheme's `primary` for the header icon
-                        // so the icon matches the bar fill.
                         .foregroundColor(chartColors.primary)
 
                     Text("Rain Probability")
@@ -541,10 +520,6 @@ struct PrecipitationGraphView: View {
                                 path.move(to: CGPoint(x: 0, y: y))
                                 path.addLine(to: CGPoint(x: geometry.size.width, y: y))
                             }
-                            // Part F — use the resolved chart
-                            // colour scheme's `background` for
-                            // the grid lines so they match the
-                            // chart's colour identity.
                             .stroke(chartColors.background, lineWidth: 1)
                         }
 
@@ -559,11 +534,6 @@ struct PrecipitationGraphView: View {
                             let columnWidth = columnWidth(in: geometry.size)
                             let x = columnWidth * CGFloat(nowIndex) + columnWidth / 2
                             Rectangle()
-                                // Part F — use the resolved chart
-                                // colour scheme's `accent` for
-                                // the "now" indicator so it
-                                // matches the chart's colour
-                                // identity.
                                 .fill(chartColors.accent.opacity(0.85))
                                 .frame(width: 2, height: geometry.size.height)
                                 .position(x: x, y: geometry.size.height / 2)
@@ -638,9 +608,6 @@ struct PrecipitationGraphView: View {
                 
                 // Legend
                 HStack(spacing: 16) {
-                    // Part F — use the resolved chart colour
-                    // scheme's `primary` for the legend swatches
-                    // so they match the bar fill.
                     LegendItem(color: chartColors.primary.opacity(0.3), text: "Light")
                     LegendItem(color: chartColors.primary.opacity(0.6), text: "Moderate")
                     LegendItem(color: chartColors.primary.opacity(0.9), text: "Heavy")
@@ -663,11 +630,6 @@ struct PrecipitationGraphView: View {
     }
     
     private func colorForProbability(_ probability: Int) -> Color {
-        // Part F — use the resolved chart colour scheme instead
-        // of hardcoded `Color.blue`. The scheme's `primary` is
-        // the bar fill (top stop), `secondary` is the gradient
-        // bottom stop. Free users see blue tones; Aurora owners
-        // see the Aurora palette (ocean blue → teal).
         let base = chartColors.primary
         switch probability {
         case 0..<30: return base.opacity(0.3)
@@ -676,10 +638,6 @@ struct PrecipitationGraphView: View {
         }
     }
 
-    /// Index of the column whose hour matches the current
-    /// device clock. Returns `nil` when the "now" hour is not
-    /// in the displayed range (e.g. late at night when the
-    /// 24-hour window is already in tomorrow's afternoon).
     private func currentHourIndex() -> Int? {
         let now = Date()
         return hourlyData.prefix(24).firstIndex { entry in
@@ -687,10 +645,6 @@ struct PrecipitationGraphView: View {
         }
     }
 
-    /// Width of one bar column in the chart. We compute this
-    /// from the container width, the number of columns, and
-    /// the inter-column spacing so the "now" indicator sits
-    /// exactly between the bars regardless of device size.
     private func columnWidth(in size: CGSize) -> CGFloat {
         let columns = max(1, hourlyData.prefix(24).count)
         let spacing: CGFloat = 2
@@ -698,12 +652,6 @@ struct PrecipitationGraphView: View {
         return max(0, (size.width - totalSpacing) / CGFloat(columns))
     }
 
-    /// Pinned-bar height for a given probability. We cap the
-    /// drawn height at `container` so 100% bars still leave a
-    /// hairline of breathing room at the top — the previous
-    /// implementation hit the very top edge of the
-    /// GeometryReader which made high-probability bars look
-    /// "stuck" to the card.
     private func barHeight(probability: Int, container: CGFloat) -> CGFloat {
         let cappedContainer = max(0, container - 2)
         return cappedContainer * CGFloat(probability) / 100

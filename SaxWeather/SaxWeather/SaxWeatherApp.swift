@@ -149,16 +149,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
     }
 
-    /// Schedule a background refresh using the base interval
-    /// (i.e. **without** applying the backoff). This is the
-    /// right entry point for app-lifecycle hooks (launch,
-    /// foreground, background) where the user is presumably
-    /// present and we want a prompt refresh.
-    ///
-    /// Task-completion callers should use
-    /// `BackgroundRefreshCoordinator.scheduleNextRefresh(...)`
-    /// directly instead, so the interval reflects the
-    /// previous run's outcome.
     func scheduleAppRefresh() {
         BackgroundRefreshCoordinator.shared.scheduleAppRefresh(
             taskIdentifier: Self.backgroundTaskIdentifier
@@ -385,28 +375,7 @@ struct SaxWeatherApp: App {
     // exposes its API via `.environmentObject` so deeper views can
     // read/write knobs in later phases without prop-drilling.
     @StateObject private var customisationRegistry = CustomisationRegistry.shared
-    // Phase 2 — cosmetic deep link handler. Listens to
-    // `saxweather://cosmetic/<productID>` URLs (registered in
-    // `Info.plist` via `CFBundleURLTypes`) and publishes the
-    // validated product ID so the UI can present
-    // `CosmeticDetailView`. See `CosmeticDeepLinkHandler` for
-    // the URL shape and validation rules.
     @StateObject private var deepLinkHandler = CosmeticDeepLinkHandler()
-    // Phase 4 — live cosmetic-preview manager. Owned at the
-    // app root so every view that participates in the preview
-    // flow (the countdown overlay in `ContentView`, the store
-    // sheet, the detail sheet, and the picker sheets that
-    // re-present the store) observes the *same* instance.
-    // Previously this lived as a `@StateObject` inside
-    // `ContentView`, which meant any sheet opened outside of
-    // `ContentView` (Settings → Cosmetics, the palette /
-    // chart / background pickers) created its own throwaway
-    // `PreviewProfileManager()`. The preview then ran on the
-    // throwaway instance while the overlay in `ContentView`
-    // observed the original instance — which still had
-    // `remainingSeconds == 0`, so the UI showed "Ends in 0s"
-    // immediately. Injecting it via `.environmentObject`
-    // guarantees a single shared instance for the whole app.
     @StateObject private var previewManager = PreviewProfileManager()
     @AppStorage("accentColor") private var accentColor = "blue"
     @Environment(\.scenePhase) private var scenePhase
@@ -440,17 +409,7 @@ struct SaxWeatherApp: App {
                 .environmentObject(storeManager)
                 .environmentObject(weatherService)
                 .environmentObject(customisationRegistry)
-                // Phase 2 — inject the deep link handler so the
-                // root content view can observe
-                // `pendingProductID` and present
-                // `CosmeticDetailView` for the matched product.
                 .environmentObject(deepLinkHandler)
-                // Phase 4 — inject the shared preview manager so
-                // every view (the countdown overlay in
-                // `ContentView`, the store sheet, the detail
-                // sheet, and the picker sheets) observes the
-                // same instance. See the `@StateObject` above
-                // for the rationale.
                 .environmentObject(previewManager)
                 .tint(accentColorValue) // Apply user's selected accent color
                 // Phase 2 — route incoming `saxweather://cosmetic/<id>`

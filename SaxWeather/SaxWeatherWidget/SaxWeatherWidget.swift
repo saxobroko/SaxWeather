@@ -14,49 +14,6 @@ import Network
 import WeatherKit
 #endif
 
-// Import the CoordinateValidator
-struct ValidationResult {
-    let isValid: Bool
-    let errorMessage: String?
-    let normalizedLatitude: Double?
-    let normalizedLongitude: Double?
-}
-
-struct CoordinateValidator {
-    static func validate(latitude: Double, longitude: Double) -> ValidationResult {
-        // Simple validation for now - in a real implementation this would be the full validator
-        
-        // Basic validation
-        guard !latitude.isNaN && !longitude.isNaN else {
-            return ValidationResult(isValid: false, errorMessage: "Coordinates cannot be NaN", normalizedLatitude: nil, normalizedLongitude: nil)
-        }
-        
-        guard !latitude.isInfinite && !longitude.isInfinite else {
-            return ValidationResult(isValid: false, errorMessage: "Coordinates cannot be infinite", normalizedLatitude: nil, normalizedLongitude: nil)
-        }
-        
-        guard latitude >= -90.0 && latitude <= 90.0 else {
-            return ValidationResult(isValid: false, errorMessage: "Latitude must be between -90 and 90 degrees", normalizedLatitude: nil, normalizedLongitude: nil)
-        }
-        
-        guard longitude >= -180.0 && longitude <= 180.0 else {
-            return ValidationResult(isValid: false, errorMessage: "Longitude must be between -180 and 180 degrees", normalizedLatitude: nil, normalizedLongitude: nil)
-        }
-        
-        // Special case for (0,0) - allow it for current location
-        if latitude == 0.0 && longitude == 0.0 {
-            return ValidationResult(isValid: true, errorMessage: nil, normalizedLatitude: latitude, normalizedLongitude: longitude)
-        }
-        
-        // Check for extreme values that might cause issues
-        if abs(latitude) < 0.000001 && abs(longitude) < 0.000001 {
-            return ValidationResult(isValid: false, errorMessage: "Coordinates cannot be (0,0)", normalizedLatitude: nil, normalizedLongitude: nil)
-        }
-        
-        return ValidationResult(isValid: true, errorMessage: nil, normalizedLatitude: latitude, normalizedLongitude: longitude)
-    }
-}
-
 // MARK: - Widget Weather Data Model
 fileprivate struct WidgetWeatherData: Codable {
     let temperature: Double

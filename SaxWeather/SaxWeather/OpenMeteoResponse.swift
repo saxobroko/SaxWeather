@@ -10,15 +10,15 @@ import Foundation
 struct OpenMeteoResponse: Codable {
     let latitude: Double
     let longitude: Double
-    let generationtime_ms: Double
-    let utc_offset_seconds: Int
-    let timezone: String
-    let timezone_abbreviation: String
-    let elevation: Double
+    let generationtime_ms: Double?
+    let utc_offset_seconds: Int?
+    let timezone: String?
+    let timezone_abbreviation: String?
+    let elevation: Double?
     // Make these optional since they're not always included in the response
     let current_units: CurrentUnits?
     let current: Current?
-    let daily_units: DailyUnits
+    let daily_units: DailyUnits?
     let daily: Daily
     
     init(from decoder: Decoder) throws {
@@ -47,21 +47,21 @@ struct OpenMeteoResponse: Codable {
             #if DEBUG
             print("🔍 Attempting to decode generationtime_ms")
             #endif
-            self.generationtime_ms = try container.decode(Double.self, forKey: .generationtime_ms)
+            self.generationtime_ms = try container.decodeIfPresent(Double.self, forKey: .generationtime_ms)
             #if DEBUG
-            print("✅ Successfully decoded generationtime_ms:", self.generationtime_ms)
+            print("✅ Successfully decoded generationtime_ms:", self.generationtime_ms ?? 0.0)
             #endif
             
-            self.utc_offset_seconds = try container.decode(Int.self, forKey: .utc_offset_seconds)
-            self.timezone = try container.decode(String.self, forKey: .timezone)
-            self.timezone_abbreviation = try container.decode(String.self, forKey: .timezone_abbreviation)
-            self.elevation = try container.decode(Double.self, forKey: .elevation)
+            self.utc_offset_seconds = try container.decodeIfPresent(Int.self, forKey: .utc_offset_seconds)
+            self.timezone = try container.decodeIfPresent(String.self, forKey: .timezone)
+            self.timezone_abbreviation = try container.decodeIfPresent(String.self, forKey: .timezone_abbreviation)
+            self.elevation = try container.decodeIfPresent(Double.self, forKey: .elevation)
             
             // Make these optional - decode only if present
             self.current_units = try container.decodeIfPresent(CurrentUnits.self, forKey: .current_units)
             self.current = try container.decodeIfPresent(Current.self, forKey: .current)
             
-            self.daily_units = try container.decode(DailyUnits.self, forKey: .daily_units)
+            self.daily_units = try container.decodeIfPresent(DailyUnits.self, forKey: .daily_units)
             self.daily = try container.decode(Daily.self, forKey: .daily)
         } catch {
             #if DEBUG
@@ -101,22 +101,22 @@ struct OpenMeteoResponse: Codable {
     }
     
     struct Current: Codable {
-        let time: String
-        let interval: Int
-        let temperature_2m: Double
-        let relative_humidity_2m: Int
-        let apparent_temperature: Double
-        let precipitation: Double
-        let wind_speed_10m: Double
-        let wind_gusts_10m: Double
+        let time: String?
+        let interval: Int?
+        let temperature_2m: Double?
+        let relative_humidity_2m: Int?
+        let apparent_temperature: Double?
+        let precipitation: Double?
+        let wind_speed_10m: Double?
+        let wind_gusts_10m: Double?
         // Current wind direction in degrees (0-360). Optional
         // because older cached Open-Meteo responses may not
         // include it. Callers fall back to the daily-dominant
         // direction when this is nil.
         let wind_direction_10m: Double?
-        let pressure_msl: Double
-        let cloud_cover: Int
-        let uv_index: Double
+        let pressure_msl: Double?
+        let cloud_cover: Int?
+        let uv_index: Double?
     }
     
     struct DailyUnits: Codable {
@@ -161,21 +161,21 @@ extension OpenMeteoResponse {
     }
     
     var currentDate: Date? {
-        guard let current = current else { return nil }
-        return getDate(from: current.time)
+        guard let current = current, let time = current.time else { return nil }
+        return getDate(from: time)
     }
 }
 
 // MARK: - Weather Integration Extensions
 extension OpenMeteoResponse.Current {
-    var temperature2m: Double { temperature_2m }
-    var relativeHumidity2m: Double { Double(relative_humidity_2m) }
-    var apparentTemperature: Double { apparent_temperature }
-    var windSpeed10m: Double { wind_speed_10m }
-    var windGusts10m: Double { wind_gusts_10m }
-    var pressureMsl: Double { pressure_msl }
-    var cloudCover: Int { cloud_cover }
-    var uvIndex: Double { uv_index }
+    var temperature2m: Double { temperature_2m ?? 0.0 }
+    var relativeHumidity2m: Double { Double(relative_humidity_2m ?? 0) }
+    var apparentTemperature: Double { apparent_temperature ?? 0.0 }
+    var windSpeed10m: Double { wind_speed_10m ?? 0.0 }
+    var windGusts10m: Double { wind_gusts_10m ?? 0.0 }
+    var pressureMsl: Double { pressure_msl ?? 0.0 }
+    var cloudCover: Int { cloud_cover ?? 0 }
+    var uvIndex: Double { uv_index ?? 0.0 }
 }
 
 extension OpenMeteoResponse.Daily {

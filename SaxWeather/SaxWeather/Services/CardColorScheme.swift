@@ -1,61 +1,10 @@
-//
-//  CardColorScheme.swift
-//  SaxWeather
-//
-//  Per-card colour schemes with cosmetic override support.
-//
-//  Why per-card defaults?
-//  ----------------------
-//  Each card in the app has its own visual identity. The
-//  temperature card uses warm tones (temperature = heat =
-//  orange/red). The precipitation card uses blue tones (rain =
-//  water = blue). The air quality card uses the AQI category
-//  colour (green for good, red for unhealthy, etc.).
-//
-//  Hardcoding a single "Aurora palette" for every card would
-//  erase that identity. Instead, each card defines its own
-//  default colour scheme, and the Aurora Palette is an
-//  *override* on top of the default — not a replacement.
-//
-//  Resolution order:
-//    1. If the active palette is `.cosmeticAurora` AND the user
-//       owns the Aurora Palette (or the Supporter Pack), return
-//       the Aurora override colours.
-//    2. Otherwise, return the card's own default colours.
-//
-//  This means free users always see the card's intended look,
-//  and Aurora owners see the Aurora palette on top of it.
-//
-//  Note: the `.styledCard()` modifier applies the
-//  `CardColorScheme.tint` colour as a low-opacity wash on
-//  `.glass` cards. The default `tint` is `.clear` so the
-//  default look is unchanged. The Aurora override sets `tint`
-//  to the palette's `surface` colour so the Aurora palette is
-//  visible on the default home screen — but only when the
-//  Aurora Palette is selected AND owned.
-//
 
 import SwiftUI
 #if canImport(AppKit)
 import AppKit
 #endif
 
-/// A colour scheme for a single card surface. Each card in
-/// the app defines its own default `CardColorScheme`; the
-/// Aurora Palette is an override on top of the default.
-///
-/// The fields are intentionally semantic (not "first colour",
-/// "second colour") so each card can interpret them in its own
-/// way. For example, the temperature card uses `accent` for
-/// the temperature value text; the precipitation card uses
-/// `accent` for the rain icon.
 struct CardColorScheme: Equatable, Sendable {
-    /// Platform-appropriate default card background colour.
-    /// On iOS this is `UIColor.secondarySystemBackground`
-    /// (adapts to light/dark mode); on macOS it is
-    /// `NSColor.controlBackgroundColor` (the equivalent
-    /// semantic colour); on other platforms it falls back to
-    /// a neutral light grey that works in both colour schemes.
     static var defaultCardBackground: Color {
         #if canImport(UIKit)
         return Color(.secondarySystemBackground)
@@ -74,26 +23,13 @@ struct CardColorScheme: Equatable, Sendable {
     /// subtitle text, secondary icons). Used for less
     /// prominent elements.
     let secondary: Color
-    /// The background tint for the card. Used by `.solid` and
-    /// `.neumorphic` card styles as the fill colour. `.glass`
-    /// cards use this as a low-opacity tint on top of the
-    /// material.
     let background: Color
     /// The border colour for the card. Used by `.outline` card
     /// styles as the stroke colour. Other styles use this as a
     /// subtle accent border.
     let border: Color
-    /// The optional tint wash applied on top of `.glass` cards.
-    /// `.clear` (the default) means no tint — the default look
-    /// is unchanged. The Aurora override sets this to the
-    /// palette's `surface` colour so the Aurora palette is
-    /// visible on the default home screen.
     let tint: Color
 
-    /// The Aurora override — installed when the user owns the
-    /// Aurora Palette IAP (or the Supporter Pack). The colours
-    /// match `Palette.cosmeticAurora` so the card looks
-    /// consistent with the rest of the Aurora cosmetics.
     static let auroraOverride = CardColorScheme(
         accent:    Color(red: 0.77, green: 0.88, blue: 0.86), // mint
         secondary: Color(red: 0.36, green: 0.75, blue: 0.74), // teal
@@ -137,10 +73,6 @@ struct CardColorScheme: Equatable, Sendable {
         tint:      Color.clear
     )
 
-    /// Default colour scheme for the sunrise/sunset card on
-    /// the main page. Uses orange tones (sunrise/sunset =
-    /// warm light = orange) so the card reads as a sun
-    /// display.
     static let sunriseCardDefault = CardColorScheme(
         accent:    Color.orange,
         secondary: Color.secondary,
@@ -239,23 +171,6 @@ struct CardColorScheme: Equatable, Sendable {
 
     // MARK: - Resolution
 
-    /// Resolve the colour scheme for a given card, applying
-    /// the Aurora override when the active palette is
-    /// `.cosmeticAurora` AND the user owns the Aurora Palette
-    /// (or the Supporter Pack).
-    ///
-    /// - Parameters:
-    ///   - defaultScheme: the card's own default colour
-    ///     scheme. Used when the active palette is the default
-    ///     or when the user doesn't own the Aurora Palette.
-    ///   - activePalette: the currently active palette. When
-    ///     this is `.cosmeticAurora` AND `isOwned` returns
-    ///     `true`, the Aurora override is returned instead of
-    ///     the default.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Typically
-    ///     `{ storeManager.owns($0) }`.
-    /// - Returns: the resolved colour scheme.
     static func resolve(
         defaultScheme: CardColorScheme,
         activePalette: Palette,
@@ -272,17 +187,6 @@ struct CardColorScheme: Equatable, Sendable {
 // MARK: - Convenience for common cards
 
 extension CardColorScheme {
-    /// Convenience for the temperature card. Returns the
-    /// resolved colour scheme for the temperature card given
-    /// the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func temperatureCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -294,17 +198,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the precipitation card. Returns the
-    /// resolved colour scheme for the precipitation card given
-    /// the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func precipitationCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -316,17 +209,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the wind card. Returns the resolved
-    /// colour scheme for the wind card given the active
-    /// palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func windCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -338,17 +220,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the sunrise/sunset card. Returns the
-    /// resolved colour scheme for the sunrise/sunset card
-    /// given the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func sunriseCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -360,17 +231,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the UV index card. Returns the resolved
-    /// colour scheme for the UV index card given the active
-    /// palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func uvIndexCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -382,17 +242,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the air quality card. Returns the
-    /// resolved colour scheme for the air quality card given
-    /// the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func airQualityCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -404,17 +253,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the pollen card. Returns the resolved
-    /// colour scheme for the pollen card given the active
-    /// palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func pollenCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -426,17 +264,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the hourly forecast pill strip. Returns
-    /// the resolved colour scheme for the hourly forecast pill
-    /// strip given the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func hourlyForecastCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -448,17 +275,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the daily forecast card. Returns the
-    /// resolved colour scheme for the daily forecast card given
-    /// the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func dailyForecastCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -470,17 +286,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the weather alert card. Returns the
-    /// resolved colour scheme for the weather alert card given
-    /// the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func weatherAlertCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -492,17 +297,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the hero card. Returns the resolved
-    /// colour scheme for the hero card given the active
-    /// palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func heroCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }
@@ -514,17 +308,6 @@ extension CardColorScheme {
         )
     }
 
-    /// Convenience for the weather details card. Returns the
-    /// resolved colour scheme for the weather details card
-    /// given the active palette.
-    ///
-    /// - Parameters:
-    ///   - activePalette: the currently active palette.
-    ///   - isOwned: closure that returns `true` when the user
-    ///     owns the given product ID. Defaults to "never
-    ///     owned" so the default look is preserved unless the
-    ///     caller explicitly passes an ownership check.
-    /// - Returns: the resolved colour scheme.
     static func weatherDetailsCard(
         activePalette: Palette,
         isOwned: (String) -> Bool = { _ in false }

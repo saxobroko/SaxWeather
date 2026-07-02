@@ -14,15 +14,7 @@
 
 import Foundation
 
-/// Centralised "how old is too old" rules for cached weather
-/// data. Kept in the main app target so the host app, the
-/// widget extension, and the test target all see the same
-/// threshold.
 enum WidgetStaleness {
-    /// Cached data older than this is rendered with the "stale"
-    /// presentation (e.g. "Updated 32m ago" badge). 30 minutes
-    /// matches the typical weather update cadence and the
-    /// timeline refresh interval the host uses.
     static let threshold: TimeInterval = 30 * 60
 
     /// Returns true when `date` is missing or older than the

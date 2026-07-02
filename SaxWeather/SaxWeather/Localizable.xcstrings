@@ -41,6 +41,16 @@
         }
       }
     },
+    "%@ and %@ in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@ in %3$@"
+          }
+        }
+      }
+    },
     "%@ animation preview" : {
 
     },
@@ -177,10 +187,10 @@
     "A serif headline font paired with a clean sans-serif for body text." : {
       "comment" : "Subtitle for the Editorial Font Set cosmetic tile."
     },
-    "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically. No subscriptions, no Family Sharing, no auto-renew. The most cost-effective way to support development and own the entire cosmetic library." : {
+    "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically." : {
       "comment" : "Long description for Supporter Pack."
     },
-    "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison." : {
+    "A small private acknowledgement in Settings → About." : {
       "comment" : "Subtitle for the Supporter Badge cosmetic tile."
     },
     "About" : {
@@ -228,7 +238,7 @@
     "Add widgets from the iOS widget gallery after setup." : {
 
     },
-    "Adds a small private acknowledgement in Settings → About. No public visibility, no social comparison, no leaderboard. The free equivalent: no badge, but every other cosmetic is still available." : {
+    "Adds a small private acknowledgement in Settings → About." : {
       "comment" : "Long description for Supporter Badge."
     },
     "Aggressive refresh uses more battery; Battery Saver throttles network calls." : {
@@ -550,10 +560,16 @@
     "Cosmetics" : {
       "comment" : "Title of the cosmetics store view."
     },
+    "Could not find the specified location." : {
+
+    },
     "Current" : {
 
     },
     "Current Location (GPS)" : {
+
+    },
+    "Current location coordinates are not available. Please open the app to update your location." : {
 
     },
     "Currently using: %@" : {
@@ -1144,6 +1160,9 @@
     "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
 
     },
+    "Failed to fetch weather data: %@" : {
+
+    },
     "Family Sharing" : {
 
     },
@@ -1207,6 +1226,15 @@
     "Get Started" : {
 
     },
+    "Get the weather for ${location}" : {
+
+    },
+    "Get Weather" : {
+
+    },
+    "Gets the current weather for a location." : {
+
+    },
     "Glass" : {
 
     },
@@ -1221,6 +1249,16 @@
     },
     "Gusts" : {
 
+    },
+    "H: %@° L: %@°" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "H: %1$@° L: %2$@°"
+          }
+        }
+      }
     },
     "Haptic Feedback" : {
 
@@ -1303,6 +1341,9 @@
     "Interface" : {
 
     },
+    "Is Current Location" : {
+
+    },
     "It is currently raining. No stop time in the next 2 hours." : {
 
     },
@@ -1343,6 +1384,9 @@
           }
         }
       }
+    },
+    "Latitude" : {
+
     },
     "Latitude: -90 to 90, Longitude: -180 to 180" : {
 
@@ -1393,6 +1437,9 @@
       "comment" : "Accessibility value: row is locked behind a purchase."
     },
     "Long-Press to Customise" : {
+
+    },
+    "Longitude" : {
 
     },
     "Loop forever" : {
@@ -1453,6 +1500,9 @@
 
     },
     "N" : {
+
+    },
+    "Name" : {
 
     },
     "Neumorphic" : {
@@ -1562,6 +1612,9 @@
 
     },
     "Open-Meteo" : {
+
+    },
+    "Opens the app to show the forecast for a location." : {
 
     },
     "OpenWeatherMap" : {
@@ -1784,7 +1837,7 @@
     "Remove iCloud Backup" : {
 
     },
-    "Replaces the eight shipped weather background images with aurora-themed versions. Purely visual — your forecast, your data, your alerts, all work the same. Free alternatives: any custom image you supply, or any of the other built-in presets." : {
+    "Replaces the eight shipped weather background images with aurora-themed versions." : {
       "comment" : "Long description for Aurora Backgrounds."
     },
     "Requires iOS 16+" : {
@@ -1933,7 +1986,7 @@
     "Set: %@" : {
 
     },
-    "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral. Purely visual — every existing customisation knob still works. The free equivalent: pick any other palette, or set each colour manually via the hex picker." : {
+    "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral." : {
       "comment" : "Long description for Aurora Palette."
     },
     "Settings" : {
@@ -1951,10 +2004,16 @@
     "Share Theme" : {
 
     },
+    "Show Forecast" : {
+
+    },
     "Show Location Header" : {
 
     },
     "Show Location Menu" : {
+
+    },
+    "Show the forecast for ${location}" : {
 
     },
     "Show the location name on the hero card even after scrolling." : {
@@ -2159,6 +2218,16 @@
     },
     "The shipped preset image is multiplied with this tint. Try warm tones at dusk." : {
 
+    },
+    "The weather in %@ is currently %@ with a temperature of %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather in %1$@ is currently %2$@ with a temperature of %3$@."
+          }
+        }
+      }
     },
     "Theme" : {
 

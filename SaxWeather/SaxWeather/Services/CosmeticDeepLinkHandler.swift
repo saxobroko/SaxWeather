@@ -1,72 +1,10 @@
-//
-//  CosmeticDeepLinkHandler.swift
-//  SaxWeather
-//
-//  Phase 2 — URL-scheme foundation for cosmetics.
-//
-//  Parses incoming `saxweather://cosmetic/<productID>` URLs
-//  and publishes the resolved product ID so the SwiftUI
-//  layer can navigate to the right cosmetic detail sheet.
-//
-//  Why a dedicated handler?
-//  ------------------------
-//  * `SaxWeatherApp`'s `.onOpenURL` modifier needs a
-//    `@MainActor` observable it can route to.
-//  * Validation (product ID exists in the catalog) is
-//    centralised here so every consumer sees the same
-//    answer.
-//  * The handler is `@MainActor` and `ObservableObject` so it
-//    plays nicely with SwiftUI's `@StateObject` /
-//    `@EnvironmentObject` patterns — same shape as
-//    `StoreManager`.
-//
-//  URL shape
-//  ---------
-//  * `saxweather://cosmetic/<productID>` — valid. The
-//    `<productID>` is validated against
-//    `CosmeticCatalog.allProducts`.
-//  * `saxweather://other/<anything>` — rejected (wrong host).
-//  * `https://example.com/foo` — rejected (wrong scheme).
-//  * Anything that doesn't parse as a URL — rejected.
-//
-//  Why a class instead of a free function?
-//  ---------------------------------------
-//  SwiftUI's `.onOpenURL` is fire-and-forget; there's no
-//  built-in place to "publish a value to be consumed by the
-//  next view render". An `ObservableObject` solves this — the
-//  view that cares (`ContentView`) observes `pendingProductID`
-//  and re-renders when it changes.
-//
-//  Concurrency
-//  -----------
-//  All public surface is `@MainActor`-isolated so callers
-//  don't need to think about thread hops. The parser itself
-//  is pure and synchronous; URL parsing is cheap enough that
-//  dispatching to a background queue would cost more than it
-//  saves.
-//
 
 import Foundation
 import SwiftUI
 
-/// Parses `saxweather://cosmetic/<productID>` URLs and
-/// publishes the validated product ID so the UI layer can
-/// present `CosmeticDetailView` for the matching product.
-///
-/// Injected as a `@StateObject` in `SaxWeatherApp` and
-/// observed by `ContentView`. Tests instantiate it directly
-/// to drive `handle(url:)` synchronously.
 @MainActor
 final class CosmeticDeepLinkHandler: ObservableObject {
 
-    /// The most recently received valid product ID, or
-    /// `nil` if no deep link has been processed (or the
-    /// handler was cleared). SwiftUI views observe this and
-    /// react by presenting `CosmeticDetailView`.
-    ///
-    /// Cleared via `clearPending()` after the consumer reads
-    /// it, so a stale value doesn't re-trigger the same
-    /// presentation on the next render pass.
     @Published private(set) var pendingProductID: String?
 
     // MARK: - URL scheme constants
@@ -82,13 +20,6 @@ final class CosmeticDeepLinkHandler: ObservableObject {
 
     // MARK: - Public API
 
-    /// Process an incoming URL. Returns `true` if the URL was
-    /// a well-formed `saxweather://cosmetic/<id>` pointing at
-    /// a known product (in which case `pendingProductID` is
-    /// set). Returns `false` for malformed, foreign-scheme,
-    /// wrong-host, or unknown-product-ID URLs — `pendingProductID`
-    /// is left untouched in those cases so a previously-set
-    /// pending value isn't accidentally cleared.
     @discardableResult
     func handle(url: URL) -> Bool {
         guard url.scheme?.lowercased() == Self.scheme else {
@@ -119,10 +50,6 @@ final class CosmeticDeepLinkHandler: ObservableObject {
         return validateAndPublish(id: extractProductID(from: url))
     }
 
-    /// Convenience for pre-parsed strings (mostly used by
-    /// tests and by callers that already hold the product ID).
-    /// Does the same validation as `handle(url:)` but skips
-    /// the URL parsing layer.
     @discardableResult
     func handle(productID: String) -> Bool {
         validateAndPublish(id: productID)

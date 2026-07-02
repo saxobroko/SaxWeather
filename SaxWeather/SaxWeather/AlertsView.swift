@@ -19,13 +19,8 @@ struct AlertsView: View {
     @ObservedObject var alertManager: WeatherAlertManager
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
-    // Phase 5 — observe the registry + overlay strength.
     @ObservedObject private var registry = CustomisationRegistry.shared
     @EnvironmentObject private var storeManager: StoreManager
-    // Part F — observe the reactive chart palette store so the
-    // precipitation timeline bar re-renders when the chart skin
-    // or entitlements change (e.g. during a live preview of the
-    // Aurora Chart Skin cosmetic).
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
     private var alertsBackgroundStrategy: BackgroundStrategy {
@@ -49,7 +44,6 @@ struct AlertsView: View {
 
     var body: some View {
         ZStack {
-            // Phase 5 — resolve into a strategy and render that.
             BackgroundView(strategy: alertsBackgroundStrategy)
                 .ignoresSafeArea()
             // Add a dark overlay for better contrast.
@@ -242,13 +236,6 @@ struct AlertsView: View {
     }
 
     private func precipitationTimelineBar(_ timeline: PrecipitationTimeline) -> some View {
-        // Part F — resolve the chart colour scheme for the
-        // precipitation timeline bar. Free users see blue tones;
-        // Aurora owners see the Aurora palette (ocean blue → teal).
-        // The reference to `chartPaletteStore.activeSkin` also
-        // ensures SwiftUI tracks the dependency and re-renders
-        // when the chart skin or entitlements change (e.g. during
-        // a live preview of the Aurora Chart Skin cosmetic).
         let chartColors = ChartColorScheme.precipitationTimeline(
             activeSkin: chartPaletteStore.activeSkin
         )
@@ -256,8 +243,6 @@ struct AlertsView: View {
             ZStack(alignment: .leading) {
                 // Background track
                 Rectangle()
-                    // Part F — use the resolved chart colour
-                    // scheme's `background` for the track.
                     .fill(chartColors.background)
                     .frame(height: 24)
                     .cornerRadius(12)
@@ -315,10 +300,6 @@ struct AlertsView: View {
 
                 // Current time indicator
                 Circle()
-                    // Part F — use the resolved chart colour
-                    // scheme's `accent` for the current time
-                    // indicator so it matches the chart's
-                    // colour identity.
                     .fill(chartColors.accent)
                     .frame(width: 8, height: 8)
                     .position(x: 0, y: 12)
@@ -333,9 +314,6 @@ struct AlertsView: View {
     ) -> Color {
         if !point.isRaining { return Color.clear }
 
-        // Part F — use the resolved chart colour scheme's
-        // `primary` for the bar fill. Free users see blue tones;
-        // Aurora owners see the Aurora palette (ocean blue → teal).
         let base = scheme.primary
         switch point.intensity {
         case .none:

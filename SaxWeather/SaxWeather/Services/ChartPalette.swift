@@ -1,43 +1,6 @@
-//
-//  ChartPalette.swift
-//  SaxWeather
-//
-//  Phase 2 — Aurora Chart Skin infrastructure.
-//
-//  The Aurora Chart Skin cosmetic installs the Aurora palette
-//  on every chart-styled view (currently the hourly forecast
-//  pill strip in `HourlyForecastView`, and any future
-//  SwiftUI.Chart-based views).
-//
-//  Why an enum + computed `colors`, not a flat `[Color]`?
-//  --------------------------------------------------------
-//  The catalog defines a small number of chart skins (Aurora
-//  for now; Neon, Seasonal, etc. ship in later phases). An
-//  enum keeps the picker typesafe and lets us add per-skin
-//  metadata (icon, display name, product ID) later without
-//  breaking existing call sites.
-//
-//  The `colors` getter returns a `[Color]` of length 5 —
-//  matching the five-swatch Aurora palette. The hourly pill
-//  strip uses these as a left-to-right gradient: cool tones
-//  at the cold end, warm tones at the warm end. The default
-//  (`.none`) returns a sensible neutral gradient so the
-//  chart still looks intentional when no cosmetic is owned.
-//
-//  Why a free function instead of a static var?
-//  ---------------------------------------------
-//  `currentChartSkin` reads from the active profile (so
-//  preview-swap via `PreviewProfileManager` Just Works) and
-//  from the entitlement cache (so an owned cosmetic auto-
-//  switches the chart styling on). Free function lets the
-//  caller read it without holding a singleton reference.
-//
 
 import SwiftUI
 
-/// What chart skin a chart view should render. Drives the
-/// colour gradient used for the hourly pill strip (and any
-/// future chart surface).
 enum ChartSkin: String, Codable, CaseIterable, Hashable, Sendable {
     /// No cosmetic — use the default system colours. The free
     /// path; always available.
@@ -108,26 +71,7 @@ enum ChartSkin: String, Codable, CaseIterable, Hashable, Sendable {
     }
 }
 
-/// Resolves which `ChartSkin` a given render context should
-/// use, combining the user's profile preference with the
-/// owned-cosmetic gate. Free for any caller — the underlying
-/// reads are cheap (`@AppStorage` + `EntitlementStore.isOwned`).
-///
-/// Resolution order:
-///   1. If the user picked a skin in the profile, honour it —
-///      but only when they own the corresponding cosmetic
-///      (or the Supporter Pack short-circuits via
-///      `EntitlementStore.isOwned(_:)`).
-///   2. Otherwise, fall back to `.none`.
 enum ChartPalette {
-    /// Resolve the active `ChartSkin` from the current profile
-    /// + entitlement state. Returns `.none` when no cosmetic is
-    /// owned (free users see the default chart styling).
-    ///
-    /// `preferredSkin` is the value the user's profile asks
-    /// for (e.g. `.aurora` if they toggled the Aurora Chart
-    /// Skin on). `isOwned` is the closure the caller uses to
-    /// check ownership — typically `{ storeManager.owns(skinID) }`.
     static func resolveActiveSkin(
         preferredSkin: ChartSkin,
         isOwned: (String) -> Bool

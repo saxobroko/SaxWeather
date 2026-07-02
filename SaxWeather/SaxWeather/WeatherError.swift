@@ -8,15 +8,6 @@
 import Foundation
 import CoreLocation
 
-/// A typed error model for the entire app. Every error path should
-/// ultimately produce one of these values so the UI layer can render
-/// an appropriate, user-facing message via exhaustive switching.
-///
-/// The legacy `localizedDescription` is still available for any
-/// consumer that just wants a string (logs, alerts that show the raw
-/// message). New code should prefer the `ErrorPresentation`
-/// properties (`iconName`, `title`, `message`, `isRetryable`) so
-/// different error categories are distinguishable to the user.
 enum WeatherError: Error, Equatable {
     case invalidURL
     case invalidResponse
@@ -35,14 +26,6 @@ enum WeatherError: Error, Equatable {
 
     // MARK: - HTTP status
 
-    /// Non-success HTTP response from the weather provider.
-    /// `statusCode` is the raw status (e.g. 500, 503, 404).
-    /// `retryAfter` is parsed from the `Retry-After` header if
-    /// present; `nil` when the server didn't include one.
-    /// The presentation layer switches on the status code to
-    /// pick the right user-facing message and retry policy
-    /// (e.g. 429 → long backoff, 5xx → default backoff,
-    /// 4xx → no retry).
     case httpError(statusCode: Int, retryAfter: TimeInterval?)
 
     // MARK: - Network reachability
@@ -115,20 +98,6 @@ enum WeatherError: Error, Equatable {
 
     // MARK: - UI presentation
 
-    /// All the information the UI layer needs to render an error
-    /// card, banner, or alert. Computed once per error so we get
-    /// exhaustive switching at the type level — adding a new case
-    /// will produce a compile error here until presentation is
-    /// defined for it.
-    ///
-    /// `title` and `message` are `LocalizedStringResource` (iOS
-    /// 16+), so the strings live in `Localizable.xcstrings` and
-    /// can be translated without touching Swift code. Each case
-    /// uses a key like `error.noNetwork.title` so the catalog
-    /// is greppable from the call site. The English value is the
-    /// defaultValue in the initializer, so a missing
-    /// localisation falls back to the English text instead of
-    /// showing the raw key.
     var presentation: ErrorPresentation {
         switch self {
         case .invalidURL, .decodingError, .apiError:
@@ -326,14 +295,6 @@ enum WeatherError: Error, Equatable {
 
 // MARK: - Error presentation model
 
-/// UI-ready metadata for a [`WeatherError`]. Lets the view layer
-/// render an error without doing any string matching of its own.
-///
-/// `title` and `message` are `LocalizedStringResource` (iOS 16+)
-/// so the text can be translated via `Localizable.xcstrings`
-/// without touching Swift. Callers render the resource with
-/// SwiftUI's `Text(_ resource:)` overload, which resolves the
-/// locale-appropriate value at render time.
 struct ErrorPresentation: Equatable {
     /// SF Symbol name suitable for the error category.
     let iconName: String
@@ -345,11 +306,6 @@ struct ErrorPresentation: Equatable {
     let isRetryable: Bool
     /// The primary action the UI should suggest.
     let suggestedAction: ErrorAction
-    /// Optional per-error retry policy. When `nil`, the view
-    /// uses the policy passed to its initialiser (defaults to
-    /// `RetryPolicy.default`). HTTP-aware errors (429, 5xx)
-    /// override this with longer or shorter policies that
-    /// respect the server's `Retry-After` hint.
     let retryPolicy: RetryPolicy?
 
     init(
@@ -369,9 +325,6 @@ struct ErrorPresentation: Equatable {
     }
 }
 
-/// What the user-facing "primary action" should be for a given
-/// error. The view layer renders a button whose label and handler
-/// come from this value.
 enum ErrorAction: Equatable {
     case retry
     case openSettings
@@ -381,15 +334,6 @@ enum ErrorAction: Equatable {
 // MARK: - Error mapping
 
 extension WeatherError {
-    /// Parse the `Retry-After` HTTP header value into a delay
-    /// in seconds. Supports both the integer-seconds form
-    /// (`Retry-After: 120`) and the HTTP-date form
-    /// (`Retry-After: Wed, 21 Oct 2015 07:28:00 GMT`). Returns
-    /// `nil` for missing or unparseable values.
-    ///
-    /// Used by the service layer to populate the `retryAfter`
-    /// field on `.httpError` so the presentation layer can pick
-    /// a server-respectful backoff policy.
     static func parseRetryAfter(from headerValue: String?) -> TimeInterval? {
         guard let raw = headerValue?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty
@@ -419,14 +363,6 @@ extension WeatherError {
         return nil
     }
 
-    /// Map any thrown error to a typed `WeatherError`. Recognises
-    /// `URLError` (offline, timeout, etc.) and `CLError` (location
-    /// denied, restricted, unavailable) and re-throws
-    /// `WeatherError` values unchanged.
-    ///
-    /// Use this in `catch` blocks to funnel raw `Error` values
-    /// from URLSession, JSONDecoder, CoreLocation, etc. into the
-    /// typed error model the UI understands.
     static func from(_ error: Error) -> WeatherError {
         // Already a WeatherError? Pass through.
         if let weatherError = error as? WeatherError {

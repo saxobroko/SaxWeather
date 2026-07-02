@@ -389,9 +389,6 @@ struct LottieDebugView: View {
     
     private var systemInfoSection: some View {
         VStack(spacing: 16) {
-            // Phase 7 — Theme Editor. JSON view + Reveal in Finder
-            // + Reload + Reset, so devs can hot-reload the active
-            // profile by editing the on-disk `.saxtheme`.
             ThemeEditorCard()
 
             // Header Card
@@ -639,12 +636,6 @@ struct LottieDebugView: View {
         .cornerRadius(12)
     }
     
-    /// Card for the System section that lets the developer
-    /// re-trigger or reset the onboarding flow on demand.
-    /// Mirrors the production code path (sets the
-    /// `isFirstLaunch` flag and posts a notification) so
-    /// what's being tested is the real onboarding, not a
-    /// debug-only stub.
     private func onboardingDebugCard() -> some View {
         let isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
 
@@ -696,10 +687,6 @@ struct LottieDebugView: View {
         .cornerRadius(12)
     }
 
-    /// Set the `isFirstLaunch` flag to `true` and post the
-    /// notification that `ContentView` listens for. The
-    /// ContentView handler flips the bound `isFirstLaunch`
-    /// back to `true` and re-presents the onboarding.
     private func rerunOnboarding() {
         UserDefaults.standard.set(true, forKey: "isFirstLaunch")
         NotificationCenter.default.post(name: .debugRerunOnboarding, object: nil)

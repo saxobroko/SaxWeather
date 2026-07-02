@@ -10,19 +10,6 @@ import SwiftUI
 import UIKit
 #endif
 
-/// User-friendly, type-safe error display.
-///
-/// Pass a [`WeatherError`] and (optionally) callbacks for the
-/// suggested primary action. The view picks the right icon, title
-/// and message via [`WeatherError.presentation`], so adding a new
-/// error case is impossible without providing presentation.
-///
-/// The retry button uses a [`RetryPolicy`] (default 1s → 2s → 4s)
-/// to avoid hammering the API when the user taps repeatedly.
-/// While a backoff is in flight, the button shows a live
-/// countdown ("Retrying in 2s…") and a spinner. After the policy's
-/// `maxAttempts` the button reverts to "Try Again" without any
-/// further delay so a determined user is never blocked.
 struct ErrorView: View {
     let weatherError: WeatherError
     let onRetry: (() async -> Void)?
@@ -60,10 +47,6 @@ struct ErrorView: View {
         weatherError.presentation
     }
 
-    /// The retry policy that actually drives the backoff. The
-    /// per-error `presentation.retryPolicy` wins when set
-    /// (e.g. a 429 uses the server's `Retry-After` hint), then
-    /// the view-level `retryPolicy` parameter, then `RetryPolicy.default`.
     private var effectiveRetryPolicy: RetryPolicy {
         presentation.retryPolicy ?? retryPolicy
     }
@@ -151,10 +134,6 @@ struct ErrorView: View {
         }
     }
 
-    /// Label of the retry button. Three states:
-    ///   * Idle     – "Try Again" with `arrow.clockwise` icon
-    ///   * Waiting  – spinner + live countdown "Retrying in 2s…"
-    ///   * Firing   – spinner + "Retrying…" (last second)
     @ViewBuilder
     private var retryButtonLabel: some View {
         HStack(spacing: 8) {
@@ -191,12 +170,6 @@ struct ErrorView: View {
         return "Try Again"
     }
 
-    /// Start a single retry cycle. Increments `attemptCount`,
-    /// waits for the *effective* policy's delay (showing a live
-    /// countdown), then invokes the user's `onRetry` closure.
-    /// The Task is not stored — SwiftUI tears down the view when
-    /// it goes away, and the `secondsRemaining` write becomes a
-    /// no-op.
     private func startRetry(onRetry: @escaping () async -> Void) {
         attemptCount += 1
         let delay = effectiveRetryPolicy.delay(forAttempt: attemptCount)
@@ -223,10 +196,6 @@ struct ErrorView: View {
     }
 }
 
-/// Compact inline error display. Useful for inline form errors or
-/// banner-style messages. Takes a [`WeatherError`] so the icon and
-/// color reflect the category, but accepts a `String` for
-/// backwards-compat with existing call sites.
 struct InlineErrorView: View {
     let weatherError: WeatherError?
     let fallbackMessage: String?
@@ -299,10 +268,6 @@ struct InlineErrorView: View {
 
 // MARK: - Settings deep link helper
 
-/// Centralised helper for opening the system Settings app. Lives
-/// here (rather than in a settings-specific file) because both the
-/// `ErrorView` and the location-permission alert need to trigger
-/// it.
 enum AppSettingsRouter {
     /// Open the app's page in the system Settings app. Safe to
     /// call on iOS, iPadOS, and macOS (Catalyst).

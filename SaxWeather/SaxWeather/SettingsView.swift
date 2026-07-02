@@ -15,10 +15,6 @@ import UIKit
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
     @EnvironmentObject var storeManager: StoreManager
-    /// Customisation engine — Phase 2: every `@AppStorage` write
-    /// below is forwarded to the registry via `.onChange` modifiers
-    /// attached at the body root, so the registry is the single
-    /// mutation path. Reads stay as `@AppStorage` for now.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @AppStorage("wuApiKey") private var wuApiKey = ""
     @AppStorage("stationID") private var stationID = ""
@@ -62,10 +58,6 @@ struct SettingsView: View {
     var isOnboarding: Bool = false
     @Environment(\.dismiss) private var dismiss
 
-    // Phase 7 — Settings search bar (iOS Settings pattern).
-    // When non-empty, hides the full settings tree and shows
-    // matching customisation knobs from the registry's catalogue.
-    // Clearing the query restores the normal settings list.
     @State private var settingsSearchQuery: String = ""
     /// Sheet presented when a search result row opens a sheet
     /// (Theme switcher, Share Theme, Tip Jar).
@@ -128,9 +120,6 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                             .padding()
 
-                            // Phase 1 — Cosmetics Store entry
-                            // point (macOS). Mirrors the iOS
-                            // entry point one row below.
                             Button {
                                 showingCosmeticsStore = true
                             } label: {
@@ -158,9 +147,6 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .center)
             }
             .navigationTitle("Settings")
-            // Phase 2 bridge — every bridged setting forwards its
-            // new value to the registry. The existing side effects
-            // (Task { fetch… }, etc.) are preserved.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
                 customisationRegistry.set(\.layout.forecastDays, newValue)
@@ -182,9 +168,6 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                // Phase 3 — accentColor is now a ColourToken; the
-                // existing `@AppStorage` writes a plain String, so
-                // wrap on the bridge.
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
@@ -221,12 +204,6 @@ struct SettingsView: View {
         }
         #else
         NavigationStack(path: $searchNavigationPath) {
-            // Phase 7 — the search results view renders its own
-            // `List` so its `Button` rows get the proper List row
-            // tap handling. The normal settings tree still uses
-            // the outer `List` below. Wrapped in `Group` so the
-            // navigation modifiers apply to whichever branch is
-            // active.
             Group {
                 if settingsSearchQuery.isEmpty {
                     List {
@@ -244,13 +221,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            // Phase 7 — sheets driven by the search results.
             .sheet(item: $searchSheet) { sheet in
                 searchSheetView(for: sheet)
             }
-            // Phase 7 — navigation destinations driven by the
-            // search results. Cleared every time the user starts a
-            // new search.
             .navigationDestination(for: SettingsSearchRoute.self) { route in
                 searchDestinationView(for: route)
             }
@@ -265,9 +238,6 @@ struct SettingsView: View {
                     searchSheet = nil
                 }
             }
-            // Phase 7 — iOS-Settings-style search bar pinned to the
-            // navigation bar. Typing a query collapses the settings
-            // tree into a filtered results list.
             .searchable(
                 text: $settingsSearchQuery,
                 placement: .navigationBarDrawer(displayMode: .always),
@@ -279,9 +249,6 @@ struct SettingsView: View {
             .toolbar(settingsSearchQuery.isEmpty ? .visible : .visible, for: .navigationBar)
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
-            // Phase 2 bridge — iOS body. Same as the macOS body:
-            // every bridged setting forwards its new value to the
-            // registry.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
                 customisationRegistry.set(\.layout.forecastDays, newValue)
@@ -303,9 +270,6 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                // Phase 3 — accentColor is now a ColourToken; the
-                // existing `@AppStorage` writes a plain String, so
-                // wrap on the bridge.
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
@@ -608,14 +572,6 @@ struct SettingsView: View {
             .accessibilityLabel("Support Development")
             .accessibilityHint("Leave a tip to support the app")
 
-            // Phase 1 — Cosmetics Store entry point.
-            // Adjacent to the Tip Jar so the "support
-            // development" surface stays together. The icon
-            // is `paintbrush.pointed.fill` per the plan's
-            // ethical-iconography guidelines — distinct from
-            // `paintbrush.fill` (Appearance) and
-            // `paintpalette.fill` (which the store itself
-            // uses).
             Button {
                 showingCosmeticsStore = true
             } label: {
@@ -1591,23 +1547,6 @@ struct SettingsView: View {
 
 // MARK: - Settings search results (Phase 7)
 
-/// The view that replaces the normal Settings list when the user
-/// types in the `.searchable` bar at the top of `SettingsView`.
-///
-/// Two kinds of rows:
-///   1. **Matching top-level settings rows** — Locations, Weather
-///      Data, Preferences, Appearance, Accessibility, Backup &
-///      Restore, Support Development, About, Attribution. Tapping
-///      opens the relevant destination (NavigationLink or sheet).
-///   2. **Matching customisation knobs** from the registry's
-///      catalogue. Tapping always navigates to the knob's owning
-///      settings page — no in-place toggling.
-///
-/// IAP-locked knobs (anything in `BackgroundSpec` that requires
-/// the custom-background purchase) are split into a dedicated
-/// "Purchase Required" section at the top of the results. Tapping
-/// a locked row opens the TipJar so the user can unlock without
-/// leaving the search context.
 struct SettingsSearchResults: View {
     @EnvironmentObject private var customisation: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager
@@ -1618,9 +1557,6 @@ struct SettingsSearchResults: View {
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        // Phase 7 — render our own `List` so the `Button` rows
-        // get proper List row tap handling. The outer `List` in
-        // `SettingsView` is bypassed when the search bar is active.
         List {
             if results.isEmpty {
                 Section {
@@ -1758,7 +1694,6 @@ struct SettingsSearchResults: View {
     }
 }
 
-/// What kind of destination a settings row opens.
 enum SettingsSearchAction {
     case sheet(SettingsSheet)
     case navigate(SettingsSearchRoute)
@@ -1768,10 +1703,6 @@ enum SettingsSearchAction {
 enum SettingsSheet: Identifiable {
     case profileImporter
     case tipJar
-    /// v2 — “Search All Settings…” entry from the Customisation
-    /// section in the main settings tree. Presents the standalone
-    /// `KnobSearchView` so users have one tap to every knob in
-    /// the registry.
     case searchAllSettings
 
     var id: String {
@@ -1798,11 +1729,6 @@ enum SettingsSearchRoute: Hashable {
     case about
     case attribution
 
-    /// Map a knob's owning route to the corresponding settings
-    /// navigation route. `behaviour` knobs (haptics, gestures,
-    /// alerts, experimental flags) land on the new
-    /// `BehaviourSettingsView` rather than Accessibility or
-    /// Preferences.
     static func from(_ owning: KnobOwningRoute) -> SettingsSearchRoute {
         switch owning {
         case .appearance:    return .appearance
@@ -3132,9 +3058,6 @@ struct WeatherSourcesSettingsView: View {
 
 // MARK: Preferences Settings
 struct PreferencesSettingsView: View {
-    // Phase 2 bridge — customisation registry injected at the app
-    // root via `.environmentObject`. Every setting write below
-    // routes through `.onChange` to the registry.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
 
     @Binding var unitSystem: String
@@ -3630,13 +3553,6 @@ struct AppearanceSettingsView: View {
                 Label("Background", systemImage: "photo")
             }
 
-            // Phase 5 — palette + chart-skin pickers. The
-            // cosmetic palette / chart skin are committed to
-            // the profile via the in-app pickers, so the
-            // user needs a route to them from the main
-            // Settings tree. Mirrors `BackgroundSettingsButton`'s
-            // shape (a row that presents the picker as a
-            // sheet) so the navigation feels consistent.
             Section {
                 PalettePickerRow()
                 ChartSkinPickerRow()
@@ -3899,13 +3815,6 @@ struct AboutSettingsView: View {
     /// cosmetic.
     @EnvironmentObject private var storeManager: StoreManager
 
-    /// `true` when the user owns any cosmetic that grants
-    /// the Supporter acknowledgement. Per
-    /// `plans/COSMETIC_MONETIZATION_PLAN.md` §5.4 — true
-    /// for owners of the standalone Supporter Badge *or*
-    /// the Supporter Pack (the Supporter Pack's
-    /// `isOwned` short-circuit handles the latter
-    /// automatically).
     private var isSupporter: Bool {
         storeManager.owns("com.saxweather.cosmetic.supporter.badge")
             || storeManager.owns(CosmeticCatalog.supporterPackID)
@@ -4106,12 +4015,6 @@ struct AttributionSettingsView: View {
 
 // MARK: - Phase 5 — Palette + Chart Skin picker rows (cosmetic-only)
 
-/// Settings row that presents `PalettePickerView` as a sheet.
-/// Mirrors `BackgroundSettingsButton`'s shape (a tappable
-/// row that shows a chevron and the current palette name as
-/// the detail text). Reading the current palette name from
-/// the registry keeps the row's detail text in sync with
-/// whatever the user picks inside the picker.
 struct PalettePickerRow: View {
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager

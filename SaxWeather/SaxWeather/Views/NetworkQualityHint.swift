@@ -13,10 +13,6 @@
 
 import SwiftUI
 
-/// Compact card that explains the current network quality and
-/// what behaviour the app has switched to as a result. Designed
-/// to sit at the top of the Settings list so the user sees it
-/// before they tweak any other setting.
 struct NetworkQualityHint: View {
     @ObservedObject private var monitor = NetworkMonitor.shared
 

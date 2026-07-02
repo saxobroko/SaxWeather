@@ -1,30 +1,3 @@
-//
-//  KnobDescriptor.swift
-//  SaxWeather
-//
-//  Phase 7 — Settings UI rebuild.
-//
-//  A lightweight catalogue of every customisation knob the
-//  registry knows about. Each descriptor carries:
-//
-//    • `id` — a stable string ID (matches the knob's name in
-//      `IconographySpec`, `LayoutSpec`, etc.).
-//    • `displayName` — human-readable label for the Settings UI.
-//    • `group` — which spec group the knob lives in
-//      (`VisualSpec`, `BackgroundSpec`, …). Used to group search
-//      results.
-//    • `symbolName` — SF Symbol for the row icon.
-//    • `summary` — one-line description shown under the name.
-//    • `searchTokens` — keywords the search query matches against.
-//      Includes aliases (e.g. "color" and "colour") so users find
-//      what they want regardless of spelling.
-//
-//  The catalogue is the *index* — it doesn't store the current
-//  value (that's in `CustomisationProfile.knobs`). Views read the
-//  current value via `registry.get(\.visual.accentColor)` etc.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §2.3 and §4.7.
-//
 
 import Foundation
 
@@ -67,10 +40,6 @@ enum KnobOwningRoute: Hashable {
     case accessibility
 }
 
-/// Background knobs that require the "Custom Background" IAP
-/// (`StoreManager.customBackgroundUnlocked`). Centralised here so
-/// the search bar, the settings UI, and any future surface all
-/// agree on what counts as paid content.
 extension KnobDescriptor {
     /// Whether the knob is locked behind the custom-background IAP.
     /// `false` for free knobs.
@@ -650,11 +619,6 @@ extension KnobDescriptor {
 // MARK: - KnobStorage convenience
 
 extension KnobStorage {
-    /// Number of knobs the registry currently exposes via
-    /// `KnobDescriptor.catalogue`. Surfaced in the Customisation
-    /// hub so the user can see at-a-glance how much there is to
-    /// explore. The catalogue is a static list (not derived from
-    /// the profile), so this stays a constant for any profile.
     var allEditableKnobCount: Int {
         KnobDescriptor.catalogue.count
     }

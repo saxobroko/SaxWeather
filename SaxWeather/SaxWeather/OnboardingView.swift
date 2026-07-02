@@ -24,10 +24,6 @@ extension Notification.Name {
     /// and switches to the Settings tab.
     static let openSettingsToAPIKeys = Notification.Name("SaxWeather.openSettingsToAPIKeys")
 
-    /// Posted by the debug menu's "Re-run Onboarding" button.
-    /// `ContentView` listens for this and resets
-    /// `isFirstLaunch` so the onboarding flow is re-presented
-    /// immediately.
     static let debugRerunOnboarding = Notification.Name("SaxWeather.debugRerunOnboarding")
 }
 
@@ -54,10 +50,6 @@ struct OnboardingView: View {
         OnboardingView.color(from: accentColor)
     }
 
-    /// Surface color for cards and content blocks. Matches
-    /// the main app's `cardBackgroundColor` pattern in
-    /// `ForecastView` so the onboarding looks like part of
-    /// the same product.
     private var cardBackground: Color {
         #if os(iOS)
         return colorScheme == .dark
@@ -70,10 +62,6 @@ struct OnboardingView: View {
         #endif
     }
 
-    /// Platform-appropriate dark-mode background colour.
-    /// On iOS this is `UIColor.systemBackground`; on macOS it
-    /// is `NSColor.windowBackgroundColor`; on other platforms
-    /// it falls back to black.
     static var darkBackgroundColor: Color {
         #if canImport(UIKit)
         return Color(UIColor.systemBackground)
@@ -84,10 +72,6 @@ struct OnboardingView: View {
         #endif
     }
 
-    /// Platform-appropriate light-mode background colour.
-    /// On iOS this is `UIColor.systemGroupedBackground`; on
-    /// macOS it is `NSColor.windowBackgroundColor`; on other
-    /// platforms it falls back to white.
     static var lightBackgroundColor: Color {
         #if canImport(UIKit)
         return Color(UIColor.systemGroupedBackground)
@@ -311,10 +295,6 @@ struct OnboardingView: View {
 
     // MARK: Static helpers
 
-    /// Map the user's accent color preference string to a
-    /// SwiftUI `Color`. Mirrors the resolution logic in
-    /// `SaxWeatherApp` so the onboarding matches the rest
-    /// of the app.
     static func color(from name: String) -> Color {
         switch name.lowercased() {
         case "blue": return .blue
@@ -356,10 +336,6 @@ private struct OnboardingProgressIndicator: View {
 
 // MARK: - Shared step chrome
 
-/// Wraps each step with a consistent layout: hero icon
-/// (with a soft glow), title, description, and an optional
-/// action area. Keeps the per-step subviews focused on their
-/// unique content.
 private struct OnboardingStepContainer<Content: View>: View {
     let icon: String
     let iconColors: [Color]
@@ -427,10 +403,6 @@ private struct OnboardingStepContainer<Content: View>: View {
     }
 }
 
-/// Small card-style container used inside steps for feature
-/// pills, mock lists, widget previews, etc. Matches the main
-/// app's card aesthetic (white surface in light mode,
-/// systemGray6 in dark mode, rounded corners, subtle shadow).
 private struct OnboardingCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     let background: Color
@@ -778,9 +750,6 @@ private struct AnimationTile: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            // Phase 6 — migrated to `ConditionIcon` so the
-            // iconography knobs in `IconographySpec` are honoured
-            // automatically.
             ConditionIcon(condition: name, size: 70)
                 .frame(width: 70, height: 70)
                 .accessibilityLabel("\(label) animation preview")

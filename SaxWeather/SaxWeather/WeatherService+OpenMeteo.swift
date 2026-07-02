@@ -196,18 +196,18 @@ extension WeatherService {
             }
             
             let owmCurrent = OWMCurrent(
-                temp: current.temperature_2m,
-                feels_like: current.apparent_temperature,
-                humidity: Double(current.relative_humidity_2m),
+                temp: current.temperature_2m ?? 0,
+                feels_like: current.apparent_temperature ?? 0,
+                humidity: Double(current.relative_humidity_2m ?? 0),
                 dew_point: calculateOpenMeteoDewPoint(
-                    temp: current.temperature_2m,
-                    humidity: Double(current.relative_humidity_2m)
+                    temp: current.temperature_2m ?? 0,
+                    humidity: Double(current.relative_humidity_2m ?? 0)
                 ),
-                pressure: current.pressure_msl,
-                wind_speed: current.wind_speed_10m,
-                wind_gust: current.wind_gusts_10m,
-                uvi: Int(round(current.uv_index)),
-                clouds: Double(current.cloud_cover)
+                pressure: current.pressure_msl ?? 0,
+                wind_speed: current.wind_speed_10m ?? 0,
+                wind_gust: current.wind_gusts_10m ?? 0,
+                uvi: Int(round(current.uv_index ?? 0)),
+                clouds: Double(current.cloud_cover ?? 0)
             )
             
             let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
@@ -553,7 +553,6 @@ extension WeatherService {
         // Use a separate decoder for the forecast-only response
         let decoder = JSONDecoder()
         
-        // Now using our class-level struct
         let forecastResponse = try decoder.decode(OpenMeteoForecastResponse.self, from: data)
         
         // Process the forecast data using the class-level struct

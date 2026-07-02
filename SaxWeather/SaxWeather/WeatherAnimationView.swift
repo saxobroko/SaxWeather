@@ -1,17 +1,3 @@
-//
-//  WeatherAnimationView.swift
-//  SaxWeather
-//
-//  Created by saxobroko on 2025-03-08
-//
-//  Phase 6 — migrated from `LottieView(name:)` to `ConditionIcon`
-//  so the iconography knobs in `IconographySpec` (playback speed,
-//  loop mode, override map, icon style, symbol variant) are
-//  honoured automatically. The previous 1-second "show fallback
-//  while loading" delay is no longer needed — `ConditionIcon`
-//  shows the SF Symbol fallback only when the Lottie JSON fails
-//  to load, which is the more useful behaviour.
-//
 
 import SwiftUI
 
@@ -20,9 +6,6 @@ struct WeatherAnimationView: View {
     let forecast: WeatherForecast?
 
     var body: some View {
-        // Phase 6 — single entry point for "give me the icon for
-        // condition X at night Y". Picks between Lottie and SF
-        // Symbol based on the active customisation profile.
         ConditionIcon(
             condition: weather?.condition ?? "Clear",
             isNight: determineIfNight(),

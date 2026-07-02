@@ -1,23 +1,3 @@
-//
-//  BackgroundView.swift
-//  SaxWeather
-//
-//  Created by Saxon on 2/3/2025.
-//  Phase 5 — Background engine: now renders a `BackgroundStrategy`
-//  instead of a raw condition string. The view is deliberately
-//  dumb — it switches on the strategy and draws the right thing.
-//  All decisions (mode, time-of-day, per-condition overrides) live
-//  in `BackgroundResolver`.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §2.5 and §4.5.
-//
-//  Phase 3 — `.auroraImage(name:)` renders the Aurora-themed
-//  JPEGs. If the named asset can't be loaded at runtime (e.g.
-//  the JPEGs haven't been dropped into the asset catalog yet,
-//  or an asset was renamed by accident), the view falls back to
-//  `BackgroundResolver.auroraGradient(forCondition:)` so the
-//  user never sees a blank background.
-//
 
 import SwiftUI
 #if os(iOS)
@@ -192,11 +172,6 @@ struct BackgroundView: View {
         #endif
     }
 
-    /// Pull the condition key out of an asset name like
-    /// `weather_background_aurora_sunny` → `"sunny"`. Falls
-    /// back to `"default"` if the name doesn't match the
-    /// expected format (defensive — the gradient lookup will
-    /// return its own default branch in that case).
     private static func conditionKey(from assetName: String) -> String {
         let prefix = "weather_background_aurora_"
         guard assetName.hasPrefix(prefix) else { return "default" }

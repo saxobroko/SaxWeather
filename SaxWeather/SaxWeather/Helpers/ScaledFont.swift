@@ -1,23 +1,3 @@
-//
-//  ScaledFont.swift
-//  SaxWeather
-//
-//  Phase 3 — view modifier that produces a `Font` whose size,
-//  weight, and design are driven by the active `CustomisationProfile`.
-//
-//  Mirrors the API surface of the existing
-//  `CustomFontSizeModifier` in `AccessibilityModifiers.swift`
-//  but reads from the customisation registry (not `@AppStorage`)
-//  and adds the `typography` family knob (rounded / serif / mono).
-//
-//  Usage:
-//      Text("Temperature")
-//          .scaledFont(size: 16, weight: .medium)
-//      // or, with a custom design:
-//          .scaledFont(size: 14, weight: .regular, design: .serif)
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §1.1 + §4.3.
-//
 
 import SwiftUI
 
@@ -58,15 +38,6 @@ struct ScaledFontModifier: ViewModifier {
 }
 
 extension View {
-    /// Apply the active profile's font scale, bold override, and
-    /// typography family to the receiver.
-    ///
-    /// - Parameters:
-    ///   - size: base font size before scaling.
-    ///   - weight: weight before the user's `boldText` override.
-    ///   - design: design before the user's `typography` override.
-    ///   - registry: registry to read from. Defaults to
-    ///     `CustomisationRegistry.shared`.
     @MainActor
     func scaledFont(
         size: CGFloat,

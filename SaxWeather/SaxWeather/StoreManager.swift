@@ -1,39 +1,3 @@
-//
-//  StoreManager.swift
-//  SaxWeather
-//
-//  StoreKit 2 facade for every IAP the app sells.
-//
-//  Two independent product streams
-//  -------------------------------
-//  1. The legacy single product `"CustomBackground50c"` — a
-//     non-consumable IAP that unlocks the custom-background
-//     UI. Loaded and purchased via `loadProducts()` /
-//     `purchaseCustomBackground()`. The Tip Jar (see
-//     [`TipJarView.swift`](TipJarView.swift)) uses its own
-//     self-contained `TipStoreManager` and is NOT wired into
-//     this class — that's intentional; tips are consumables
-//     and don't need an entitlement cache.
-//  2. Cosmetic non-consumables — every product ID in
-//     [`CosmeticCatalog`](Services/CosmeticCatalog.swift) is
-//     loaded via `loadCosmeticProducts()` and purchased via
-//     `purchaseCosmetic(_:)`. Entitlements are mirrored into
-//     `entitlementStore` for the UI to read on every render.
-//
-//  Entitlement model
-//  -----------------
-//  The authoritative source for "did the user buy this?" is
-//  StoreKit 2's `Transaction.currentEntitlements`. We mirror
-//  the verified transactions into
-//  [`EntitlementStore`](Services/EntitlementStore.swift) on:
-//    * app launch (initial query)
-//    * every `Transaction.updates` event (backgrounded app)
-//    * every successful `purchaseCosmetic` call
-//    * every successful `purchaseCustomBackground` call
-//
-//  The `EntitlementStore` is the **only** place the Supporter
-//  Pack short-circuit lives — see the file's header comment.
-//
 
 import SwiftUI
 import StoreKit
@@ -68,10 +32,6 @@ class StoreManager: ObservableObject {
     // any API changes.
     private let legacyProductID = "CustomBackground50c"
 
-    /// `true` when the user owns the legacy "Custom
-    /// Backgrounds" IAP. Backed by `entitlementStore` — the
-    /// field is a computed view so a single source of truth
-    /// owns the answer.
     var customBackgroundUnlocked: Bool {
         entitlementStore.isOwned(legacyProductID)
     }
@@ -90,11 +50,6 @@ class StoreManager: ObservableObject {
     @Published private(set) var cosmeticProducts: [Product] = []
     private var cosmeticProductsByID: [String: Product] = [:]
 
-    /// Shared entitlement cache. Read by the store UI to show
-    /// the "Owned ✓" badge, read by `BackgroundResolver` (via
-    /// `customBackgroundUnlocked`) to gate paid backgrounds,
-    /// and read by `SettingsView`'s About section to surface
-    /// the Supporter Badge.
     let entitlementStore: EntitlementStore
 
     // MARK: - Per-product purchase state
@@ -226,11 +181,6 @@ class StoreManager: ObservableObject {
 
     // MARK: - Cosmetic IAPs
 
-    /// Load every cosmetic product declared in
-    /// `CosmeticCatalog.allProducts`. Called once on init; the
-    /// UI can re-call this after a "Restore Purchases" to
-    /// pick up products added in a newer App Store Connect
-    /// schema.
     func loadCosmeticProducts() async {
         let ids = CosmeticCatalog.allProducts.map(\.id)
         do {
@@ -258,21 +208,10 @@ class StoreManager: ObservableObject {
         }
     }
 
-    /// Look up a loaded StoreKit product by ID. Returns
-    /// `nil` for products that haven't loaded yet (or that
-    /// aren't shipped). Use `CosmeticCatalog.product(id:)`
-    /// for the static catalog data instead.
     func cosmeticProduct(id: String) -> Product? {
         cosmeticProductsByID[id]
     }
 
-    /// Purchase a cosmetic product. On success, the
-    /// `EntitlementStore` is updated synchronously and a
-    /// `cosmeticPurchaseCompleted` notification is posted so
-    /// any observers can react.
-    ///
-    /// - Throws: StoreKit errors propagate. UI code should
-    ///   catch them and surface a friendly message.
     @discardableResult
     func purchaseCosmetic(_ product: Product) async throws -> PurchaseResult {
         purchaseInProgressID = product.id
@@ -309,16 +248,6 @@ class StoreManager: ObservableObject {
 
     // MARK: - Entitlement refresh
 
-    /// Walk `Transaction.currentEntitlements` and grant every
-    /// non-consumable product ID the user actually owns. Safe
-    /// to call multiple times — `EntitlementStore.grant` is
-    /// idempotent.
-    ///
-    /// Covers the legacy `CustomBackground50c` IAP as well as
-    /// every cosmetic product. Unknown product IDs are
-    /// silently skipped (forward-compatibility — a product
-    /// added in a newer version that this build doesn't
-    /// recognise won't crash older builds).
     func refreshEntitlements() async {
         let knownIDs: Set<String> = Set(CosmeticCatalog.allProducts.map(\.id))
             .union([legacyProductID])
@@ -356,12 +285,6 @@ class StoreManager: ObservableObject {
         }
     }
 
-    /// Single-transaction handler for the `Transaction.updates`
-    /// listener. Applies the same logic as
-    /// `refreshEntitlements()` but for one transaction at a
-    /// time — so backgrounded apps receive Ask-to-Buy
-    /// approvals, refunds, and Family Sharing changes
-    /// immediately.
     private func handleTransactionResult(
         _ result: VerificationResult<StoreKit.Transaction>
     ) async {
@@ -429,18 +352,10 @@ class StoreManager: ObservableObject {
 
     // MARK: - Notifications
 
-    /// Posted after `purchaseCosmetic` succeeds. The UI
-    /// listens to dismiss the purchase sheet, scroll the
-    /// newly-owned tile into view, and re-render the
-    /// "Owned ✓" badge.
     static let cosmeticPurchaseCompleted = Notification.Name(
         "StoreManager.cosmeticPurchaseCompleted"
     )
 
-    /// Posted when the `Transaction.updates` loop processes a
-    /// new verified transaction. Used to keep derived UI
-    /// state (e.g. the Supporter Badge in About) in sync with
-    /// the entitlement cache.
     static let cosmeticEntitlementsChanged = Notification.Name(
         "StoreManager.cosmeticEntitlementsChanged"
     )

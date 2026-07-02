@@ -28,16 +28,8 @@ struct LocationPickerView: View {
     @State private var markerCoordinate: CLLocationCoordinate2D?
     @State private var errorMessage: String?
     @State private var isLoading = false
-    /// Transient banner shown at the top of the view. Distinct
-    /// from `errorMessage` (which is the persistent inline text
-    /// below the map) — toasts are time-limited, attention-
-    /// grabbing, and disappear on their own.
     @State private var toast: ToastMessage?
 
-    /// Lightweight toast model. `id` is what SwiftUI diffs on
-    /// to detect that a new toast has replaced the old one, so
-    /// rapid re-fires always show the new text rather than
-    /// inheriting a stale value.
     struct ToastMessage: Identifiable, Equatable {
         let id = UUID()
         let text: String
@@ -57,12 +49,6 @@ struct LocationPickerView: View {
         return []
     }
 
-    /// Background colour for the location info card. Uses the
-    /// platform-appropriate secondary background so the card
-    /// reads as a distinct surface on both iOS and macOS.
-    /// `#if`/`#else`/`#endif` must live at the statement level
-    /// (not inline inside a view modifier argument), so this is
-    /// extracted into its own computed property.
     private var cardBackgroundColor: Color {
         #if canImport(UIKit)
         return Color(.secondarySystemBackground)
@@ -307,11 +293,6 @@ struct LocationPickerView: View {
         }
     }
 
-    /// Show a transient toast at the top of the view. Auto-
-    /// dismisses after `duration` seconds; tapping the toast
-    /// dismisses it early. Repeated calls before dismissal
-    /// replace the current toast (via the `id` change driving
-    /// the SwiftUI transition).
     private func showToast(_ text: String, style: ToastMessage.Style = .info, duration: TimeInterval = 3.0) {
         withAnimation { toast = ToastMessage(text: text, style: style) }
         Task {

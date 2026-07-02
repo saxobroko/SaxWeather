@@ -17,12 +17,6 @@ import WidgetKit
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
     @Published var forecast: WeatherForecast?
-    /// Typed error from the most recent failed fetch. `nil` when
-    /// the last fetch succeeded or no fetch has been attempted
-    /// yet. The UI layer should prefer the structured
-    /// `WeatherError` over the legacy string description so it
-    /// can pick a category-specific message via
-    /// `WeatherError.presentation`.
     @Published var error: WeatherError?
     @Published var isLoading = false
     @Published private(set) var _useGPS: Bool
@@ -39,20 +33,8 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     var lastFetchTime: Date? = nil // Track last fetch time for debouncing
     var forecastFetchTask: Task<Void, Never>? = nil // Track current forecast fetch task
     var lastForecastFetchTime: Date? = nil // Track last forecast fetch time for debouncing
-    /// Timestamp of the most recent successful weather fetch.
-    /// `nil` until the first fetch completes. Distinct from
-    /// `lastFetchTime` (which is updated when a fetch *starts*,
-    /// for debouncing) — this is set only after a fresh payload
-    /// has been decoded and saved. Used by the host-app stale
-    /// data warning so the UI can react when the cached data
-    /// becomes too old to be useful.
     @Published var lastSuccessfulFetch: Date?
 
-    /// The user's current geographic location, mirrored from
-    /// `CLLocationManager` so SwiftUI views can react to
-    /// location changes without having to talk to CoreLocation
-    /// directly. `nil` until the first GPS fix arrives or a
-    /// manual coordinate is restored from `UserDefaults`.
     @Published var currentLocation: CLLocationCoordinate2D?
     
     var unitSystem: String {
@@ -1363,10 +1345,6 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 
-    /// Opens the system Settings app at this app's page. Kept as
-    /// a thin shim over [`AppSettingsRouter.open`] for backwards
-    /// compatibility with call sites that already invoke it
-    /// directly on the service.
     func openSettings() {
         AppSettingsRouter.open()
     }

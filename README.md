@@ -1,18 +1,17 @@
-SaxWeather is a modern iOS/macOS weather application that serves as your personal weather station companion. It offers flexible weather data integration by supporting both Weather Underground for personal weather station owners and OpenWeatherMap for general location-based weather information. 
+# SaxWeather
 
+iOS/macOS weather app with support for Weather Underground (personal weather stations) and OpenWeatherMap.
 
-Features:
+## Features
 
-Dual weather service support (Weather Underground and OpenWeatherMap)
+- Weather Underground and OpenWeatherMap support
+- Personal weather station integration
+- GPS or manual coordinate location
+- Metric, Imperial, UK units
+- Light and dark mode
+- SwiftUI
 
-Personal weather station integration capabilities
+## Requirements
 
-GPS or manual coordinate-based location tracking
-
-Customizable unit system preferences
-
-Dark and light mode support
-
-Clean, native SwiftUI interface
-
-Perfect for weather enthusiasts who want to monitor their personal weather station data or users seeking reliable weather information from established weather services. Built with SwiftUI for a seamless Apple platform experience.
+- iOS 17+ / macOS 14+
+- Xcode 15+

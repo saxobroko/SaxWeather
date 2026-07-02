@@ -76,6 +76,7 @@ struct ContentView: View {
     // for any legacy reader.
     @ObservedObject private var registry = CustomisationRegistry.shared
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var weatherAlertManager = WeatherAlertManager()
     @State private var activePopup: PopupData?
     @State private var showingLocationMenu = false
@@ -211,7 +212,32 @@ struct ContentView: View {
         guard let doubleValue = Double(value) else { return value }
         return String(format: "%.4f", doubleValue)
     }
-    
+
+    private func consumePendingAppIntentNavigation() {
+        guard let locationId = AppIntentNavigation.consumePendingLocationID() else { return }
+        navigateToLocation(id: locationId)
+    }
+
+    private func navigateToLocation(id locationId: UUID) {
+        if let location = locationsManager.locations.first(where: { $0.id == locationId }) {
+            locationsManager.selectLocation(location)
+            weatherService.useGPS = false
+        } else if locationId == SavedLocation.currentLocationEntry.id {
+            locationsManager.selectCurrentLocation()
+            weatherService.useGPS = true
+        } else {
+            return
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "AppIntent.NavigateToLocation")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 1
+        }
+    }
+
     var body: some View {
         ZStack {
             Group {
@@ -318,6 +344,23 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .debugRerunOnboarding)) { _ in
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isFirstLaunch = true
+                }
+            }
+            // Phase 5 — App Intents navigation. When the user runs
+            // the "Show Forecast" intent, we persist the target
+            // location and post a notification. onAppear / active
+            // also consume any pending location for cold launches.
+            .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.navigateNotification)) { notification in
+                if let locationId = notification.userInfo?["locationId"] as? UUID {
+                    navigateToLocation(id: locationId)
+                }
+            }
+            .onAppear {
+                consumePendingAppIntentNavigation()
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    consumePendingAppIntentNavigation()
                 }
             }
 
@@ -1038,6 +1081,7 @@ struct WeatherDetailsView: View {
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 16)
+        .allowsHitTesting(true)
         .styledCard()
         .animation(
             .easeInOut(duration: 0.4),
@@ -1205,8 +1249,8 @@ struct CustomPopup<Content: View>: View {
 // MARK: - Weather Row View
 struct WeatherRowView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.popupState) private var popupState
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
+    @State private var showingInfo = false
     let title: String
     let value: String
     
@@ -1233,67 +1277,63 @@ struct WeatherRowView: View {
     }
     
     var body: some View {
-        if #available(iOS 26.2, *) {
-            // iOS 26+ style with subtle dark tint and glass effect
-            HStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(colorScheme == .dark ? 
-                            Color.white.opacity(0.6) : 
-                            Color.black.opacity(0.5)
-                        )
-                        .frame(width: 24)
-                    
-                    Text(title)
-                        .accessibleFont(size: 16, weight: .medium)
-                        .accessibleContrast()
-                        .foregroundStyle(colorScheme == .dark ?
-                            Color.white.opacity(0.8) :
-                            Color.black.opacity(0.7)
-                        )
+        Button {
+            print("[WeatherRowView] Button tapped for \(title)")
+            showingInfo = true
+        } label: {
+            Group {
+                if #available(iOS 26.2, *) {
+                    HStack(spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: iconName)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(colorScheme == .dark ?
+                                    Color.white.opacity(0.6) :
+                                    Color.black.opacity(0.5)
+                                )
+                                .frame(width: 24)
+
+                            Text(title)
+                                .accessibleFont(size: 16, weight: .medium)
+                                .accessibleContrast()
+                                .foregroundStyle(colorScheme == .dark ?
+                                    Color.white.opacity(0.8) :
+                                    Color.black.opacity(0.7)
+                                )
+                        }
+
+                        Spacer()
+
+                        Text(value)
+                            .accessibleFont(size: 16, weight: .semibold)
+                            .accessibleContrast()
+                            .foregroundStyle(colorScheme == .dark ?
+                                Color.white.opacity(0.9) :
+                                Color.black.opacity(0.8)
+                            )
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 4)
+                } else {
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                        Spacer()
+                        Text(value)
+                            .font(.body)
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                    }
+                    .padding(.horizontal)
                 }
-                
-                Spacer()
-                
-                Text(value)
-                    .accessibleFont(size: 16, weight: .semibold)
-                    .accessibleContrast()
-                    .foregroundStyle(colorScheme == .dark ?
-                        Color.white.opacity(0.9) :
-                        Color.black.opacity(0.8)
-                    )
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity, minHeight: 39, alignment: .leading)
             .contentShape(Rectangle())
-            .onTapGesture {
-                popupState.wrappedValue = PopupData(
-                    title: title,
-                    value: value,
-                    description: description
-                )
-            }
-        } else {
-            // Fallback for iOS 25 and earlier
-            HStack {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                Spacer()
-                Text(value)
-                    .font(.body)
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
-            }
-            .padding(.horizontal)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                popupState.wrappedValue = PopupData(
-                    title: title,
-                    value: value,
-                    description: description
-                )
-            }
+            .allowsHitTesting(true)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingInfo) {
+            WeatherMetricDetailView(title: title, value: value, description: description)
         }
     }
     
@@ -1318,7 +1358,8 @@ struct WeatherMetricDetailView: View {
     let value: String
     let description: String
     @Environment(\.colorScheme) private var colorScheme
-    
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -1329,9 +1370,9 @@ struct WeatherMetricDetailView: View {
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
             }
-            
+
             Divider()
-            
+
             Text(description)
                 .font(.system(size: 15))
                 .foregroundColor(.secondary)
@@ -1339,12 +1380,21 @@ struct WeatherMetricDetailView: View {
                 .lineSpacing(4)
         }
         .padding()
-        .frame(width: 280)
         #if os(iOS)
         .background(Color(UIColor.systemBackground))
         #elseif os(macOS)
         .background(Color(NSColor.windowBackgroundColor))
         #endif
+        .overlay(alignment: .topTrailing) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .padding(8)
+            }
+        }
     }
 }
 

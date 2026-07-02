@@ -12,15 +12,8 @@
 
 import SwiftUI
 
-/// Banner that surfaces stale cached weather. Reads the
-/// `WeatherService.lastSuccessfulFetch` published property so
-/// the warning reactively appears / disappears as the user
-/// pulls to refresh or background-refresh updates the data.
 struct StaleDataWarning: View {
     @ObservedObject var weatherService: WeatherService
-    /// How old the cached data must be (in seconds) for the
-    /// warning to appear. 1 hour matches the host-app
-    /// background-refresh cadence.
     var threshold: TimeInterval = 60 * 60
 
     var body: some View {

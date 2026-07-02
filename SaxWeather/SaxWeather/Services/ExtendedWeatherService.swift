@@ -17,12 +17,6 @@ class ExtendedWeatherService {
     
     private init() {}
     
-    /// Fetch extended weather data respecting the app's data source priority
-    /// - Parameters:
-    ///   - latitude: Location latitude
-    ///   - longitude: Location longitude
-    ///   - dataSource: Current primary data source ("weatherkit", "openweathermap", "weatherunderground", "openmeteo")
-    ///   - existingWeather: Optional Weather object that may already contain some extended data
     func fetchExtendedData(
         latitude: Double,
         longitude: Double,

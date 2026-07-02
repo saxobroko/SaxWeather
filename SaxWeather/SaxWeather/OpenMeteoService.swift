@@ -10,7 +10,9 @@ import Foundation
 actor OpenMeteoService {
     private let jsonDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        // OpenMeteoResponse uses snake_case property names that match
+        // the API payload exactly (e.g. temperature_2m_max).
+        decoder.keyDecodingStrategy = .useDefaultKeys
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()

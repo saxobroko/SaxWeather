@@ -1,31 +1,3 @@
-//
-//  ConditionIcon.swift
-//  SaxWeather
-//
-//  Phase 6 — Iconography & animation engine.
-//
-//  `ConditionIcon` is the single entry point for "give me the icon
-//  for condition X at night Y at size Z". It reads the active
-//  customisation profile via `AnimationRegistry` and picks between:
-//
-//    • Lottie animation (when `animationsEnabled` and the user
-//      hasn't chosen `.bundledStatic`).
-//    • SF Symbol fallback (when animations are disabled, when the
-//      user chose `.bundledStatic`, or when the Lottie JSON fails
-//      to load).
-//
-//  Every `LottieView(name:)` call site in the app should migrate to
-//  `ConditionIcon` so the iconography knobs in `IconographySpec`
-//  (playback speed, loop mode, override map, icon style, symbol
-//  variant) are honoured automatically.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §4.6.
-//
-//  Phase 3 — removed the Aurora Lottie cosmetic and its
-//  `LottieSkinOverlay` modifier. The bundled Lottie animations
-//  are still wired in (they're the free default for everyone);
-//  only the paid colour overlay is gone.
-//
 
 import SwiftUI
 import Lottie
@@ -92,10 +64,6 @@ struct ConditionIcon: View {
 
     // MARK: - Resolution
 
-    /// Whether to render a Lottie animation. `false` when animations
-    /// are disabled, when the user chose `.bundledStatic`, or when
-    /// the user chose `.custom` without an override for this
-    /// condition.
     private var shouldUseLottie: Bool {
         let registry = AnimationRegistry.shared
         guard registry.animationsEnabled else { return false }
@@ -168,11 +136,6 @@ struct ConditionIcon: View {
             .accessibilityLabel(Text(symbolName))
     }
 
-    /// Map our `SymbolVariant` enum to SwiftUI's `SymbolVariants`.
-    /// `SymbolVariants` has no `.outline` member — for the outline
-    /// preference we return `.none` and rely on
-    /// `.symbolRenderingMode(.monochrome)` (already set above) to
-    /// produce the outlined appearance.
     private var variantPreference: SymbolVariants {
         switch symbolVariant {
         case .automatic: return .none

@@ -196,10 +196,6 @@ enum UnitConverter {
         return raw.map { max(0, min($0, 2)) } ?? 0
     }
 
-    /// Format a temperature with the user-configured precision.
-    /// `25.0` with `1 dp` → `"25.0"`, with `0 dp` → `"25"`,
-    /// with `2 dp` → `"25.00"`. Always signed-positive, no
-    /// unit suffix (callers append their own `°C` / `°F`).
     static func formatTemperature(_ value: Double) -> String {
         let digits = temperaturePrecision
         return String(format: "%.\(digits)f", value)

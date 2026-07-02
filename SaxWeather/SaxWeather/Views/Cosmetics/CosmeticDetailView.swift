@@ -1,58 +1,12 @@
-//
-//  CosmeticDetailView.swift
-//  SaxWeather
-//
-//  Phase 1 — Cosmetic-only monetization foundation.
-//  Phase 3 — Live preview coordinator flow.
-//  Phase 4 — Supporter Pack hero now reads the optional
-//            `tileImageName` first (so a user-dropped JPEG
-//            renders), then falls back to the kind-appropriate
-//            `CosmeticTilePlaceholder` (which uses a
-//            distinctive gold/amber gradient for the Supporter
-//            Pack). Previously the hero used a hardcoded
-//            pink/purple gradient that ignored the tile image
-//            entirely.
-//
-//  The detail sheet pushed when a user taps a tile in
-//  `CosmeticsStoreView`. Shows the cosmetic's large
-//  preview, description, "Buy" / "Owned" action, an
-//  optional "Preview on your forecast for 30s" button,
-//  and a "Restore Purchases" link at the bottom.
-//
-//  Phase 3 — the "Preview" button now drives a
-//  `CosmeticPreviewCoordinator` instead of silently
-//  mutating the profile. The coordinator handles
-//  navigation to the relevant live view, runs the
-//  countdown, and pops back to this detail view when
-//  the preview ends. See `CosmeticPreviewCoordinator` for
-//  the full lifecycle.
-//  Phase 5 — added the "Use this" / "Use now" affordance.
-//  When the user owns the cosmetic, an additional "Use
-//  this" button commits the selection to the profile and
-//  publishes a `pendingUsage` so `ContentView` can
-//  navigate to the matching picker. The button is hidden
-//  for cosmetic kinds without a settings page
-//  (`supportsUseNow == false`).
-//
-//  See `plans/COSMETIC_MONETIZATION_PLAN.md` §5.1 for the
-//  ethical-copy rules this view follows.
-//
 
 import SwiftUI
 import StoreKit
 
-/// Detail sheet for a single cosmetic. Presented as a sheet
-/// from `CosmeticsStoreView` (and — in Phase 2 — from widget
-/// deep links).
 struct CosmeticDetailView: View {
     @EnvironmentObject private var storeManager: StoreManager
     @EnvironmentObject private var registry: CustomisationRegistry
     @EnvironmentObject private var previewCoordinator: CosmeticPreviewCoordinator
     @EnvironmentObject private var cosmeticUsageCoordinator: CosmeticUsageCoordinator
-    // Phase 4 — read the shared preview manager from the
-    // environment so the detail sheet always starts previews
-    // on the same instance the countdown overlay observes.
-    // See `CosmeticsStoreView` for the full rationale.
     @EnvironmentObject private var previewManager: PreviewProfileManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -169,22 +123,6 @@ struct CosmeticDetailView: View {
         }
     }
 
-    /// Per-product hero background. Phase 3 — if a custom
-    /// tile image has been dropped into
-    /// `Assets.xcassets/cosmetic_tile_<short_id>.imageset/`,
-    /// render it. Otherwise fall back to:
-    ///   1. The Aurora Backgrounds real JPEG (preserved
-    ///      behaviour from Phase 3 work).
-    ///   2. The Aurora palette gradient for palette
-    ///      cosmetics.
-    ///   3. The kind-appropriate SF Symbol placeholder
-    ///      from `CosmeticTilePlaceholder`.
-    ///
-    /// Phase 4 — the Supporter Pack now uses the same
-    /// `CosmeticTileImage.image(for:)` → `CosmeticTilePlaceholder`
-    /// fallback chain as every other cosmetic (previously it
-    /// used a hardcoded pink/purple gradient that ignored the
-    /// tile image entirely).
     @ViewBuilder
     private var heroBackground: some View {
         if let tileImage = CosmeticTileImage.image(for: product) {
@@ -250,10 +188,6 @@ struct CosmeticDetailView: View {
         }
     }
 
-    /// Defensive missing-asset fallback for the Aurora
-    /// Backgrounds hero preview. Mirrors the gradient the
-    /// user sees on the home screen if the JPEGs haven't
-    /// been dropped into the asset catalog yet.
     private var heroAuroraFallbackGradient: some View {
         let strategy = BackgroundResolver.auroraGradient(
             forCondition: "default"
@@ -308,22 +242,22 @@ struct CosmeticDetailView: View {
         switch product.id {
         case "com.saxweather.cosmetic.aurora.backgrounds":
             return String(
-                localized: "Replaces the eight shipped weather background images with aurora-themed versions. Purely visual — your forecast, your data, your alerts, all work the same. Free alternatives: any custom image you supply, or any of the other built-in presets.",
+                localized: "Replaces the eight shipped weather background images with aurora-themed versions.",
                 comment: "Long description for Aurora Backgrounds."
             )
         case "com.saxweather.cosmetic.aurora.palette":
             return String(
-                localized: "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral. Purely visual — every existing customisation knob still works. The free equivalent: pick any other palette, or set each colour manually via the hex picker.",
+                localized: "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral.",
                 comment: "Long description for Aurora Palette."
             )
         case "com.saxweather.cosmetic.supporter.badge":
             return String(
-                localized: "Adds a small private acknowledgement in Settings → About. No public visibility, no social comparison, no leaderboard. The free equivalent: no badge, but every other cosmetic is still available.",
+                localized: "Adds a small private acknowledgement in Settings → About.",
                 comment: "Long description for Supporter Badge."
             )
         case "com.saxweather.cosmetic.supporter.pack":
             return String(
-                localized: "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically. No subscriptions, no Family Sharing, no auto-renew. The most cost-effective way to support development and own the entire cosmetic library.",
+                localized: "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically.",
                 comment: "Long description for Supporter Pack."
             )
         default:
@@ -333,11 +267,6 @@ struct CosmeticDetailView: View {
 
     // MARK: - Preview button
 
-    /// `true` for cosmetics that have a meaningful visual
-    /// effect the user can preview on their forecast.
-    /// Supporter-tier items (Badge, Pack) and bundles have no
-    /// single visual effect on the forecast itself, so their
-    /// preview button stays hidden.
     private var supportsPreview: Bool {
         switch product.productKind {
         case .backgrounds, .palette, .chart:
@@ -349,13 +278,6 @@ struct CosmeticDetailView: View {
         }
     }
 
-    /// `true` for cosmetics the user can "use now" — i.e.
-    /// kinds that map to an in-app settings page
-    /// (`backgrounds`, `palette`, `chart`). For these
-    /// cosmetics the detail sheet surfaces a "Use this"
-    /// / "Use now" button that applies the cosmetic to
-    /// the live profile and publishes a `pendingUsage`
-    /// so `ContentView` can present the matching picker.
     private var supportsUseNow: Bool {
         switch product.productKind {
         case .backgrounds, .palette, .chart:
@@ -507,19 +429,6 @@ struct CosmeticDetailView: View {
 
     // MARK: - Use now / Use this
 
-    /// "Use this" / "Use now" button. Tapping it:
-    /// 1. Cancels any active preview (the cosmetic is
-    ///    about to become the active selection, so the
-    ///    preview would otherwise fight the change).
-    /// 2. Asks the usage coordinator to apply the
-    ///    cosmetic to the profile and publish a
-    ///    `pendingUsage` for `ContentView` to consume.
-    /// 3. Dismisses the detail sheet so the picker has
-    ///    a clean canvas to land on.
-    ///
-    /// The label switches between "Use now" (just
-    /// purchased) and "Use this" (already owned) so the
-    /// copy reads naturally for both flows.
     private var useNowButton: some View {
         Button {
             useNow()
@@ -549,16 +458,6 @@ struct CosmeticDetailView: View {
         )
     }
 
-    /// `true` when the user owns the cosmetic AND
-    /// `purchaseJustCompleted` is the most recent signal
-    /// we have. The detail view is the only place that
-    /// can reliably tell "just purchased" apart from
-    /// "owned for a while" — the store manager's
-    /// `owns(_:)` stays true after the purchase
-    /// completes, so the simplest reliable signal is
-    /// "the purchase flow ran on this sheet". We treat
-    /// a successful purchase on this sheet as the cue
-    /// to switch the label to "Use now".
     @State private var justPurchased: Bool = false
 
     private func useNow() {
@@ -607,15 +506,6 @@ struct CosmeticDetailView: View {
         }
     }
 
-    /// Phase 3 — drive the live preview coordinator.
-    ///
-    /// 1. Snapshot the user's current profile.
-    /// 2. Start the preview via `PreviewProfileManager` (this
-    ///    applies the cosmetic to the registry inout).
-    /// 3. Hand the snapshot + product to the coordinator so
-    ///    it can pick a destination and trigger navigation.
-    /// 4. Dismiss this detail sheet so the live view is
-    ///    unobstructed underneath.
     private func startPreview() {
         let originalProfile = registry.profile
         var workingProfile = originalProfile
@@ -643,10 +533,6 @@ struct CosmeticDetailView: View {
         )
     }
 
-    /// Cancel any active preview when the sheet dismisses so
-    /// the user isn't left with a 30-second timer running in
-    /// the background. Only cancels if THIS product is the
-    /// active preview — leaves other products' previews alone.
     private func cancelPreviewIfActive() {
         if previewManager.activePreview?.productID == product.id {
             stopPreview(restoreToDetail: false)

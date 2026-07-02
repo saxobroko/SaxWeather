@@ -1,78 +1,14 @@
-//
-//  StyledCard.swift
-//  SaxWeather
-//
-//  Phase 3 — the single entry point for "render this view as a
-//  card" across the app. Reads `cardStyle`, `cornerRadius`,
-//  `cardOpacity`, `cardBorderColor`, `cardBorderWidth`,
-//  `cardShadowOpacity`, `cardShadowRadius`, `cardShadowX`,
-//  `cardShadowY`, `cardBlurIntensity`, `cardHighlightIntensity`,
-//  `cardTint`, `cardTintOverlay`, `cardNeumorphicInset`, and the
-//  palette from the active profile and applies them as SwiftUI
-//  modifiers.
-//
-//  Card styles:
-//    • `.glass`      — true glass effect (iOS 26.2+) /
-//                      `.ultraThinMaterial` fallback. The
-//                      shipped default for the home screen.
-//    • `.solid`      — opaque `palette.surface` colour at the
-//                      user's chosen opacity, with the optional
-//                      `cardTint` accent wash on top.
-//    • `.outline`    — transparent fill with a 1pt user-chosen
-//                      `cardBorderColor` border. Use for inline
-//                      cards in lists.
-//    • `.neumorphic` — soft 5% gray fill with a 1pt white
-//                      highlight and a 1pt inner shadow. Decorative.
-//
-//  The `cardStyle(theme:)` variant takes a `VisualSpec` directly
-//  so the live-preview Card Settings submenu can render an
-//  example card without committing the values to the registry.
-//
-//  Phase 4 — Aurora Palette reactivity fix. The body now
-//  directly references `registry.profile` so SwiftUI tracks
-//  the dependency and re-renders when the profile changes
-//  (e.g. during a live preview). Previously the body only
-//  referenced `visual` (a local variable), which meant
-//  SwiftUI didn't always re-evaluate the body when the
-//  profile changed.
-//
-//  Part E — Aurora Palette visibility fix. The `.glass` card
-//  style now tints the material with the palette's `surface`
-//  colour at low opacity so the palette is visible on the
-//  default home screen. Previously the `.glass` style used
-//  `Material.ultraThin` etc. which doesn't consume any
-//  palette colours, so the Aurora Palette was invisible on
-//  the default home screen even with the reactivity fix.
-//
 
 import SwiftUI
 #if canImport(AppKit)
 import AppKit
 #endif
 
-/// Theme-driven card styling. Reads from the active
-/// `CustomisationRegistry` by default; pass an explicit
-/// `VisualSpec` to render a preview without touching the
-/// registry.
 struct StyledCardModifier: ViewModifier {
     @ObservedObject var registry: CustomisationRegistry
-    // Part B — observe the reactive palette store so the card
-    // re-renders when the palette changes (e.g. during a live
-    // preview of the Aurora Palette cosmetic). The store
-    // observes `CustomisationRegistry` and updates its
-    // `@Published var palette` when the profile changes.
     @EnvironmentObject private var colourTokenStore: ColourTokenStore
 
     func body(content: Content) -> some View {
-        // Phase 4 — direct reference to `registry.profile` so
-        // SwiftUI tracks the dependency and re-renders when the
-        // profile changes (e.g. during a live preview). Without
-        // this, the body might not re-evaluate when the profile
-        // changes because `visual` is a local variable.
-        // Part B — direct reference to `colourTokenStore.palette`
-        // so SwiftUI tracks the dependency and re-renders when
-        // the palette changes (e.g. during a live preview of
-        // the Aurora Palette cosmetic).
         let _ = colourTokenStore.palette
         let visual = registry.profile.knobs.visual
         return content
@@ -126,18 +62,6 @@ case .glass:
     Rectangle()
         .fill(material)
         .opacity(visual.cardGlassOpacity)
-    // Part E (reverted) — Aurora Palette visibility
-    // tint. The always-on tint was removed because
-    // it changed the default look of the app even
-    // when the Aurora Palette was not selected. The
-    // tint is now applied via `CardColorScheme.tint`
-    // and only when the Aurora Palette is selected
-    // AND owned (see `CardColorScheme.resolve`).
-    // Previously the `.glass` style used
-    // `Material.ultraThin` etc. which doesn't
-    // consume any palette colours, so the Aurora
-    // Palette was invisible on the default home
-    // screen even with the reactivity fix.
     if visual.palette == .cosmeticAurora {
         Rectangle()
             .fill(
@@ -238,18 +162,6 @@ struct ThemedCardModifier: ViewModifier {
                 Rectangle()
                     .fill(material)
                     .opacity(visual.cardGlassOpacity)
-                // Part E (reverted) — Aurora Palette visibility
-                // tint. The always-on tint was removed because
-                // it changed the default look of the app even
-                // when the Aurora Palette was not selected. The
-                // tint is now applied via `CardColorScheme.tint`
-                // and only when the Aurora Palette is selected
-                // AND owned (see `CardColorScheme.resolve`).
-                // Previously the `.glass` style used
-                // `Material.ultraThin` etc. which doesn't
-                // consume any palette colours, so the Aurora
-                // Palette was invisible on the default home
-                // screen even with the reactivity fix.
                 if visual.palette == .cosmeticAurora {
                     Rectangle()
                         .fill(
@@ -296,10 +208,6 @@ struct ThemedCardModifier: ViewModifier {
     }
 }
 
-/// Renders the border, neumorphic inset, and glass edge highlight
-/// for a card. Shared between the registry-driven
-/// `StyledCardModifier` and the live-preview `ThemedCardModifier`
-/// so the live preview matches the real render exactly.
 struct CardOverlay: View {
     let visual: VisualSpec
 
@@ -372,12 +280,6 @@ struct CardOverlay: View {
 }
 
 extension View {
-    /// Render `self` as a card whose background, border,
-    /// corner radius, shadow, and tint are all driven by the
-    /// active `CustomisationProfile`.
-    ///
-    /// - Parameter registry: registry to read from. Defaults to
-    ///   `CustomisationRegistry.shared`.
     @MainActor
     func styledCard(registry: CustomisationRegistry = .shared) -> some View {
         modifier(StyledCardModifier(registry: registry))

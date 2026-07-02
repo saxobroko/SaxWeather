@@ -1,32 +1,3 @@
-//
-//  ProfileToAppStorageBridge.swift
-//  SaxWeather
-//
-//  Phase 2 — bidirectional bridge between `KnobStorage` (the
-//  customisation engine's source of truth) and the existing
-//  `@AppStorage` keys that the app has shipped with.
-//
-//  Why: the registry should be the single mutation path, but
-//  dozens of views still read settings via `@AppStorage` (which
-//  reads from `UserDefaults`). Rather than rewrite every view in
-//  Phase 2, the bridge writes every knob to its corresponding
-//  UserDefaults key on every mutation — so existing `@AppStorage`
-//  reads keep working unchanged.
-//
-//  Two directions:
-//    * `bridge(_:to:)` — registry → UserDefaults. Called after
-//      every `set` / `apply`. Idempotent and cheap.
-//    * `readFromAppStorage(from:)` — UserDefaults → KnobStorage.
-//      Used once at first launch (post-Phase-2 deploy) to seed
-//      the registry from any user customisations that already
-//      lived in UserDefaults.
-//
-//  Credentials (`wuApiKey`, `stationID`, `owmApiKey`) and
-//  coordinates (`latitude`, `longitude`) are intentionally NOT
-//  bridged — they are not knobs.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §4.2.
-//
 
 import Foundation
 
@@ -35,15 +6,6 @@ enum ProfileToAppStorageBridge {
 
     // MARK: - Registry → UserDefaults
 
-    /// Write every bridged knob to its corresponding `@AppStorage`
-    /// key. Called by the registry after every `apply(_:)` and
-    /// `set(_:_:)` so existing `@AppStorage` views continue to
-    /// reflect the active profile without code changes.
-    ///
-    /// - Parameters:
-    ///   - knobs: the current `KnobStorage` snapshot.
-    ///   - defaults: target UserDefaults. Defaults to `.standard`.
-    ///     Tests inject an isolated suite.
     static func bridge(_ knobs: KnobStorage, to defaults: UserDefaults = .standard) {
         dispatchPrecondition(condition: .onQueue(.main))
 
@@ -89,10 +51,6 @@ enum ProfileToAppStorageBridge {
         // Iconography
         defaults.set(knobs.iconography.disableWeatherAnimations,
                      forKey: "disableWeatherAnimations")
-        // Phase 6 — playback speed is read by `LottieView` via
-        // `@AppStorage("lottiePlaybackSpeed")` so the
-        // `LottieAnimationView.animationSpeed` honours the
-        // registry knob.
         defaults.set(knobs.iconography.lottiePlaybackSpeed,
                      forKey: "lottiePlaybackSpeed")
         defaults.set(knobs.iconography.lottieLoopMode.rawValue,
@@ -189,17 +147,6 @@ enum ProfileToAppStorageBridge {
 
     // MARK: - UserDefaults → KnobStorage (first-launch seeding)
 
-    /// Build a `KnobStorage` from existing UserDefaults values.
-    /// Used only at first launch after Phase 2 ships, to seed the
-    /// registry from any settings the user has already customised
-    /// via the existing UI. After this runs once, the registry is
-    /// the source of truth and overrides UserDefaults on
-    /// subsequent writes.
-    ///
-    /// Crucially, every read uses `defaults.object(forKey:) != nil`
-    /// (not `defaults.bool(forKey:)`) so we don't accidentally
-    /// overwrite a knob with `false` just because the user has
-    /// never set that key.
     static func readFromAppStorage(from defaults: UserDefaults = .standard) -> KnobStorage {
         var knobs = KnobStorage()
 

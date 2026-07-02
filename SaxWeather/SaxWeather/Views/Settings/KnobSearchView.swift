@@ -1,21 +1,3 @@
-//
-//  KnobSearchView.swift
-//  SaxWeather
-//
-//  "Infinitely customisable" — Settings UI surface (Phase 7+).
-//
-//  A search-driven Settings view that surfaces every knob the
-//  registry knows about. Typing a query filters the catalogue
-//  (case-insensitive, matched against each knob's `searchTokens`).
-//
-//  Every row is **tappable**: tapping opens `KnobEditorSheet`,
-//  which renders the right editor for the knob's type — Toggle
-//  for Bool, Slider for Double, Stepper for Int, Picker for Enum,
-//  TextField for freeform String. The editor sheet also exposes
-//  a "Reset to default" action for the knob.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §3.3.
-//
 
 import SwiftUI
 
@@ -148,13 +130,6 @@ private struct KnobRow: View {
         .contentShape(Rectangle())
     }
 
-    /// Best-effort human-readable current value for the knob.
-    /// Delegates to the shared `SearchKnobValueFormatter` so the
-    /// Search results inside the in-Settings `.searchable` bar
-    /// and the standalone `KnobSearchView` always agree. Falls
-    /// back to "—" when the descriptor doesn't map to a known
-    /// registry keypath (which happens for nested widget sub-specs
-    /// like `widgetStyle.small`).
     private var currentValueLabel: String {
         SearchKnobValueFormatter.label(for: descriptor.id, in: customisation.profile)
     }
@@ -162,11 +137,6 @@ private struct KnobRow: View {
 
 // MARK: - Editor sheet
 
-/// Per-knob value editor. Dispatches on `descriptor.id` to the
-/// right SwiftUI primitive for the knob's value type. The set of
-/// cases is exhaustive for everything currently in
-/// `KnobDescriptor.catalogue`; unrecognised IDs fall through to a
-/// "not yet editable inline" placeholder so the sheet never crashes.
 struct KnobEditorSheet: View {
     let descriptor: KnobDescriptor
     @EnvironmentObject private var customisation: CustomisationRegistry
@@ -434,11 +404,6 @@ struct KnobEditorSheet: View {
 
     // MARK: - Editor helpers
 
-    /// Generic boolean toggle bound to a writable key path on
-    /// `KnobStorage`. Reading goes through `customisation.profile.knobs`
-    /// (so we always see the current persisted value); writing
-    /// routes through `customisation.set(_:_:)` so the bridge to
-    /// UserDefaults and the widget reload fire as usual.
     @ViewBuilder
     private func bool(_ keyPath: WritableKeyPath<KnobStorage, Bool>) -> some View {
         let binding = Binding<Bool>(
@@ -532,10 +497,6 @@ struct KnobEditorSheet: View {
         .pickerStyle(.menu)
     }
 
-    /// Placeholder shown for knobs we don't have an inline editor
-    /// for yet (composite values, sub-spec fields, freeform text).
-    /// Keeps the sheet from looking broken — the user always gets a
-    /// next-step message instead of a crash.
     private func notEditableInline(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(message, systemImage: "info.circle")
@@ -546,10 +507,6 @@ struct KnobEditorSheet: View {
 
     // MARK: - Reset
 
-    /// Reset this single knob to its default. Builds a fresh
-    /// `KnobStorage()` (whose defaults match the app's shipped
-    /// behaviour) and copies the knob's value at the matching
-    /// key path into the active profile.
     private func resetToDefault() {
         let defaults = KnobStorage()
         // Walk the same dispatch table the editor used, applying

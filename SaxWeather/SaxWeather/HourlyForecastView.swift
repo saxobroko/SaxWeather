@@ -1,19 +1,3 @@
-//
-//  HourlyForecastView.swift
-//  SaxWeather
-//
-//  Created by Saxon Brooker on 2025-03-11
-//
-//  Phase 4 — Aurora Chart Skin reactivity fix.
-//
-//  The view body now directly references `registry.profile`
-//  so SwiftUI tracks the dependency and re-renders when the
-//  profile changes (e.g. during a live preview). Previously
-//  the view body only referenced `chartPaletteColors` (a
-//  computed property called inside `ForEach(hourlyData)`),
-//  which meant SwiftUI didn't always re-evaluate the
-//  computed property when the profile changed.
-//
 
 import SwiftUI
 import Foundation
@@ -26,39 +10,11 @@ struct HourlyForecastView: View {
     @State private var error: WeatherError?
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
-    // Phase 2 — cosmetic wiring. The chart palette is resolved
-    // from the user's profile + entitlement state; the pill
-    // strip uses the resulting colour gradient as its background.
     @EnvironmentObject private var storeManager: StoreManager
     @ObservedObject private var registry = CustomisationRegistry.shared
-    // Part B — observe the reactive chart palette store so the
-    // chart re-renders when the chart skin or entitlements
-    // change (e.g. during a live preview of the Aurora Chart
-    // Skin cosmetic). The store observes
-    // `CustomisationRegistry` and `StoreManager` and updates
-    // its `@Published var activeColors` when either changes.
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
-    /// Resolved chart palette colours for the active skin.
-    /// Free users always get the default neutral gradient; users
-    /// who own the Aurora Chart Skin IAP (or the Supporter Pack)
-    /// get the Aurora palette.
-    ///
-    /// Phase 4 — reads `registry.profile` directly so SwiftUI
-    /// tracks the dependency and re-renders when the profile
-    /// changes (e.g. during a live preview).
-    ///
-    /// Part F — uses the new `ChartColorScheme` pattern. The
-    /// hourly forecast pill strip has its own default colour
-    /// scheme (cool→warm gradient); the Aurora Chart Skin is an
-    /// override on top of the default.
     private var chartPaletteColors: [Color] {
-        // Part F — resolve the chart colour scheme for the
-        // hourly forecast pill strip and return its gradient
-        // colours. The store observes `CustomisationRegistry`
-        // and `StoreManager` and updates its `@Published var
-        // activeSkin` when either changes, so the chart
-        // re-renders automatically.
         let scheme = ChartColorScheme.hourlyForecast(
             activeSkin: chartPaletteStore.activeSkin
         )
@@ -76,16 +32,6 @@ struct HourlyForecastView: View {
     }
 
     var body: some View {
-        // Phase 4 — direct reference to `registry.profile` so
-        // SwiftUI tracks the dependency and re-renders when the
-        // profile changes (e.g. during a live preview). Without
-        // this, the view body might not re-evaluate when the
-        // profile changes because `chartPaletteColors` is only
-        // called inside `ForEach(hourlyData)`.
-        // Part B — direct reference to `chartPaletteStore.activeColors`
-        // so SwiftUI tracks the dependency and re-renders when
-        // the chart skin or entitlements change (e.g. during a
-        // live preview of the Aurora Chart Skin cosmetic).
         let _ = chartPaletteStore.activeColors
 
         VStack(alignment: .leading, spacing: 12) {
@@ -185,13 +131,6 @@ struct HourlyForecastView: View {
         .padding(.horizontal, 8)
         .frame(width: 75)
         .styledCard()
-        // Phase 2 — Aurora Chart Skin overlay. The gradient
-        // is drawn at low opacity (0.18) so the card's existing
-        // material / fill still reads, but the temperature
-        // strip now picks up the active palette tint. Free
-        // users see the default cool→warm gradient (blue → teal
-        // → green → yellow → orange); Aurora owners see the
-        // Aurora palette (deep navy → coral).
         .overlay(
             LinearGradient(
                 colors: chartPaletteColors,

@@ -1,27 +1,3 @@
-//
-//  ThemeEditorCard.swift
-//  SaxWeather
-//
-//  Phase 7 — Settings UI rebuild.
-//
-//  A debug-only card that exposes the live customisation profile
-//  as editable JSON. Designed to live in `LottieDebugView.swift`'s
-//  System tab (see §4.7 of the plan).
-//
-//  Capabilities:
-//
-//    • View the active profile as pretty-printed JSON.
-//    • **Reveal in Finder** — opens the App Group file containing
-//      the profile so a developer can edit it with any text
-//      editor. The hot-reload watcher in `CustomisationRegistry`
-//      picks up the change and re-applies it live.
-//    • **Reload** — manually triggers a reload from disk.
-//    • **Reset** — wipes the on-disk profile and reseeds from the
-//      current `@AppStorage` defaults.
-//
-//  All actions are guarded by `#if DEBUG` so the card never ships
-//  to production builds.
-//
 
 import SwiftUI
 #if canImport(AppKit)

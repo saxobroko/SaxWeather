@@ -1,51 +1,7 @@
-//
-//  ChartPaletteStore.swift
-//  SaxWeather
-//
-//  Part B — Aurora Chart Skin reactivity fix.
-//
-//  `ChartPalette` is a free function (not reactive). The chart
-//  skin is stored in `ForecastSpec.chartSkin`. When the user
-//  previews the Aurora Chart Skin, the chart skin changes but
-//  views that use it don't always re-render because:
-//
-//    1. The `chartPaletteColors` computed property in
-//       `HourlyForecastView` is only called inside
-//       `ForEach(hourlyData)`, not directly in the view body.
-//       SwiftUI may not re-evaluate the computed property when
-//       the profile changes.
-//    2. The view body has a `let _ = registry.profile` hack to
-//       force re-evaluation, but this is fragile.
-//
-//  This store wraps the chart palette in an `ObservableObject`
-//  so views can observe it via `@EnvironmentObject` /
-//  `@ObservedObject`. When the profile's chart skin changes
-//  or the user's entitlements change, the store re-resolves
-//  and notifies observers.
-//
-//  The store observes both `CustomisationRegistry.shared` and
-//  `StoreManager.shared` via Combine and updates its
-//  `@Published var activeColors` when either changes.
-//
-//  Threading: `@MainActor` — every state mutation and
-//  observation happens on the main actor, matching the
-//  existing `CustomisationRegistry` isolation.
-//
 
 import SwiftUI
 import Combine
 
-/// Reactive wrapper around the active chart palette. Views
-/// observe this store (via `@EnvironmentObject` or
-/// `@ObservedObject`) and re-render when the chart skin or
-/// entitlements change.
-///
-/// The store is the single source of truth for "what chart
-/// colours should be rendered right now". It observes
-/// `CustomisationRegistry.shared` (for the profile's chart
-/// skin) and `StoreManager.shared` (for the user's
-/// entitlements) and updates its `@Published var activeColors`
-/// when either changes.
 @MainActor
 final class ChartPaletteStore: ObservableObject {
 
@@ -73,18 +29,6 @@ final class ChartPaletteStore: ObservableObject {
 
     // MARK: - Init
 
-    /// Standard init. Observes `registry` (defaults to
-    /// `.shared`) and `storeManager` (defaults to `.shared`)
-    /// and updates `activeSkin` / `activeColors` when either
-    /// changes.
-    ///
-    /// - Parameters:
-    ///   - registry: the registry to observe. Defaults to
-    ///     `CustomisationRegistry.shared`. Tests inject a
-    ///     test-only registry.
-    ///   - storeManager: the store manager to observe.
-    ///     Defaults to `StoreManager.shared`. Tests inject a
-    ///     test-only store manager.
     init(
         registry: CustomisationRegistry = .shared,
         storeManager: StoreManager = .shared

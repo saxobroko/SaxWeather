@@ -35,7 +35,6 @@ enum APIKeyService: String, CaseIterable, Codable {
     }
 }
 
-/// What we believe about a particular API key right now.
 enum APIKeyHealthStatus: String, Codable {
     /// We have never tried to use this key, or the user has just saved
     /// a new one and we haven't validated it yet.
@@ -208,10 +207,6 @@ final class APIKeyHealthMonitor: ObservableObject {
         logger.warning("Recorded \(derivedStatus.rawValue, privacy: .public) for service \(service.rawValue, privacy: .public) (HTTP \(httpStatusCode ?? -1))")
     }
 
-    /// Call for an exception thrown by the underlying network
-    /// layer (e.g. malformed response, decoding error). These
-    /// don't tell us much about the key itself, so they only
-    /// bump `consecutiveFailures` and update timestamps.
     func recordTransientError(for service: APIKeyService, detail: String? = nil) {
         mutateEntry(for: service) { entry in
             entry.detail = detail
@@ -253,11 +248,6 @@ final class APIKeyHealthMonitor: ObservableObject {
         }
     }
 
-    /// Compute (or refresh) a fingerprint for the current key
-    /// value. We use a stable hash so we can detect when the
-    /// stored key has been replaced and the health entry should
-    /// be reset to "unknown" rather than carrying over the
-    /// status of an old, different key.
     @discardableResult
     func refreshFingerprint(for service: APIKeyService) -> String? {
         guard let key = KeychainService.shared.getApiKey(forService: service.rawValue),

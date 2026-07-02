@@ -10,10 +10,6 @@ struct LottieView: UIViewRepresentable {
     @Binding var loadingFailed: Bool
     @AppStorage("disableWeatherAnimations") private var disableWeatherAnimations = false
     @AppStorage("reduceMotion") private var reduceMotion = false
-    // Phase 6 — playback speed is bridged from
-    // `IconographySpec.lottiePlaybackSpeed` via
-    // `ProfileToAppStorageBridge`. Default 1.0 matches the
-    // registry default so existing call sites see no change.
     @AppStorage("lottiePlaybackSpeed") private var lottiePlaybackSpeed: Double = 1.0
 
     init(name: String, loopMode: LottieLoopMode = .loop) {
@@ -70,8 +66,6 @@ struct LottieView: UIViewRepresentable {
             animationView.animation = animation
             animationView.contentMode = .scaleAspectFit
             animationView.loopMode = loopMode
-            // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`
-            // (bridged to UserDefaults via `ProfileToAppStorageBridge`).
             animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
             animationView.play()
         } else {
@@ -141,7 +135,6 @@ struct LottieView: UIViewRepresentable {
                     animationView.animation = animation
                     animationView.contentMode = .scaleAspectFit
                     animationView.loopMode = loopMode
-                    // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
                     animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
                     animationView.play()
                 }
@@ -175,10 +168,6 @@ struct LottieView: NSViewRepresentable {
     @Binding var loadingFailed: Bool
     @AppStorage("disableWeatherAnimations") private var disableWeatherAnimations = false
     @AppStorage("reduceMotion") private var reduceMotion = false
-    // Phase 6 — playback speed is bridged from
-    // `IconographySpec.lottiePlaybackSpeed` via
-    // `ProfileToAppStorageBridge`. Default 1.0 matches the
-    // registry default so existing call sites see no change.
     @AppStorage("lottiePlaybackSpeed") private var lottiePlaybackSpeed: Double = 1.0
 
     init(name: String, loopMode: LottieLoopMode = .loop) {
@@ -233,7 +222,6 @@ struct LottieView: NSViewRepresentable {
         if let animation = LottieParser.loadAnimation(named: name) {
             animationView.animation = animation
             animationView.loopMode = loopMode
-            // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
             animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
             animationView.play()
         } else {
@@ -286,7 +274,6 @@ struct LottieView: NSViewRepresentable {
                 if let animation = LottieParser.loadAnimation(named: name) {
                     animationView.animation = animation
                     animationView.loopMode = loopMode
-                    // Phase 6 — honour `IconographySpec.lottiePlaybackSpeed`.
                     animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
                     animationView.play()
                 }

@@ -49,11 +49,6 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "tapticOnRefresh")
     }
 
-    /// `true` → vibrate (haptic success) when pull-to-refresh
-    /// completes. Gated by `enableHapticFeedback` so users who
-    /// disable haptics don't feel this either.
-    /// Matches `@AppStorage("vibrateOnPullToRefresh")` (default
-    /// `true`).
     static var vibrateOnPullToRefresh: Bool {
         if UserDefaults.standard.object(forKey: "vibrateOnPullToRefresh") == nil {
             return true
@@ -72,11 +67,6 @@ enum SettingsBehaviour {
 
     // MARK: - Gestures
 
-    /// `true` → user can drag-down inside the scroll view to
-    /// refresh the weather. When `false` the `.refreshable`
-    /// modifier is omitted entirely so the system control never
-    /// appears.
-    /// Matches `@AppStorage("pullToRefresh")` (default `true`).
     static var pullToRefresh: Bool {
         if UserDefaults.standard.object(forKey: "pullToRefresh") == nil {
             return true
@@ -84,10 +74,6 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "pullToRefresh")
     }
 
-    /// `true` → tapping a day card in the daily forecast opens
-    /// the detail sheet. When `false` the tap is a no-op (the
-    /// card remains visible but does not respond).
-    /// Matches `@AppStorage("tapDayToExpand")` (default `true`).
     static var tapDayToExpand: Bool {
         if UserDefaults.standard.object(forKey: "tapDayToExpand") == nil {
             return true
@@ -95,11 +81,6 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "tapDayToExpand")
     }
 
-    /// `true` → long-press a day card to open the per-card
-    /// customisation sheet (theme override / pin). When `false`
-    /// long-press is ignored.
-    /// Matches `@AppStorage("longPressToCustomise")` (default
-    /// `true`).
     static var longPressToCustomise: Bool {
         if UserDefaults.standard.object(forKey: "longPressToCustomise") == nil {
             return true
@@ -119,24 +100,12 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "confirmDestructive")
     }
 
-    /// `true` → show "Are you sure you want to quit?" alert
-    /// when the user backgrounds the app from the home screen.
-    /// iOS does not let us intercept the home button, so the
-    /// closest reliable place to act on this is the
-    /// `scenePhase` transition. We use it to make sure no
-    /// destructive background work is silently cancelled.
-    /// Matches `@AppStorage("confirmQuit")` (default `false`).
     static var confirmQuit: Bool {
         UserDefaults.standard.bool(forKey: "confirmQuit")
     }
 
     // MARK: - Alerts & sounds
 
-    /// `true` → weather alert local notifications play the
-    /// default sound. When `false` notifications are delivered
-    /// silently (alert text only).
-    /// Matches `@AppStorage("weatherAlertSounds")` (default
-    /// `true`).
     static var weatherAlertSounds: Bool {
         if UserDefaults.standard.object(forKey: "weatherAlertSounds") == nil {
             return true
@@ -144,33 +113,18 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "weatherAlertSounds")
     }
 
-    /// `true` → system taptic engine pulse when refresh
-    /// completes (in addition to optional sound). Today this is
-    /// a synonym for `tapticOnRefresh`; kept as its own key so
-    /// future audio work has somewhere to land without another
-    /// migration.
-    /// Matches `@AppStorage("refreshSound")` (default `false`).
     static var refreshSound: Bool {
         UserDefaults.standard.bool(forKey: "refreshSound")
     }
 
     // MARK: - Quiet hours
 
-    /// Hour-of-day (0-23) when quiet hours begin. `nil` means
-    /// quiet hours are off.
-    /// Matches `@AppStorage("quietHoursStart")` (default 22,
-    /// but treated as `nil` because the BehaviourSpec stores an
-    /// optional Int).
     static var quietHoursStart: Int? {
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: "quietHoursStart") != nil else { return nil }
         return defaults.integer(forKey: "quietHoursStart")
     }
 
-    /// Hour-of-day (0-23) when quiet hours end. `nil` means
-    /// quiet hours are off.
-    /// Matches `@AppStorage("quietHoursEnd")` (default 7,
-    /// but treated as `nil` to match `quietHoursStart`).
     static var quietHoursEnd: Int? {
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: "quietHoursEnd") != nil else { return nil }
@@ -194,13 +148,6 @@ enum SettingsBehaviour {
 
     // MARK: - Speech
 
-    /// `true` → speak weather alert summaries aloud when they
-    /// arrive (route through AVSpeechSynthesizer). Today this
-    /// is exposed via the accessibility VoiceOver channel; the
-    /// flag is honoured by `WeatherAlertManager` when posting
-    /// notifications.
-    /// Matches `@AppStorage("speakWeatherAlerts")` (default
-    /// `true`).
     static var speakWeatherAlerts: Bool {
         if UserDefaults.standard.object(forKey: "speakWeatherAlerts") == nil {
             return true
@@ -210,10 +157,6 @@ enum SettingsBehaviour {
 
     // MARK: - Convenience side-effects
 
-    /// Trigger the user-configured refresh feedback (taptic
-    /// pulse and/or audio) when a fetch completes successfully.
-    /// No-op if both feedback options are off or haptics are
-    /// globally disabled.
     static func triggerRefreshFeedback(success: Bool) {
         guard success else { return }
         #if canImport(UIKit)
@@ -241,10 +184,6 @@ enum SettingsBehaviour {
     private static let speechSynthesizer = AVSpeechSynthesizer()
     #endif
 
-    /// Speak a weather-alert summary aloud. Honours
-    /// `speakWeatherAlerts` and is a no-op when VoiceOver is
-    /// already running (VoiceOver speaks everything anyway,
-    /// adding our own speech would double-narrate).
     static func speakWeatherAlert(title: String, body: String) {
         #if canImport(AVFoundation)
         guard speakWeatherAlerts else { return }

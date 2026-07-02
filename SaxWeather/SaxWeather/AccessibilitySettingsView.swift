@@ -8,18 +8,8 @@
 import SwiftUI
 
 struct AccessibilitySettingsView: View {
-    // Phase 2 bridge — customisation registry injected at the app
-    // root via `.environmentObject`. Every setting write below
-    // routes through `.onChange` to the registry.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
 
-    /// Whether the view body wraps itself in a `NavigationStack`.
-    /// Defaults to `true` so existing `NavigationLink` call sites
-    /// keep their nav chrome. Set to `false` when the view is
-    /// pushed onto an existing `NavigationStack` via
-    /// `.navigationDestination(for:)` — wrapping a second
-    /// `NavigationStack` inside the pushed view causes SwiftUI to
-    /// flash black during the push transition.
     var wrappedInNavigationStack: Bool = true
     // MARK: - Dynamic Type
     @AppStorage("useSystemTextSize") private var useSystemTextSize = true
@@ -88,12 +78,6 @@ struct AccessibilitySettingsView: View {
         #endif
     }
 
-    /// The iOS `Form` (and its `.onChange` modifiers) lifted out
-    /// of `body` so the wrapping `NavigationStack` is optional.
-    /// Returning a single view from a helper keeps the modifier
-    /// chain readable and avoids the nested-stack flash that
-    /// happens when SwiftUI pushes an inner `NavigationStack`
-    /// onto an outer one.
     @ViewBuilder
     private var accessibilityForm: some View {
         #if os(iOS)
@@ -108,8 +92,6 @@ struct AccessibilitySettingsView: View {
         }
         .navigationTitle("Accessibility")
         .navigationBarTitleDisplayMode(.inline)
-        // Phase 2 bridge — forward every accessibility setting
-        // write to the registry.
         .onChange(of: useSystemTextSize) { newValue in
             customisationRegistry.set(\.visual.useSystemTextSize, newValue)
         }

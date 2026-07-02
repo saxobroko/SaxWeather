@@ -687,7 +687,7 @@ The banner is a new view modifier on `ContentView`:
 
 ### 5.4 Subtle "Thank you" treatment
 
-For users who own **any** paid cosmetic, a small "☕ Supporter" badge appears next to the version number in Settings → About. That's it. No public visibility, no leaderboard effect, no social comparison.
+For users who own **any** paid cosmetic, a small "☕ Supporter" badge appears next to the version number in Settings → About.
 
 The badge is **not** shown:
 - On the home screen

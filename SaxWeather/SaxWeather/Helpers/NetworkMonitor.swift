@@ -1,44 +1,8 @@
-//
-//  NetworkMonitor.swift
-//  SaxWeather
-//
-//  Lightweight wrapper around `NWPathMonitor` that gives the rest
-//  of the app a thread-safe view of the current network state.
-//
-//  The original background refresh path in `SaxWeatherApp.swift`
-//  issued an `URLSession` request on every wake-up, even if the
-//  device was clearly offline. iOS gives a `BGAppRefreshTask`
-//  roughly 30 seconds of wall time, so burning the budget on a
-//  request that cannot possibly succeed is wasteful and feeds
-//  back into the iOS throttling that already punishes "noisy"
-//  background apps.
-//
-//  Callers can:
-//   * Read the live `isConnected` / `isExpensive` / `isConstrained`
-//     properties (publish on the main thread, suitable for SwiftUI).
-//   * Use `currentSnapshot()` for a synchronous pre-flight check
-//     before a network call. This is a snapshot of the most
-//     recent path update, not a fresh probe.
-//
-//  The monitor starts on first access (singleton init). iOS may
-//  take a few hundred milliseconds to deliver the first path
-//  update, so the very first `currentSnapshot()` call right after
-//  process start can optimistically report `.satisfied` until the
-//  first real update arrives. This is acceptable for our use
-//  case: the pre-flight check is an optimisation, not a
-//  guarantee, and the URL session still surfaces real errors.
-//
 
 import Foundation
 import Network
 import Combine
 
-/// Connectivity monitor backed by `NWPathMonitor`.
-///
-/// Exposes both a Combine publisher for SwiftUI bindings and a
-/// synchronous snapshot for one-shot pre-flight checks before
-/// network calls. The class is intentionally a singleton so
-/// there is only one `NWPathMonitor` per process.
 final class NetworkMonitor: ObservableObject {
     static let shared = NetworkMonitor()
 
@@ -64,10 +28,6 @@ final class NetworkMonitor: ObservableObject {
 
     // MARK: - Published State
 
-    /// `true` when the path is satisfied. Defaults to `true` so
-    /// the very first update (or absence of one) does not flip
-    /// the app into "offline" before the first real probe
-    /// arrives.
     @Published private(set) var isConnected: Bool = true
 
     /// `true` on personal hotspots, tethered networks, and other
@@ -126,12 +86,7 @@ final class NetworkMonitor: ObservableObject {
 
     // MARK: - Public API
 
-    /// Test-only injection point. Lets unit tests set the
-    /// published properties directly without needing a live
-    /// `NWPathMonitor`. Marked with a leading underscore to
-    /// discourage production use — the real path updates come
-    /// from the `pathUpdateHandler` closure.
-    #if DEBUG
+    #if DEBUG || TESTING
     func setForTesting(
         isConnected: Bool? = nil,
         isConstrained: Bool? = nil,
@@ -145,15 +100,6 @@ final class NetworkMonitor: ObservableObject {
     }
     #endif
 
-    /// Synchronous snapshot of the current path. Safe to call
-    /// from any thread.
-    ///
-    /// This returns whatever `NWPathMonitor` currently knows
-    /// about the path. If the monitor has not received its first
-    /// update yet (which can happen for a few hundred ms after
-    /// process start), the path will be the default-initialised
-    /// `.satisfied` value. Callers that need a hard guarantee
-    /// should combine the snapshot with their own retry logic.
     func currentSnapshot() -> Snapshot {
         let path = monitor.currentPath
         let connected = path.status == .satisfied
@@ -183,10 +129,6 @@ final class NetworkMonitor: ObservableObject {
 // MARK: - Network quality
 
 extension NetworkMonitor {
-    /// Coarse-grained classification of the current network
-    /// path. Combines `connectionType`, `isExpensive`, and
-    /// `isConstrained` into a single value the rest of the app
-    /// can switch on without re-deriving the same logic.
     enum NetworkQuality: Equatable {
         /// No usable path.
         case offline
@@ -216,10 +158,6 @@ extension NetworkMonitor {
         }
     }
 
-    /// True when the app should fetch the heavy extended
-    /// forecast payload (AQI, pollen, sun/moon, hourly
-    /// precipitation). Skipped on cellular + Low Data Mode to
-    /// respect the user's data plan.
     var shouldFetchExtendedForecast: Bool {
         switch quality {
         case .offline, .expensive, .constrained:
@@ -229,10 +167,6 @@ extension NetworkMonitor {
         }
     }
 
-    /// Recommended background-refresh interval for the current
-    /// network quality. WiFi refreshes more aggressively than
-    /// cellular; Low Data Mode and expensive networks back off
-    /// further. Returns `nil` when offline (no point scheduling).
     var recommendedBackgroundRefreshInterval: TimeInterval? {
         switch quality {
         case .offline: return nil
