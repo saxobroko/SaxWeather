@@ -80,6 +80,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Helpers/UnitConverter.swift,
+				Helpers/WidgetRainLine.swift,
 				Helpers/WidgetStaleness.swift,
 			);
 			target = 7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */;

@@ -70,6 +70,7 @@ struct ContentView: View {
     // from `SaxWeatherApp`; we only read its `pendingProductID`
     // here and forward it into our own state.
     @EnvironmentObject private var deepLinkHandler: CosmeticDeepLinkHandler
+    @EnvironmentObject private var locationDeepLinkHandler: WeatherLocationDeepLinkHandler
     @State private var pendingDeepLinkProductID: String?
     // Phase 5 — drives the palette + chart-skin picker sheets
     // presented in response to a "Use now" / "Use this" tap.
@@ -80,6 +81,7 @@ struct ContentView: View {
     @State private var pendingUsageChart: String?
     @State private var pendingUsageBackground: String?
     @State private var selectedFeelsLikeMetric: WeatherMetricInfo?
+    @State private var presentedSharedWeatherLink: PendingWeatherLink?
 
     // Phase 3 — live cosmetic-preview coordinator. Owned at the
     // root so navigation logic + countdown overlay can both
@@ -120,6 +122,12 @@ struct ContentView: View {
     // Computed property to check if we should show location text.
     // Honours the user-configured `showLocationHeader` setting in
     // addition to the legacy WU override.
+    /// Summary-mode share affordance — hidden in Detailed layout.
+    private var showShareButton: Bool {
+        displayMode != "Detailed"
+            && weatherService.weather?.hasData == true
+    }
+
     private var shouldShowLocationText: Bool {
         // User has turned the header off entirely.
         guard SettingsBehaviour.showLocationHeader else { return false }
@@ -200,6 +208,51 @@ struct ContentView: View {
         navigateToLocation(id: locationId)
     }
 
+    private func consumePendingWeatherLink() {
+        let link = AppIntentNavigation.consumePendingWeatherLink()
+            ?? locationDeepLinkHandler.pendingLink
+        guard let link else { return }
+        locationDeepLinkHandler.clearPending()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            presentedSharedWeatherLink = link
+        }
+    }
+
+    /// Applies a shared link as the active app location (e.g. after explicit user action).
+    private func navigateToWeatherLink(_ link: PendingWeatherLink) {
+        weatherService.useGPS = false
+
+        let latString = String(link.latitude)
+        let lonString = String(link.longitude)
+        UserDefaults.standard.set(latString, forKey: "latitude")
+        UserDefaults.standard.set(lonString, forKey: "longitude")
+        WidgetSyncService.shared.syncManualCoordinates(
+            latitude: latString,
+            longitude: lonString
+        )
+
+        if let stationID = link.stationID, !stationID.isEmpty {
+            let wuKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+            if !wuKey.isEmpty {
+                UserDefaults.standard.set(stationID, forKey: "stationID")
+            }
+        }
+
+        if let match = locationsManager.locations.first(where: {
+            abs($0.latitude - link.latitude) < 0.0001 && abs($0.longitude - link.longitude) < 0.0001
+        }) {
+            locationsManager.selectLocation(match)
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "WeatherShareLink")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 0
+        }
+    }
+
     private func navigateToLocation(id locationId: UUID) {
         if let location = locationsManager.locations.first(where: { $0.id == locationId }) {
             locationsManager.selectLocation(location)
@@ -263,7 +316,9 @@ struct ContentView: View {
 
                         #if DEBUG
                         NavigationStack {
-                            LottieDebugView()
+                            LottieDebugView(locationsManager: locationsManager)
+                                .environmentObject(weatherService)
+                                .environmentObject(registry)
                         }
                         .tabItem {
                             Label("Debug", systemImage: "ladybug.fill")
@@ -332,13 +387,29 @@ struct ContentView: View {
                     navigateToLocation(id: locationId)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.weatherLinkNotification)) { _ in
+                consumePendingWeatherLink()
+            }
             .onAppear {
                 consumePendingAppIntentNavigation()
+                consumePendingWeatherLink()
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     consumePendingAppIntentNavigation()
+                    consumePendingWeatherLink()
                 }
+            }
+            .fullScreenCover(item: $presentedSharedWeatherLink) { link in
+                SharedWeatherLinkSheet(
+                    link: link,
+                    locationsManager: locationsManager,
+                    onDismiss: { presentedSharedWeatherLink = nil }
+                )
+                .environmentObject(storeManager)
+                .environmentObject(registry)
+                .environmentObject(colourTokenStore)
+                .environmentObject(chartPaletteStore)
             }
         }
         .accessibleAnimation(.easeInOut, value: isFirstLaunch)
@@ -564,31 +635,47 @@ struct ContentView: View {
             }
             .allowsHitTesting(healthMonitor.hasAnyBlockingIssue)
 
-            // Floating hamburger menu button — overlaid on top of content so it
-            // does not push the layout down (a "z-index" style overlay).
-            if showHamburgerMenu {
+            // Top overlay: share (summary) on the left, hamburger on the right.
+            if showShareButton || showHamburgerMenu {
                 HStack {
-                    Spacer()
-                    Button {
-                        #if canImport(UIKit)
-                        HapticFeedbackHelper.shared.light()
-                        #endif
-                        showingLocationMenu = true
-                    } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                    if showShareButton,
+                       let weather = weatherService.weather,
+                       weather.hasData {
+                        WeatherShareButton(
+                            context: WeatherShareContext.make(
+                                weather: weather,
+                                locationName: currentLocationText,
+                                unitSystem: unitSystem,
+                                weatherService: weatherService,
+                                locationsManager: locationsManager
                             )
-                            .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                        )
                     }
-                    .accessibilityLabel("Location Menu")
-                    .accessibilityHint("Switch between saved locations")
+
+                    Spacer()
+
+                    if showHamburgerMenu {
+                        Button {
+                            #if canImport(UIKit)
+                            HapticFeedbackHelper.shared.light()
+                            #endif
+                            showingLocationMenu = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                                )
+                                .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                        }
+                        .accessibilityLabel("Location Menu")
+                        .accessibilityHint("Switch between saved locations")
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -698,13 +785,6 @@ struct ContentView: View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
                 VStack(spacing: 8) {
-                    // Stale data warning — appears when the
-                    // last successful fetch is older than the
-                    // freshness threshold (default 1 hour).
-                    // Hidden entirely when data is fresh.
-                    StaleDataWarning(weatherService: weatherService)
-                        .animation(.easeInOut(duration: 0.2), value: weatherService.lastSuccessfulFetch)
-
                     // Location label - only show when appropriate
                     if shouldShowLocationText {
                         Text("Weather for \(currentLocationText)")
@@ -713,6 +793,10 @@ struct ContentView: View {
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                             .padding(.top, 20)
+                    }
+
+                    if SettingsBehaviour.showHeroLastUpdated {
+                        HeroLastUpdatedButton(weatherService: weatherService)
                     }
                     
                     #if os(macOS)
@@ -882,7 +966,7 @@ struct ContentView: View {
     }
     
     private var temperatureUnit: String {
-        UserDefaults.standard.string(forKey: "unitSystem") == "Metric" ? "°C" : "°F"
+        UnitSystem.from(rawValue: unitSystem).temperatureLabel
     }
     
     private var selectedColorScheme: ColorScheme? {
@@ -1046,7 +1130,8 @@ struct WeatherDetailsView: View {
                         selectedMetric = WeatherMetricInfo(
                             title: metric.title,
                             value: value,
-                            description: WeatherMetricDescriptions.description(for: metric.title, unitSystem: unitSystem)
+                            description: WeatherMetricDescriptions.description(for: metric.title, unitSystem: unitSystem),
+                            windDirection: metric.title == "Wind Speed" ? windDirection : nil
                         )
                     }
                         .transition(
@@ -1067,10 +1152,13 @@ struct WeatherDetailsView: View {
             WeatherMetricInfoContent(
                 title: metric.title,
                 value: metric.value,
-                description: metric.description
+                description: metric.description,
+                windDirection: metric.windDirection
             )
             #if os(iOS)
-            .presentationDetents([.height(260)])
+            .presentationDetents(
+                metric.windDirection != nil ? [.height(380)] : [.height(260)]
+            )
             .presentationDragIndicator(.visible)
             #endif
         }
@@ -1092,11 +1180,22 @@ struct WeatherDetailsView: View {
         ]
     }
 
+    private var windDirection: Double? {
+        if let current = weather.currentWindDirection {
+            return current
+        }
+        if let forecast = weather.forecasts.first {
+            return Double(forecast.windDirection)
+        }
+        return nil
+    }
+
 }
 
 // MARK: - Extended Weather Section
 struct ExtendedWeatherSection: View {
     let weather: Weather
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
@@ -1109,6 +1208,19 @@ struct ExtendedWeatherSection: View {
             let _ = print("   - Sun Data: \(weather.sunData != nil ? "Available" : "nil")")
             let _ = print("   - Hourly Precip: \(weather.hourlyPrecipitation.count) items")
             #endif
+
+            // What to Wear — rule-based suggestions from feels-like,
+            // rain probability, wind, and UV.
+            if let wearData = WhatToWearData.from(
+                weather: weather,
+                unitSystem: UnitSystem.from(rawValue: unitSystem)
+            ) {
+                WhatToWearCardView(data: wearData)
+                    .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
+            }
 
             // UV Index (enhanced with recommendations).
             // Each card slides up and fades in once its data
@@ -1201,6 +1313,14 @@ struct ExtendedWeatherSection: View {
             .easeInOut(duration: 0.4),
             value: weather.pollen?.tree
         )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.feelsLike
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.windSpeed
+        )
     }
 }
 
@@ -1210,12 +1330,14 @@ struct WeatherMetricInfo: Identifiable {
     let title: String
     let value: String
     let description: String
+    var windDirection: Double? = nil
 }
 
 struct WeatherMetricInfoContent: View {
     let title: String
     let value: String
     let description: String
+    var windDirection: Double? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1229,6 +1351,20 @@ struct WeatherMetricInfoContent: View {
             }
 
             Divider()
+
+            if let windDirection {
+                VStack(spacing: 8) {
+                    WindCompassView(
+                        direction: windDirection,
+                        size: .regular,
+                        showCardinalLabel: false
+                    )
+                    Text("\(WindCompassView.cardinalAbbreviation(for: windDirection)) (\(String(format: "%.0f°", windDirection)))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
 
             ScrollView {
                 Text(description)
@@ -1246,11 +1382,24 @@ struct WeatherMetricInfoContent: View {
 }
 
 // MARK: - Weather Row View
-struct WeatherRowView: View {
+struct WeatherRowView<Accessory: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     let title: String
     let value: String
     let onTap: () -> Void
+    @ViewBuilder let accessory: () -> Accessory
+
+    init(
+        title: String,
+        value: String,
+        onTap: @escaping () -> Void,
+        @ViewBuilder accessory: @escaping () -> Accessory
+    ) {
+        self.title = title
+        self.value = value
+        self.onTap = onTap
+        self.accessory = accessory
+    }
     
     var body: some View {
         Button(action: onTap) {
@@ -1286,13 +1435,17 @@ struct WeatherRowView: View {
 
                 Spacer()
 
-                Text(value)
-                    .accessibleFont(size: 16, weight: .semibold)
-                    .accessibleContrast()
-                    .foregroundStyle(colorScheme == .dark ?
-                        Color.white.opacity(0.9) :
-                        Color.black.opacity(0.8)
-                    )
+                HStack(spacing: 8) {
+                    Text(value)
+                        .accessibleFont(size: 16, weight: .semibold)
+                        .accessibleContrast()
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.9) :
+                            Color.black.opacity(0.8)
+                        )
+
+                    accessory()
+                }
 
                 Image(systemName: "info.circle")
                     .font(.system(size: 14, weight: .medium))
@@ -1335,6 +1488,12 @@ struct WeatherRowView: View {
         case "Solar Radiation": return "sun.and.horizon.fill"
         default: return "questionmark.circle.fill"
         }
+    }
+}
+
+extension WeatherRowView where Accessory == EmptyView {
+    init(title: String, value: String, onTap: @escaping () -> Void) {
+        self.init(title: title, value: value, onTap: onTap, accessory: { EmptyView() })
     }
 }
 

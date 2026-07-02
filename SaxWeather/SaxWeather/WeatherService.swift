@@ -14,6 +14,12 @@ import UIKit
 import WidgetKit
 #endif
 
+struct ShareLinkPreviewContext: Equatable {
+    let latitude: Double
+    let longitude: Double
+    let stationID: String?
+}
+
 class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var weather: Weather?
     @Published var forecast: WeatherForecast?
@@ -36,6 +42,10 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var lastSuccessfulFetch: Date?
 
     @Published var currentLocation: CLLocationCoordinate2D?
+
+    /// When set, weather fetches use these coordinates (and optional PWS)
+    /// without changing the user's saved location or GPS settings.
+    var shareLinkPreview: ShareLinkPreviewContext?
     
     var unitSystem: String {
         get { _unitSystem }
@@ -301,6 +311,10 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     /// Get the correct coordinates for weather data and alerts
     /// Returns the GPS location, custom location, or station location based on settings
     func getCoordinates() async -> (latitude: Double, longitude: Double)? {
+        if let preview = shareLinkPreview {
+            return (preview.latitude, preview.longitude)
+        }
+
         // Check if API keys are disabled
         let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
         
@@ -552,6 +566,19 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
 
         widgetData["condition"] = weather.condition
 
+        if let timeZoneIdentifier = weather.locationTimeZoneIdentifier {
+            widgetData["locationTimeZoneIdentifier"] = timeZoneIdentifier
+        }
+
+        let precipHours = weather.hourlyPrecipitation.map { ($0.hour, $0.probability) }
+        if let nextRain = WidgetRainLine.nextSignificantRain(
+            hours: precipHours,
+            timeZoneIdentifier: weather.locationTimeZoneIdentifier
+        ) {
+            widgetData["nextRainTime"] = nextRain.time.timeIntervalSince1970
+            widgetData["nextRainProbability"] = nextRain.probability
+        }
+
         if let jsonData = try? JSONSerialization.data(withJSONObject: widgetData, options: []) {
             sharedDefaults?.set(jsonData, forKey: "latestWeather")
 
@@ -619,7 +646,12 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Only load API keys if they're not disabled
         let wuApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "wu") ?? "")
-        let stationID = disableAPIKeys ? "" : (UserDefaults.standard.string(forKey: "stationID") ?? "")
+        let stationID: String = {
+            if let previewStation = shareLinkPreview?.stationID, !previewStation.isEmpty {
+                return previewStation
+            }
+            return disableAPIKeys ? "" : (UserDefaults.standard.string(forKey: "stationID") ?? "")
+        }()
         let owmApiKey = disableAPIKeys ? "" : (KeychainService.shared.getApiKey(forService: "owm") ?? "")
         
         #if DEBUG
@@ -634,7 +666,10 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         var latitude = ""
         var longitude = ""
         
-        if useGPS, let location = locationManager.location {
+        if let preview = shareLinkPreview {
+            latitude = String(preview.latitude)
+            longitude = String(preview.longitude)
+        } else if useGPS, let location = locationManager.location {
             latitude = "\(location.coordinate.latitude)"
             longitude = "\(location.coordinate.longitude)"
         } else {

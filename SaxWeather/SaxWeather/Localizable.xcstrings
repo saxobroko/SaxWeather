@@ -41,6 +41,16 @@
         }
       }
     },
+    "%@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%@ and %@ in %@" : {
       "localizations" : {
         "en" : {
@@ -52,6 +62,9 @@
       }
     },
     "%@ animation preview" : {
+
+    },
+    "%@ was added to your saved locations." : {
 
     },
     "%@ widget preview" : {
@@ -124,15 +137,6 @@
 
     },
     "+120m" : {
-
-    },
-    "⚠️ First launch" : {
-
-    },
-    "✅ Completed" : {
-
-    },
-    "🐞 Developer Debug" : {
 
     },
     "📸 Golden Hour: %@ - %@" : {
@@ -226,13 +230,13 @@
     "Add as many as you like in Settings, then Locations." : {
 
     },
+    "Add location" : {
+
+    },
     "Add Location" : {
 
     },
     "Add New Location" : {
-
-    },
-    "Add or Update Key" : {
 
     },
     "Add widgets from the iOS widget gallery after setup." : {
@@ -289,9 +293,6 @@
     "Animation Set" : {
 
     },
-    "Animation Testing" : {
-
-    },
     "Animations" : {
 
     },
@@ -302,9 +303,6 @@
 
     },
     "API Key" : {
-
-    },
-    "API Key Management" : {
 
     },
     "API key needs attention" : {
@@ -329,16 +327,16 @@
     "API keys are enabled. Configure them in Weather Data settings." : {
 
     },
-    "API keys are encrypted and synchronized via iCloud Keychain across your devices." : {
-
-    },
     "API Keys Disabled" : {
 
     },
     "API keys for Weather Underground and OpenWeatherMap are currently disabled. Weather data will use Apple Weather, Open-Meteo, or saved locations only." : {
 
     },
-    "App and device diagnostics" : {
+    "App Intents" : {
+
+    },
+    "App State" : {
 
     },
     "Appearance" : {
@@ -370,9 +368,6 @@
     },
     "Aurora Backgrounds + Aurora Palette + Aurora Chart Skin + Mono Code Font." : {
       "comment" : "Subtitle for the Starter Pack bundle tile."
-    },
-    "Auto-scroll Console" : {
-
     },
     "Automatically announce severe weather warnings" : {
 
@@ -488,13 +483,10 @@
     "Chart Style" : {
       "comment" : "Header on the chart skin picker section.\nTitle of the chart skin picker row in Settings.\nTitle of the chart skin picker view."
     },
-    "Check Authorization Status" : {
-
-    },
-    "Check console for details" : {
-
-    },
     "Check Status" : {
+
+    },
+    "Checks whether rain is expected in the next hour." : {
 
     },
     "Choose .saxtheme File…" : {
@@ -503,7 +495,7 @@
     "Choose a preset for a quick look, or pick a custom colour. Empty (\"Default\") means the card uses your palette surface colour." : {
 
     },
-    "Clear Console" : {
+    "Choose how to share the current weather" : {
 
     },
     "Close" : {
@@ -530,16 +522,16 @@
     "Confirm Destructive Actions" : {
 
     },
-    "Console" : {
-
-    },
     "Coordinates are valid" : {
 
     },
     "Coordinates:" : {
 
     },
-    "Copy Message" : {
+    "Copied" : {
+
+    },
+    "Copy Debug Bundle JSON" : {
 
     },
     "Corner Radius" : {
@@ -638,15 +630,6 @@
     "Debug" : {
 
     },
-    "Debug Console" : {
-
-    },
-    "Debug messages will appear here" : {
-
-    },
-    "Debug Section" : {
-
-    },
     "Decimal Places" : {
 
     },
@@ -668,6 +651,9 @@
     "Developer" : {
 
     },
+    "Developer Debug" : {
+
+    },
     "Direction" : {
 
     },
@@ -687,6 +673,9 @@
 
     },
     "Display Mode" : {
+
+    },
+    "Display the “Last updated” button on the hero card." : {
 
     },
     "Display the hamburger menu in the top-right corner of the main weather screen for quick location switching." : {
@@ -1148,9 +1137,6 @@
     "Export Current Theme" : {
 
     },
-    "Export Debug Log" : {
-
-    },
     "Export Failed" : {
 
     },
@@ -1184,6 +1170,9 @@
     "Force Reduce Motion" : {
 
     },
+    "Force Weather Refresh" : {
+
+    },
     "Forecast" : {
 
     },
@@ -1192,6 +1181,16 @@
     },
     "Forecast Detail" : {
 
+    },
+    "Forecast for %@: %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Forecast for %1$@: %2$@."
+          }
+        }
+      }
     },
     "Forecast Length" : {
 
@@ -1220,16 +1219,34 @@
     "Gestures" : {
 
     },
+    "Get Forecast" : {
+
+    },
     "Get notified about weather changes" : {
 
     },
     "Get Started" : {
 
     },
+    "Get the forecast for ${location}" : {
+
+    },
+    "Get the UV index for ${location}" : {
+
+    },
     "Get the weather for ${location}" : {
 
     },
+    "Get UV Index" : {
+
+    },
     "Get Weather" : {
+
+    },
+    "Gets a summary of the forecast for the next few days." : {
+
+    },
+    "Gets the current UV index for a location." : {
 
     },
     "Gets the current weather for a location." : {
@@ -1400,10 +1417,10 @@
     "Live JSON view of the active customisation profile." : {
 
     },
-    "Live Preview" : {
+    "Loading forecast data..." : {
 
     },
-    "Loading forecast data..." : {
+    "Loading shared weather…" : {
 
     },
     "Loading weather data..." : {
@@ -1413,6 +1430,9 @@
 
     },
     "Location Access Required" : {
+
+    },
+    "Location already saved" : {
 
     },
     "Location Enabled" : {
@@ -1425,6 +1445,9 @@
 
     },
     "Location Required" : {
+
+    },
+    "Location Saved" : {
 
     },
     "Location:" : {
@@ -1446,6 +1469,9 @@
 
     },
     "Loop Mode" : {
+
+    },
+    "Lottie Preview" : {
 
     },
     "Love SaxWeather?" : {
@@ -1470,12 +1496,6 @@
 
     },
     "Makes text and UI elements more distinct" : {
-
-    },
-    "Manage API keys stored in Keychain" : {
-
-    },
-    "Mark Onboarding Complete" : {
 
     },
     "Match Original Glass Look" : {
@@ -1503,6 +1523,9 @@
 
     },
     "Name" : {
+
+    },
+    "Need coordinates and weather to build share links." : {
 
     },
     "Neumorphic" : {
@@ -1538,9 +1561,6 @@
     "No matches for '%@'" : {
 
     },
-    "No messages yet" : {
-
-    },
     "No rain expected for at least 2 hours after rain stops." : {
 
     },
@@ -1556,19 +1576,19 @@
     "No weather alerts for your location" : {
 
     },
-    "None" : {
+    "No weather loaded" : {
 
     },
-    "Not configured" : {
+    "No, rain is not expected in the next hour in %@." : {
+
+    },
+    "None" : {
 
     },
     "Not Now" : {
 
     },
     "Note: Pull-to-refresh haptic cannot be disabled (iOS limitation)" : {
-
-    },
-    "Notifications" : {
 
     },
     "Notifications are off. You can enable them any time in Settings, then Notifications, then SaxWeather." : {
@@ -1587,9 +1607,6 @@
 
     },
     "OK" : {
-
-    },
-    "Onboarding" : {
 
     },
     "Onboarding step %lld of %lld" : {
@@ -1744,9 +1761,6 @@
     "Pressure" : {
 
     },
-    "Preview Failed" : {
-
-    },
     "Preview on your forecast for %llds" : {
       "comment" : "Button to start a preview that applies the cosmetic temporarily."
     },
@@ -1801,22 +1815,19 @@
     "Rain expected to start in %@" : {
 
     },
+    "Rain in the Next Hour" : {
+
+    },
+    "Rain Next Hour" : {
+
+    },
     "Rain Probability" : {
 
     },
     "Rainbow-themed backgrounds, animations, icons, and palette." : {
       "comment" : "Subtitle for the Pride Pack cosmetic tile."
     },
-    "Re-run Onboarding" : {
-
-    },
     "Re-test" : {
-
-    },
-    "Re-trigger or reset the new-user onboarding tour for testing." : {
-
-    },
-    "Real-time logging and debug output" : {
 
     },
     "Reduce Motion" : {
@@ -1832,6 +1843,12 @@
 
     },
     "Refresh Sound" : {
+
+    },
+    "Refreshes weather data" : {
+
+    },
+    "Reload Widgets" : {
 
     },
     "Remove iCloud Backup" : {
@@ -1920,7 +1937,13 @@
     "Save API Keys" : {
 
     },
+    "Save to Photos" : {
+
+    },
     "Saved Locations" : {
+
+    },
+    "SaxWeather" : {
 
     },
     "SaxWeather needs location access to show weather for where you are. You can add a location manually later in Settings." : {
@@ -1930,9 +1953,6 @@
 
     },
     "SaxWeather uses multiple weather data providers to give you the most accurate weather information." : {
-
-    },
-    "Schedule Test Notification" : {
 
     },
     "Schema v%lld" : {
@@ -1959,13 +1979,7 @@
     "Search Settings" : {
 
     },
-    "Secure Storage" : {
-
-    },
     "Select" : {
-
-    },
-    "Select Animation" : {
 
     },
     "Select Custom Background" : {
@@ -1979,9 +1993,6 @@
     },
     "Selected" : {
       "comment" : "Accessibility value: row is the active chart skin.\nAccessibility value: row is the active palette."
-    },
-    "Service" : {
-
     },
     "Set: %@" : {
 
@@ -1998,13 +2009,37 @@
     "Shape" : {
 
     },
+    "Share" : {
+
+    },
     "Share %@" : {
+
+    },
+    "Share Links" : {
+
+    },
+    "Share Location Link" : {
+
+    },
+    "Share text" : {
+
+    },
+    "Share Text Summary" : {
 
     },
     "Share Theme" : {
 
     },
+    "Share Weather" : {
+
+    },
+    "Shared via SaxWeather" : {
+
+    },
     "Show Forecast" : {
+
+    },
+    "Show Hero Last Updated" : {
 
     },
     "Show Location Header" : {
@@ -2072,9 +2107,6 @@
     },
     "Stop Preview" : {
       "comment" : "Button on the countdown overlay that ends the preview immediately."
-    },
-    "Stored API Keys" : {
-
     },
     "Stored securely in your iOS Keychain." : {
 
@@ -2151,9 +2183,6 @@
     "System" : {
 
     },
-    "System Information" : {
-
-    },
     "Tap a location to use it. Swipe left to delete." : {
 
     },
@@ -2201,9 +2230,6 @@
     "Temperature Unit" : {
 
     },
-    "Test and debug Lottie animations" : {
-
-    },
     "Test Refresh" : {
 
     },
@@ -2224,6 +2250,16 @@
     },
     "The shipped preset image is multiplied with this tint. Try warm tones at dusk." : {
 
+    },
+    "The UV index in %@ is %lld, which is %@. %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The UV index in %1$@ is %2$lld, which is %3$@. %4$@."
+          }
+        }
+      }
     },
     "The weather in %@ is currently %@ with a temperature of %@." : {
       "localizations" : {
@@ -2409,7 +2445,13 @@
     "Weather Forecast" : {
 
     },
-    "Weather may be outdated — last updated %@" : {
+    "Weather may be outdated — tap below to refresh" : {
+
+    },
+    "Weather Payload" : {
+
+    },
+    "Weather Snapshot" : {
 
     },
     "Weather Underground" : {
@@ -2421,7 +2463,13 @@
     "Weather Underground station is active and will override custom locations." : {
 
     },
+    "What to Wear" : {
+
+    },
     "When enabled, text will resize according to your system settings" : {
+
+    },
+    "Widget Sync" : {
 
     },
     "Width" : {
@@ -2430,17 +2478,40 @@
     "Width 0 removes the border entirely. Outline style uses a 45%-opacity stroke; other styles use 20%." : {
 
     },
+    "Will it rain in the next hour in ${location}" : {
+
+    },
     "Wind" : {
 
     },
     "WIND" : {
 
     },
+    "Wind from %@, %lld degrees" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Wind from %1$@, %2$lld degrees"
+          }
+        }
+      }
+    },
     "X" : {
 
     },
     "Y" : {
 
+    },
+    "Yes, %@ rain is expected in the next hour in %@, with up to a %lld%% chance." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Yes, %1$@ rain is expected in the next hour in %2$@, with up to a %3$lld%% chance."
+          }
+        }
+      }
     },
     "You can change this any time in Settings." : {
 
