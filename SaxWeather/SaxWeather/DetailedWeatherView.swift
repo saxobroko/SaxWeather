@@ -72,9 +72,16 @@ struct DetailedWeatherView: View {
                         )
                     WeatherCard(
                         title: "Pressure",
-                        value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—",
+                        value: weatherService.weather?.pressure.map {
+                            String(format: "%@ %@", UnitConverter.formatPressure($0), pressureUnit)
+                        } ?? "—",
                         icon: "gauge",
-                        onTap: { presentMetric(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—") }
+                        onTap: {
+                            let pressureValue = weatherService.weather?.pressure.map {
+                                String(format: "%@ %@", UnitConverter.formatPressure($0), pressureUnit)
+                            } ?? "—"
+                            presentMetric(title: "Pressure", value: pressureValue)
+                        }
                     )
                         .transition(
                             .asymmetric(
@@ -103,7 +110,8 @@ struct DetailedWeatherView: View {
 
                 // WIND CARD (full width).
                 if let wind = weatherService.weather?.windSpeed, let gust = weatherService.weather?.windGust {
-                    let direction = weatherService.forecast?.daily.first?.windDirection ?? 0
+                    let direction = weatherService.weather?.currentWindDirection
+                        ?? Double(weatherService.forecast?.daily.first?.windDirection ?? 0)
                     WindCard(
                         wind: wind,
                         gust: gust,
@@ -129,7 +137,7 @@ struct DetailedWeatherView: View {
                             SunriseCard(sunrise: sunrise, sunset: sunset)
                                 .transition(.opacity)
                         }
-                        PrecipitationCard(amount: day.precipitation)
+                        PrecipitationCard(amount: day.precipitation, unitSystem: unitSystem)
                             .transition(.opacity)
                     }
                 }
@@ -242,6 +250,9 @@ struct DetailedWeatherView: View {
     }
     private var windUnit: String {
         UnitSystem.from(rawValue: unitSystem).speedLabel
+    }
+    private var pressureUnit: String {
+        UnitSystem.from(rawValue: unitSystem).pressureLabel
     }
     // Display location name or coordinates
     private var locationDisplayName: String {
@@ -467,49 +478,23 @@ struct WindCard: View {
                                 Color.white.opacity(0.6) :
                                 Color.black.opacity(0.5)
                             )
-                        Text(String(format: "%.0f°", direction))
+                        Text("\(WindCompassView.cardinalAbbreviation(for: direction)) (\(String(format: "%.0f°", direction)))")
                             .font(.headline)
                     }
                 }
 
                 Spacer()
 
-                // Compass
-                ZStack {
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
-                        .frame(width: 80, height: 80)
-
-                    ForEach([0, 90, 180, 270], id: \.self) { deg in
-                        Text(["N", "E", "S", "W"][deg/90])
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .offset(y: -40)
-                            .rotationEffect(.degrees(Double(deg)))
-                    }
-
-                    Arrow()
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .frame(width: 40, height: 40)
-                        .rotationEffect(.degrees(direction))
-                }
+                WindCompassView(
+                    direction: direction,
+                    size: .regular,
+                    showCardinalLabel: false
+                )
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .styledCard()
-    }
-}
-
-struct Arrow: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY + 10))
-        path.addLine(to: CGPoint(x: rect.midX - 6, y: rect.minY + 22))
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY + 10))
-        path.addLine(to: CGPoint(x: rect.midX + 6, y: rect.minY + 22))
-        return path
     }
 }
 
@@ -643,6 +628,15 @@ struct SunriseCard: View {
 struct PrecipitationCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let amount: Double
+    let unitSystem: String
+
+    private var unit: UnitSystem {
+        UnitSystem.from(rawValue: unitSystem)
+    }
+
+    private var formattedAmount: String {
+        UnitConverter.formatPrecipitation(amount, unit: unit, precision: 0)
+    }
     
     var body: some View {
         if #available(iOS 26.2, *) {
@@ -660,7 +654,7 @@ struct PrecipitationCard: View {
                             Color.black.opacity(0.6)
                         )
                 }
-                Text(String(format: "%.0f mm", amount))
+                Text(formattedAmount)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(colorScheme == .dark ?
                         Color.white.opacity(0.9) :
@@ -727,7 +721,7 @@ struct PrecipitationCard: View {
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
                 }
-                Text(String(format: "%.0f mm", amount))
+                Text(formattedAmount)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                 Text("Today")
                     .font(.caption)

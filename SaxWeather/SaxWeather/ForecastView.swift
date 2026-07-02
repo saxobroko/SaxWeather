@@ -856,7 +856,7 @@ struct ForecastDayCard: View {
                     WeatherDataColumn(
                         icon: "💨",
                         label: "Wind",
-                        value: "\(Int(round(day.windSpeed)))"
+                        value: "\(Int(round(day.windSpeed))) \(UnitSystem.from(rawValue: unitSystem).speedLabel)"
                     )
                 }
             }

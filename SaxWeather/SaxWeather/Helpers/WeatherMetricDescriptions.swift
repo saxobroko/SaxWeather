@@ -92,7 +92,7 @@ enum WeatherMetricDescriptions {
         if tempC <= 10.0 {
             if windKmh < 4.8 {
                 return """
-                \(feelsStr) matches the air temperature (\(tempStr)) because wind speed (\(windStr)) is too low for wind chill to apply (below 4.8 km/h).
+                \(feelsStr) matches the air temperature (\(tempStr)) because wind speed (\(windStr)) is too low for wind chill to apply (below \(String(format: "%.1f", UnitConverter.convertWind(4.8, from: .metric, to: unit))) \(speedUnit)).
 
                 Inputs:
                 • Temperature: \(tempStr)
