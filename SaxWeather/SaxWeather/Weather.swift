@@ -44,6 +44,7 @@ struct Weather: Codable {
     /// or the device when using WeatherKit). Used to label hourly
     /// precipitation times in the location's local clock.
     var locationTimeZoneIdentifier: String?
+    let currentWeatherCode: Int?
     private let cachedCondition: String
     let lastUpdateTime: Date
     var forecasts: [Forecast] = []
@@ -215,7 +216,7 @@ struct Weather: Codable {
     }
     
     // MARK: - Initializer
-    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, openMeteoResponse: OpenMeteoResponse? = nil, unitSystem: String = "Metric") {
+    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, openMeteoResponse: OpenMeteoResponse? = nil, unitSystem: String = "Metric", currentWeatherCode: Int? = nil, conditionLabel: String? = nil) {
         self.lastUpdateTime = Date()
         
         self.temperature = wuObservation?.metric.temp ?? owmCurrent?.temp ?? openMeteoResponse?.current?.temperature_2m
@@ -277,23 +278,34 @@ struct Weather: Codable {
             }
         }
         
-        let temp = self.temperature ?? 0
-        let uv = self.uvIndex ?? 0
-        let wind = self.windSpeed ?? 0
-        let hum = self.humidity ?? 0
-        
-        if temp > 30 || uv > 5 {
-            self.cachedCondition = "Sunny"
-        } else if temp < 0 {
-            self.cachedCondition = "Snowy"
-        } else if wind > 20 {
-            self.cachedCondition = "Windy"
-        } else if hum > 80 {
-            self.cachedCondition = "Rainy"
+        let resolvedCode = currentWeatherCode ?? openMeteoResponse?.daily?.weather_code.first
+        self.currentWeatherCode = resolvedCode
+
+        if let label = conditionLabel, !label.isEmpty {
+            self.cachedCondition = label
+        } else if let code = resolvedCode, let description = WeatherCode(rawValue: code)?.description {
+            self.cachedCondition = description
         } else {
-            self.cachedCondition = "Partly Cloudy"
+            let temp = self.temperature ?? 0
+            let uv = self.uvIndex ?? 0
+            let wind = self.windSpeed ?? 0
+            let hum = self.humidity ?? 0
+
+            // Last-resort heuristic when no WMO code is available.
+            // Precipitation signals must win over wind — storms are often windy.
+            if hum > 80 {
+                self.cachedCondition = "Rainy"
+            } else if temp > 30 || uv > 5 {
+                self.cachedCondition = "Sunny"
+            } else if temp < 0 {
+                self.cachedCondition = "Snowy"
+            } else if wind > 20 {
+                self.cachedCondition = "Windy"
+            } else {
+                self.cachedCondition = "Partly Cloudy"
+            }
         }
-        
+
         if let temp = self.temperature,
            let hum = self.humidity,
            let wind = self.windSpeed {

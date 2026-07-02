@@ -23,6 +23,10 @@ export default {
       return sharePage(url);
     }
 
+    if (url.pathname.startsWith("/assets/")) {
+      return serveStaticAsset(request, env);
+    }
+
     if (url.pathname === "/" || url.pathname === "") {
       return landingPage();
     }
@@ -30,6 +34,16 @@ export default {
     return new Response("Not found", { status: 404 });
   },
 };
+
+async function serveStaticAsset(request, env) {
+  if (env.ASSETS) {
+    const response = await env.ASSETS.fetch(request);
+    if (response.status !== 404) {
+      return response;
+    }
+  }
+  return new Response("Not found", { status: 404 });
+}
 
 function aasaResponse(env) {
   const teamId = env.APPLE_TEAM_ID || "REPLACE_WITH_TEAM_ID";

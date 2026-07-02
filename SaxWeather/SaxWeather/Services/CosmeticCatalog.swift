@@ -13,7 +13,9 @@ enum CosmeticCatalog {
 
     /// Every product in the catalog — shipped and not-yet-
     /// shipped alike. Use `product(id:)` / `products(inPack:)`
-    /// for lookups; use `shippedProducts` for the store UI.
+    /// for lookups; use `shippedProducts` for the catalog
+    /// gate and `StoreManager.storeVisibleProducts()` for
+    /// the live store UI.
     static let allProducts: [CosmeticProduct] = aurora
         + neon
         + seasonal
@@ -54,6 +56,36 @@ enum CosmeticCatalog {
         return true
     }
 
+    /// `true` when the catalog gate passes and StoreKit
+    /// returned the product (i.e. it is approved in App Store
+    /// Connect). Does not consider ownership.
+    static func isPurchasableInStore(
+        _ product: CosmeticProduct,
+        storeKitAvailableIDs: Set<String>,
+        at date: Date = .now
+    ) -> Bool {
+        guard isCurrentlyPurchasable(product, at: date) else { return false }
+        return storeKitAvailableIDs.contains(product.id)
+    }
+
+    /// `true` when a product should appear in the in-app store
+    /// UI: owned items stay visible even if ASC temporarily
+    /// drops them; everything else must pass
+    /// `isPurchasableInStore`.
+    static func isVisibleInStore(
+        _ product: CosmeticProduct,
+        storeKitAvailableIDs: Set<String>,
+        isOwned: (CosmeticProduct) -> Bool,
+        at date: Date = .now
+    ) -> Bool {
+        if isOwned(product) { return true }
+        return isPurchasableInStore(
+            product,
+            storeKitAvailableIDs: storeKitAvailableIDs,
+            at: date
+        )
+    }
+
     // MARK: - Catalog data
 
     // MARK: Aurora pack
@@ -69,7 +101,16 @@ enum CosmeticCatalog {
             productKind: CosmeticKind.backgrounds,
             packID: "aurora",
             packDisplayName: "Aurora",
-            assetReferences: [],
+            assetReferences: [
+                "assets/aurora/sunny.jpg",
+                "assets/aurora/cloudy.jpg",
+                "assets/aurora/foggy.jpg",
+                "assets/aurora/rainy.jpg",
+                "assets/aurora/snowy.jpg",
+                "assets/aurora/thunder.jpg",
+                "assets/aurora/windy.jpg",
+                "assets/aurora/default.jpg",
+            ],
             tileImageName: "cosmetic_tile_aurora_backgrounds",
             widgetParity: true,
             seasonalWindow: nil,

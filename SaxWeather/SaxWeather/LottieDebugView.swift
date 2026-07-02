@@ -5,7 +5,7 @@
 //  DEBUG-only developer panel for app state, share links, widgets, and tooling.
 //
 
-#if os(iOS)
+#if DEBUG && os(iOS)
 
 import SwiftUI
 import Lottie
@@ -18,8 +18,6 @@ struct LottieDebugView: View {
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @ObservedObject var locationsManager: SavedLocationsManager
 
-    @State private var selectedAnimation = "clear-day"
-    @State private var refreshID = UUID()
     @State private var statusMessage: String?
     @State private var showingCopiedAlert = false
 
@@ -166,19 +164,14 @@ struct LottieDebugView: View {
 
     private var lottieSection: some View {
         Section("Lottie Preview") {
-            Picker("Animation", selection: $selectedAnimation) {
-                ForEach(availableAnimations, id: \.self) { name in
-                    Text(name).tag(name)
-                }
+            NavigationLink {
+                DebugLottiePreviewScreen(availableAnimations: availableAnimations)
+            } label: {
+                Label("Open Lottie Preview", systemImage: "play.circle.fill")
             }
-            .onChange(of: selectedAnimation) { _ in
-                refreshID = UUID()
-            }
-
-            DebugLottiePreview(animationName: selectedAnimation)
-                .frame(height: 160)
-                .id(refreshID)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            Text("Lottie runs outside this list — UIKit animations inside List rows freeze scrolling.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -411,37 +404,78 @@ struct LottieDebugView: View {
     }
 }
 
-// MARK: - Lottie preview
+// MARK: - Lottie preview (outside List — UIKit Lottie freezes inside List rows)
 
-private struct DebugLottiePreview: UIViewRepresentable {
-    let animationName: String
+private struct DebugLottiePreviewScreen: View {
+    let availableAnimations: [String]
 
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView()
-        container.backgroundColor = .clear
+    @State private var selectedAnimation = "clear-day"
+    @State private var loadingFailed = false
 
-        let animationView = LottieAnimationView()
-        animationView.translatesAutoresizingMaskIntoConstraints = false
-        animationView.contentMode = .scaleAspectFit
-        animationView.loopMode = .loop
-        container.addSubview(animationView)
+    var body: some View {
+        VStack(spacing: 24) {
+            Picker("Animation", selection: $selectedAnimation) {
+                ForEach(availableAnimations, id: \.self) { name in
+                    Text(name).tag(name)
+                }
+            }
+            .pickerStyle(.menu)
+            .padding(.horizontal)
 
-        NSLayoutConstraint.activate([
-            animationView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            animationView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            animationView.topAnchor.constraint(equalTo: container.topAnchor),
-            animationView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
 
-        if let animation = LottieAnimation.named(animationName) {
-            animationView.animation = animation
-            animationView.play()
+                if loadingFailed {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(.orange)
+                        Text("Failed to load \(selectedAnimation)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    RemoteLottieView(
+                        name: selectedAnimation,
+                        loadingFailed: $loadingFailed
+                    )
+                }
+            }
+            .frame(height: 220)
+            .padding(.horizontal)
+
+            VStack(spacing: 6) {
+                Text(cacheStatusLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if loadingFailed {
+                    Button("Retry") {
+                        loadingFailed = false
+                        Task {
+                            try? await LottieAssetStore.shared.download(name: selectedAnimation)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            Spacer(minLength: 0)
         }
-
-        return container
+        .padding(.top, 16)
+        .navigationTitle("Lottie Preview")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: selectedAnimation) { _ in
+            loadingFailed = false
+        }
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    private var cacheStatusLabel: String {
+        if LottieAssetStore.shared.isDownloaded(name: selectedAnimation) {
+            return "Cached on device"
+        }
+        return "Will download from CDN on first play"
+    }
 }
 
 #endif

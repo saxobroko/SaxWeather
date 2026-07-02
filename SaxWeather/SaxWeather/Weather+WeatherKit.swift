@@ -58,8 +58,37 @@ extension Weather {
                 clouds: solar
             ),
             owmDaily: hi != nil && lo != nil ? OWMDaily(temp: OWMDaily.OWMDailyTemp(min: lo!, max: hi!)) : nil,
-            unitSystem: unitSystem
+            unitSystem: unitSystem,
+            currentWeatherCode: Self.wmoCode(for: weatherKitCurrent.condition),
+            conditionLabel: weatherKitCurrent.condition.description
         )
+    }
+
+    private static func wmoCode(for condition: WeatherCondition) -> Int {
+        switch condition {
+        case .clear:
+            return 0
+        case .partlyCloudy, .mostlyClear:
+            return 2
+        case .cloudy, .mostlyCloudy, .breezy, .windy, .hot, .hurricane, .tropicalStorm:
+            return 3
+        case .foggy, .haze, .smoky:
+            return 45
+        case .drizzle:
+            return 51
+        case .rain, .heavyRain, .sunShowers:
+            return 61
+        case .freezingRain, .sleet, .wintryMix:
+            return 66
+        case .snow, .heavySnow, .flurries, .blowingSnow, .frigid, .sunFlurries:
+            return 71
+        case .blizzard:
+            return 75
+        case .isolatedThunderstorms, .scatteredThunderstorms, .strongStorms, .thunderstorms:
+            return 95
+        @unknown default:
+            return 0
+        }
     }
 }
 

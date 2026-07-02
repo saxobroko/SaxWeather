@@ -451,6 +451,8 @@ struct SaxWeatherApp: App {
 
                     // Fetch weather and forecast data when the app appears
                     Task {
+                        await LottieAssetStore.shared.prefetchAll()
+                        await PresetBackgroundAssetStore.shared.prefetchAllRemote()
                         await weatherService.fetchWeather(calledFrom: "SaxWeatherApp.onAppear")
                     }
 

@@ -9,3 +9,7 @@ routes = [
 [vars]
 APPLE_TEAM_ID = "F2AHYWP9BX"
 IOS_BUNDLE_ID = "com.saxobroko.SaxWeather"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"

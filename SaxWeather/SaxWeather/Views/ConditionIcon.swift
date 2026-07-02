@@ -47,7 +47,7 @@ struct ConditionIcon: View {
     var body: some View {
         Group {
             if shouldUseLottie && !loadingFailed {
-                LottieView(
+                RemoteLottieView(
                     name: animationName,
                     loopMode: lottieLoopMode,
                     loadingFailed: $loadingFailed

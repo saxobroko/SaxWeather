@@ -25,7 +25,7 @@ struct BackgroundView: View {
     private func contents(in geometry: GeometryProxy) -> some View {
         switch strategy {
         case .preset(let condition):
-            presetBackground(condition: condition)
+            PresetCachedBackgroundView(condition: condition)
         case .customImage(let data):
             customImageBackground(data: data)
         case .gradient(let top, let bottom, let topOp, let bottomOp):
@@ -34,43 +34,8 @@ struct BackgroundView: View {
         case .dynamicAccent(let tint, let condition):
             dynamicAccentBackground(tint: tint, condition: condition)
         case .auroraImage(let name):
-            auroraImageBackground(name: name)
+            AuroraCachedBackgroundView(assetName: name)
         }
-    }
-
-    // MARK: - Preset (shipped imageset)
-
-    @ViewBuilder
-    private func presetBackground(condition: String) -> some View {
-        #if os(iOS)
-        if let uiImage = UIImage(named: "weather_background_\(condition)") {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else if let uiImage = UIImage(named: "weather_background_default") {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else {
-            Color.blue.opacity(0.2).ignoresSafeArea()
-        }
-        #elseif os(macOS)
-        if let nsImage = NSImage(named: "weather_background_\(condition)") {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else if let nsImage = NSImage(named: "weather_background_default") {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else {
-            Color.blue.opacity(0.2).ignoresSafeArea()
-        }
-        #endif
     }
 
     // MARK: - Custom image (user-supplied)
@@ -84,7 +49,7 @@ struct BackgroundView: View {
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
         } else {
-            presetBackground(condition: "default")
+            PresetCachedBackgroundView(condition: "default")
         }
         #elseif os(macOS)
         if let data = data, let image = NSImage(data: data) {
@@ -93,7 +58,7 @@ struct BackgroundView: View {
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
         } else {
-            presetBackground(condition: "default")
+            PresetCachedBackgroundView(condition: "default")
         }
         #endif
     }
@@ -122,7 +87,7 @@ struct BackgroundView: View {
 
     @ViewBuilder
     private func dynamicAccentBackground(tint: ColourToken, condition: String) -> some View {
-        presetBackground(condition: condition)
+        PresetCachedBackgroundView(condition: condition)
             .overlay(
                 tint.color(for: colorScheme)
                     .opacity(0.35)
@@ -131,77 +96,8 @@ struct BackgroundView: View {
             )
     }
 
-    // MARK: - Aurora image (Phase 3)
+    // MARK: - Aurora image (on-demand CDN cache)
     //
-    // Attempts to load the named Aurora JPEG from the asset
-    // catalog and falls back to the Aurora palette gradient
-    // if the asset is missing. The condition key used for the
-    // fallback is parsed out of the asset name (the format is
-    // always `weather_background_aurora_<condition>`) so the
-    // gradient colours match the missing image's intent.
-
-    @ViewBuilder
-    private func auroraImageBackground(name: String) -> some View {
-        #if os(iOS)
-        if let uiImage = UIImage(named: name) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else {
-            // Missing-asset fallback — defensive, should not
-            // happen in production. See BackgroundResolver.swift
-            // header for the rationale.
-            let fallbackStrategy = BackgroundResolver.auroraGradient(
-                forCondition: Self.conditionKey(from: name)
-            )
-            gradientBackgroundForStrategy(fallbackStrategy)
-        }
-        #elseif os(macOS)
-        if let nsImage = NSImage(named: name) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-        } else {
-            let fallbackStrategy = BackgroundResolver.auroraGradient(
-                forCondition: Self.conditionKey(from: name)
-            )
-            gradientBackgroundForStrategy(fallbackStrategy)
-        }
-        #endif
-    }
-
-    private static func conditionKey(from assetName: String) -> String {
-        let prefix = "weather_background_aurora_"
-        guard assetName.hasPrefix(prefix) else { return "default" }
-        let stripped = String(assetName.dropFirst(prefix.count))
-        // The condition key is everything before the first
-        // ".", "_2x", "_3x", etc. (defensive against any
-        // future image-set variants).
-        if let dot = stripped.firstIndex(of: ".") {
-            return String(stripped[..<dot])
-        }
-        return stripped
-    }
-
-    /// Convenience: render a gradient `BackgroundStrategy` as
-    /// a `LinearGradient` view. Used only by the Aurora
-    /// missing-asset fallback path.
-    @ViewBuilder
-    private func gradientBackgroundForStrategy(
-        _ strategy: BackgroundStrategy
-    ) -> some View {
-        if case let .gradient(top, bottom, topOp, bottomOp) = strategy {
-            gradientBackground(
-                top: top, bottom: bottom,
-                topOpacity: topOp, bottomOpacity: bottomOp
-            )
-        } else {
-            // auroraGradient always returns a `.gradient` —
-            // this branch is unreachable but keeps the
-            // function total.
-            Color.blue.opacity(0.2).ignoresSafeArea()
-        }
-    }
+    // Rendered by `AuroraCachedBackgroundView`, which loads
+    // JPEGs from disk after download from weather.saxobroko.com.
 }

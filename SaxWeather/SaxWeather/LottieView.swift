@@ -52,7 +52,15 @@ struct LottieView: UIViewRepresentable {
         
         print("🎬 LottieView: Showing animated icon for \(name)")
         
-        let animationView = LottieAnimationView()
+        let animationView = LottieParser.makeAnimationView(
+            named: name,
+            loopMode: loopMode,
+            speed: CGFloat(lottiePlaybackSpeed)
+        ) {
+            DispatchQueue.main.async {
+                self.loadingFailed = true
+            }
+        }
         animationView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(animationView)
         
@@ -60,33 +68,6 @@ struct LottieView: UIViewRepresentable {
             animationView.widthAnchor.constraint(equalTo: containerView.widthAnchor),
             animationView.heightAnchor.constraint(equalTo: containerView.heightAnchor)
         ])
-        
-        // Use our custom parser to load the animation
-        if let animation = LottieParser.loadAnimation(named: name) {
-            animationView.animation = animation
-            animationView.contentMode = .scaleAspectFit
-            animationView.loopMode = loopMode
-            animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
-            animationView.play()
-        } else {
-            // Animation failed to load
-            DispatchQueue.main.async {
-                self.loadingFailed = true
-            }
-
-            // Show error indicator
-            let label = UILabel()
-            label.text = "❌"
-            label.font = UIFont.systemFont(ofSize: 40)
-            label.textAlignment = .center
-            label.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview(label)
-
-            NSLayoutConstraint.activate([
-                label.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-                label.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
-            ])
-        }
 
         return containerView
     }
@@ -122,7 +103,12 @@ struct LottieView: UIViewRepresentable {
                 ])
             } else {
                 // Create animated view
-                let animationView = LottieAnimationView()
+                let animationView = LottieParser.makeAnimationView(
+                    named: name,
+                    loopMode: loopMode,
+                    speed: CGFloat(lottiePlaybackSpeed),
+                    onFailure: {}
+                )
                 animationView.translatesAutoresizingMaskIntoConstraints = false
                 uiView.addSubview(animationView)
                 
@@ -130,14 +116,6 @@ struct LottieView: UIViewRepresentable {
                     animationView.widthAnchor.constraint(equalTo: uiView.widthAnchor),
                     animationView.heightAnchor.constraint(equalTo: uiView.heightAnchor)
                 ])
-                
-                if let animation = LottieParser.loadAnimation(named: name) {
-                    animationView.animation = animation
-                    animationView.contentMode = .scaleAspectFit
-                    animationView.loopMode = loopMode
-                    animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
-                    animationView.play()
-                }
             }
         }
     }
@@ -210,7 +188,13 @@ struct LottieView: NSViewRepresentable {
         
         print("🎬 LottieView (macOS): Showing animated icon for \(name)")
         
-        let animationView = LottieAnimationView()
+        let animationView = LottieParser.makeAnimationView(
+            named: name,
+            loopMode: loopMode,
+            speed: CGFloat(lottiePlaybackSpeed)
+        ) {
+            loadingFailed = true
+        }
         animationView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(animationView)
         
@@ -218,15 +202,6 @@ struct LottieView: NSViewRepresentable {
             animationView.widthAnchor.constraint(equalTo: containerView.widthAnchor),
             animationView.heightAnchor.constraint(equalTo: containerView.heightAnchor)
         ])
-        
-        if let animation = LottieParser.loadAnimation(named: name) {
-            animationView.animation = animation
-            animationView.loopMode = loopMode
-            animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
-            animationView.play()
-        } else {
-            loadingFailed = true
-        }
         return containerView
     }
 
@@ -261,8 +236,12 @@ struct LottieView: NSViewRepresentable {
                     iconView.heightAnchor.constraint(equalTo: nsView.heightAnchor)
                 ])
             } else {
-                // Create animated view
-                let animationView = LottieAnimationView()
+                let animationView = LottieParser.makeAnimationView(
+                    named: name,
+                    loopMode: loopMode,
+                    speed: CGFloat(lottiePlaybackSpeed),
+                    onFailure: {}
+                )
                 animationView.translatesAutoresizingMaskIntoConstraints = false
                 nsView.addSubview(animationView)
                 
@@ -270,13 +249,6 @@ struct LottieView: NSViewRepresentable {
                     animationView.widthAnchor.constraint(equalTo: nsView.widthAnchor),
                     animationView.heightAnchor.constraint(equalTo: nsView.heightAnchor)
                 ])
-                
-                if let animation = LottieParser.loadAnimation(named: name) {
-                    animationView.animation = animation
-                    animationView.loopMode = loopMode
-                    animationView.animationSpeed = CGFloat(lottiePlaybackSpeed)
-                    animationView.play()
-                }
             }
         }
     }

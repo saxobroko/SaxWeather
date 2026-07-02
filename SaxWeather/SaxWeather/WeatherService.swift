@@ -1505,9 +1505,26 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func updateBackgroundCondition() {
-        // Priority 1: Use current weather condition if available
+        // Priority 1: WMO weather code from the live observation.
+        if let code = weather?.currentWeatherCode {
+            currentBackgroundCondition = weatherTypeFor(code: code)
+            #if DEBUG
+            print("🎨 Background updated from weather code \(code) -> \(currentBackgroundCondition)")
+            #endif
+            return
+        }
+
+        // Priority 2: Today's forecast code (Open-Meteo / WeatherKit daily).
+        if let forecast = forecast, let firstDay = forecast.daily.first {
+            currentBackgroundCondition = weatherTypeFor(code: firstDay.weatherCode)
+            #if DEBUG
+            print("🎨 Background updated from forecast code \(firstDay.weatherCode) -> \(currentBackgroundCondition)")
+            #endif
+            return
+        }
+
+        // Priority 3: Human-readable condition string.
         if let weather = weather, !weather.condition.isEmpty, weather.condition != "default" {
-            // Map weather condition string to background type
             let condition = weather.condition.lowercased()
             if condition.contains("clear") || condition.contains("sunny") {
                 currentBackgroundCondition = "sunny"
@@ -1523,20 +1540,13 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 currentBackgroundCondition = "snowy"
             } else if condition.contains("thunder") || condition.contains("lightning") || condition.contains("storm") {
                 currentBackgroundCondition = "thunder"
+            } else if condition.contains("wind") || condition.contains("breezy") {
+                currentBackgroundCondition = "cloudy"
             } else {
                 currentBackgroundCondition = weather.condition
             }
             #if DEBUG
             print("🎨 Background updated from weather condition: \(weather.condition) -> \(currentBackgroundCondition)")
-            #endif
-            return
-        }
-
-        // Priority 2: Use forecast data if weather condition not available
-        if let forecast = forecast, let firstDay = forecast.daily.first {
-            currentBackgroundCondition = weatherTypeFor(code: firstDay.weatherCode)
-            #if DEBUG
-            print("🎨 Background updated from forecast: \(currentBackgroundCondition)")
             #endif
             return
         }

@@ -2,92 +2,79 @@
 //  LottieParser.swift
 //  SaxWeather
 //
-//  Created by Saxon on 8/3/2025.
-//
-
 
 import Foundation
 import Lottie
 import SwiftUI
 
-class LottieParser {
-    static func loadAnimation(named: String) -> LottieAnimation? {
-        // First try to load directly using Lottie's built-in methods
-        if let animation = LottieAnimation.named(named) {
-            #if DEBUG
-            print("✅ Loaded via Lottie.named()")
-            #endif
-            return animation
-        }
-        
-        // Next, try to load from JSON with lottie extension
-        if let url = Bundle.main.url(forResource: named, withExtension: "lottie") {
-            do {
-                // Read file data
-                let data = try Data(contentsOf: url)
-                
-                // Check if it's actually a JSON file with .lottie extension
-                if let jsonString = String(data: data, encoding: .utf8),
-                   jsonString.contains("\"v\"") && 
-                   (jsonString.contains("\"layers\"") || jsonString.contains("\"assets\"")) {
-                    
-                    // It's JSON data with .lottie extension - parse it as JSON
-                    if let animation = try? LottieAnimation.from(data: data) {
-                        #if DEBUG
-                        print("✅ Parsed \(named).lottie as JSON")
-                        #endif
-                        return animation
-                    }
-                }
-                
-                // If not parseable as JSON, it might be a .lottie zip file
-                // But this requires specific handling or conversion
-            } catch {
-                #if DEBUG
-                print("❌ Error loading \(named).lottie: \(error.localizedDescription)")
-                #endif
+@MainActor
+enum LottieParser {
+    static func cachedFilePath(for name: String) -> String? {
+        for candidate in candidateNames(for: name) {
+            let path = LottieAssetStore.shared.localURL(forName: candidate).path
+            if FileManager.default.fileExists(atPath: path) {
+                return path
             }
         }
-        
-        // Try with .json extension as fallback
-        if let url = Bundle.main.url(forResource: named, withExtension: "json") {
-            do {
-                let data = try Data(contentsOf: url)
-                let animation = try LottieAnimation.from(data: data)
-                #if DEBUG
-                print("✅ Loaded from \(named).json")
-                #endif
+        return nil
+    }
+
+    static func loadAnimation(named name: String) -> LottieAnimation? {
+        for candidate in candidateNames(for: name) {
+            if let animation = loadJSONFromCache(named: candidate) {
                 return animation
-            } catch {
-                #if DEBUG
-                print("❌ Error loading \(named).json: \(error.localizedDescription)")
-                #endif
             }
         }
-        
-        // Try with hyphens/underscores variations
-        let alternateNamed = named.contains("-") ? 
-            named.replacingOccurrences(of: "-", with: "_") : 
-            named.replacingOccurrences(of: "_", with: "-")
-        
-        if let url = Bundle.main.url(forResource: alternateNamed, withExtension: "json") {
-            do {
-                let data = try Data(contentsOf: url)
-                let animation = try LottieAnimation.from(data: data)
-                #if DEBUG
-                print("✅ Loaded from alternate name: \(alternateNamed).json")
-                #endif
-                return animation
-            } catch {
-                #if DEBUG
-                print("❌ Error with alternate name: \(error.localizedDescription)")
-                #endif
-            }
-        }
-        
+
         #if DEBUG
-        print("❌ Failed to load animation: \(named)")
+        print("❌ Failed to load animation: \(name)")
         #endif
         return nil
+    }
+
+    static func makeAnimationView(
+        named name: String,
+        loopMode: LottieLoopMode,
+        speed: CGFloat,
+        onFailure: @escaping () -> Void
+    ) -> LottieAnimationView {
+        guard let path = cachedFilePath(for: name) else {
+            onFailure()
+            return LottieAnimationView()
+        }
+
+        return LottieAnimationView(
+            dotLottieFilePath: path,
+            configuration: .shared
+        ) { view, error in
+            if error != nil {
+                onFailure()
+                return
+            }
+            view.contentMode = .scaleAspectFit
+            view.loopMode = loopMode
+            view.animationSpeed = speed
+            view.play()
+        }
+    }
+
+    private static func candidateNames(for name: String) -> [String] {
+        var names = [name]
+        let alternate = name.contains("-")
+            ? name.replacingOccurrences(of: "-", with: "_")
+            : name.replacingOccurrences(of: "_", with: "-")
+        if alternate != name {
+            names.append(alternate)
+        }
+        return names
+    }
+
+    private static func loadJSONFromCache(named name: String) -> LottieAnimation? {
+        let jsonPath = LottieAssetStore.shared.localURL(forName: name)
+            .deletingPathExtension()
+            .appendingPathExtension("json")
+            .path
+        guard FileManager.default.fileExists(atPath: jsonPath) else { return nil }
+        return LottieAnimation.filepath(jsonPath)
     }
 }
