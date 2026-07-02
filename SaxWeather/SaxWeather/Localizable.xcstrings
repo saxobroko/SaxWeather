@@ -2019,6 +2019,9 @@
     "Show the location name on the hero card even after scrolling." : {
 
     },
+    "Shows an explanation of this measurement" : {
+
+    },
     "Shows static weather icons instead of animated ones" : {
 
     },

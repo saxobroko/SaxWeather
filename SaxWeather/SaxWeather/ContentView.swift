@@ -13,24 +13,6 @@ import MapKit
 import UIKit
 #endif
 
-// MARK: - Popup Environment
-struct PopupData {
-    let title: String
-    let value: String
-    let description: String
-}
-
-private struct PopupStateKey: EnvironmentKey {
-    static let defaultValue: Binding<PopupData?> = .constant(nil)
-}
-
-extension EnvironmentValues {
-    var popupState: Binding<PopupData?> {
-        get { self[PopupStateKey.self] }
-        set { self[PopupStateKey.self] = newValue }
-    }
-}
-
 // MARK: - Deep-link wrapper (Phase 2)
 
 /// Phase 2 — `Identifiable` wrapper used to drive the
@@ -78,7 +60,6 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var weatherAlertManager = WeatherAlertManager()
-    @State private var activePopup: PopupData?
     @State private var showingLocationMenu = false
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var selectedTab: Int = 0
@@ -302,7 +283,6 @@ struct ContentView: View {
                     }
                 }
             }
-            .environment(\.popupState, $activePopup)
             // Phase 3 — inject the preview coordinator so child
             // views (`CosmeticsStoreView`, `CosmeticDetailView`)
             // can observe it.
@@ -363,46 +343,8 @@ struct ContentView: View {
                     consumePendingAppIntentNavigation()
                 }
             }
-
-            // Global popup
-            if let popupData = activePopup {
-                Color.black.opacity(0.6)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        activePopup = nil
-                    }
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text(popupData.title)
-                            .font(.system(size: 17, weight: .semibold))
-                        Spacer()
-                        Text(popupData.value)
-                            .font(.system(size: 17))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Divider()
-                    
-                    Text(popupData.description)
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineSpacing(4)
-                }
-                .padding()
-                .frame(width: 280)
-                #if os(iOS)
-                .background(Color(UIColor.systemBackground))
-                #elseif os(macOS)
-                .background(Color(NSColor.windowBackgroundColor))
-                #endif
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.2), radius: 8)
-            }
         }
         .accessibleAnimation(.easeInOut, value: isFirstLaunch)
-        .accessibleAnimation(.easeInOut, value: activePopup != nil)
         // Phase 3 — live-preview countdown overlay. Slides in
         // from the top whenever a cosmetic preview is active
         // (after the user tapped "Preview" inside
@@ -1044,6 +986,7 @@ struct WeatherDetailsView: View {
     @Environment(\.colorScheme) private var colorScheme
     let weather: Weather
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
+    @State private var selectedMetric: WeatherMetricInfo?
     
     private var temperatureUnit: String {
         unitSystem == "Metric" ? "°C" : "°F"
@@ -1068,7 +1011,13 @@ struct WeatherDetailsView: View {
         VStack(spacing: 12) {
             ForEach(weatherMetrics, id: \.title) { metric in
                 if let value = metric.value {
-                    WeatherRowView(title: metric.title, value: value)
+                    WeatherRowView(title: metric.title, value: value) {
+                        selectedMetric = WeatherMetricInfo(
+                            title: metric.title,
+                            value: value,
+                            description: metricDescription(for: metric.title)
+                        )
+                    }
                         .transition(
                             .asymmetric(
                                 insertion: .opacity
@@ -1083,6 +1032,17 @@ struct WeatherDetailsView: View {
         .padding(.horizontal, 16)
         .allowsHitTesting(true)
         .styledCard()
+        .sheet(item: $selectedMetric) { metric in
+            WeatherMetricInfoContent(
+                title: metric.title,
+                value: metric.value,
+                description: metric.description
+            )
+            #if os(iOS)
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
+            #endif
+        }
         .animation(
             .easeInOut(duration: 0.4),
             value: weatherMetrics.compactMap { $0.value }.count
@@ -1099,6 +1059,28 @@ struct WeatherDetailsView: View {
             ("UV Index", weather.uvIndex.map { "\($0)" }),
             ("Solar Radiation", weather.solarRadiation.map { "\($0) W/m²" })
         ]
+    }
+
+    private func metricDescription(for title: String) -> String {
+        switch title {
+        case "Humidity":
+            return "Humidity is the amount of water vapor present in the air. High humidity can make it feel warmer than it actually is, while low humidity can make it feel cooler."
+        case "Dew Point":
+            let threshold = unitSystem == "Metric" ? "18°C" : "65°F"
+            return "Dew point is the temperature at which water vapor in the air begins to condense. A higher dew point (above \(threshold)) means the air feels more humid and uncomfortable."
+        case "Pressure":
+            return "Atmospheric pressure affects weather conditions. Falling pressure often indicates approaching storms, while rising pressure typically means clearer weather."
+        case "Wind Speed":
+            return "Wind speed measures how fast the air is moving. Higher wind speeds can make it feel colder and may affect outdoor activities."
+        case "Wind Gust":
+            return "Wind gusts are sudden increases in wind speed. They're typically stronger than the average wind speed and can be particularly important for outdoor safety."
+        case "UV Index":
+            return "The UV Index measures the intensity of ultraviolet radiation from the sun. Higher values (6+) mean greater risk of sun damage and need for protection."
+        case "Solar Radiation":
+            return "Solar radiation measures the sun's energy reaching Earth's surface. It affects temperature and can impact solar panel efficiency."
+        default:
+            return "Weather measurement data"
+        }
     }
 }
 
@@ -1209,156 +1191,18 @@ struct ExtendedWeatherSection: View {
     }
 }
 
-// MARK: - Custom Popup View
-struct CustomPopup<Content: View>: View {
-    let content: Content
-    @Binding var isPresented: Bool
-    
-    init(isPresented: Binding<Bool>, @ViewBuilder content: () -> Content) {
-        self._isPresented = isPresented
-        self.content = content()
-    }
-    
-    var body: some View {
-        if isPresented {
-            ZStack {
-                // Full screen transparent button to handle dismissal
-                Color.black.opacity(0.6)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        isPresented = false
-                    }
-                
-                content
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            #if os(iOS)
-                            .fill(Color(UIColor.systemBackground))
-                            #elseif os(macOS)
-                            .fill(Color(NSColor.windowBackgroundColor))
-                            #endif
-                            .shadow(color: .black.opacity(0.2), radius: 8)
-                    )
-            }
-            .transition(.opacity)
-            .zIndex(999) // Ensure popup is always on top
-        }
-    }
-}
-
-// MARK: - Weather Row View
-struct WeatherRowView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
-    @State private var showingInfo = false
-    let title: String
-    let value: String
-    
-    var description: String {
-        switch title {
-            case "Humidity":
-                return "Humidity is the amount of water vapor present in the air. High humidity can make it feel warmer than it actually is, while low humidity can make it feel cooler."
-            case "Dew Point":
-                let threshold = unitSystem == "Metric" ? "18°C" : "65°F"
-                return "Dew point is the temperature at which water vapor in the air begins to condense. A higher dew point (above \(threshold)) means the air feels more humid and uncomfortable."
-            case "Pressure":
-                return "Atmospheric pressure affects weather conditions. Falling pressure often indicates approaching storms, while rising pressure typically means clearer weather."
-            case "Wind Speed":
-                return "Wind speed measures how fast the air is moving. Higher wind speeds can make it feel colder and may affect outdoor activities."
-            case "Wind Gust":
-                return "Wind gusts are sudden increases in wind speed. They're typically stronger than the average wind speed and can be particularly important for outdoor safety."
-            case "UV Index":
-                return "The UV Index measures the intensity of ultraviolet radiation from the sun. Higher values (6+) mean greater risk of sun damage and need for protection."
-            case "Solar Radiation":
-                return "Solar radiation measures the sun's energy reaching Earth's surface. It affects temperature and can impact solar panel efficiency."
-            default:
-                return "Weather measurement data"
-        }
-    }
-    
-    var body: some View {
-        Button {
-            print("[WeatherRowView] Button tapped for \(title)")
-            showingInfo = true
-        } label: {
-            Group {
-                if #available(iOS 26.2, *) {
-                    HStack(spacing: 12) {
-                        HStack(spacing: 8) {
-                            Image(systemName: iconName)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.6) :
-                                    Color.black.opacity(0.5)
-                                )
-                                .frame(width: 24)
-
-                            Text(title)
-                                .accessibleFont(size: 16, weight: .medium)
-                                .accessibleContrast()
-                                .foregroundStyle(colorScheme == .dark ?
-                                    Color.white.opacity(0.8) :
-                                    Color.black.opacity(0.7)
-                                )
-                        }
-
-                        Spacer()
-
-                        Text(value)
-                            .accessibleFont(size: 16, weight: .semibold)
-                            .accessibleContrast()
-                            .foregroundStyle(colorScheme == .dark ?
-                                Color.white.opacity(0.9) :
-                                Color.black.opacity(0.8)
-                            )
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 4)
-                } else {
-                    HStack {
-                        Text(title)
-                            .font(.headline)
-                            .foregroundColor(.blue)
-                        Spacer()
-                        Text(value)
-                            .font(.body)
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                    }
-                    .padding(.horizontal)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 39, alignment: .leading)
-            .contentShape(Rectangle())
-            .allowsHitTesting(true)
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showingInfo) {
-            WeatherMetricDetailView(title: title, value: value, description: description)
-        }
-    }
-    
-    // Icon mapping for each weather metric
-    private var iconName: String {
-        switch title {
-        case "Humidity": return "humidity.fill"
-        case "Dew Point": return "drop.fill"
-        case "Pressure": return "gauge.with.dots.needle.bottom.50percent"
-        case "Wind Speed": return "wind"
-        case "Wind Gust": return "wind.snow"
-        case "UV Index": return "sun.max.fill"
-        case "Solar Radiation": return "sun.and.horizon.fill"
-        default: return "questionmark.circle.fill"
-        }
-    }
-}
-
-// MARK: - Weather Metric Detail View
-struct WeatherMetricDetailView: View {
+// MARK: - Weather Metric Info
+struct WeatherMetricInfo: Identifiable {
+    var id: String { title }
     let title: String
     let value: String
     let description: String
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dismiss) private var dismiss
+}
+
+struct WeatherMetricInfoContent: View {
+    let title: String
+    let value: String
+    let description: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1379,21 +1223,102 @@ struct WeatherMetricDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(4)
         }
-        .padding()
-        #if os(iOS)
-        .background(Color(UIColor.systemBackground))
-        #elseif os(macOS)
-        .background(Color(NSColor.windowBackgroundColor))
-        #endif
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                    .padding(8)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Weather Row View
+struct WeatherRowView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let title: String
+    let value: String
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            rowContent
+                .frame(maxWidth: .infinity, minHeight: 39, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Shows an explanation of this measurement")
+    }
+
+    @ViewBuilder
+    private var rowContent: some View {
+        if #available(iOS 26.2, *) {
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.6) :
+                            Color.black.opacity(0.5)
+                        )
+                        .frame(width: 24)
+
+                    Text(title)
+                        .accessibleFont(size: 16, weight: .medium)
+                        .accessibleContrast()
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.8) :
+                            Color.black.opacity(0.7)
+                        )
+                }
+
+                Spacer()
+
+                Text(value)
+                    .accessibleFont(size: 16, weight: .semibold)
+                    .accessibleContrast()
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.9) :
+                        Color.black.opacity(0.8)
+                    )
+
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(colorScheme == .dark ?
+                        Color.white.opacity(0.45) :
+                        Color.black.opacity(0.35)
+                    )
+                    .accessibilityHidden(true)
             }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 4)
+        } else {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                Spacer()
+                Text(value)
+                    .font(.body)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    // Icon mapping for each weather metric
+    private var iconName: String {
+        switch title {
+        case "Humidity": return "humidity.fill"
+        case "Dew Point": return "drop.fill"
+        case "Pressure": return "gauge.with.dots.needle.bottom.50percent"
+        case "Wind Speed": return "wind"
+        case "Wind Gust": return "wind.snow"
+        case "UV Index": return "sun.max.fill"
+        case "Solar Radiation": return "sun.and.horizon.fill"
+        default: return "questionmark.circle.fill"
         }
     }
 }
@@ -1717,9 +1642,10 @@ struct LocationSwipeModifier: ViewModifier {
     func body(content: Content) -> some View {
         if enabled {
             content
-                .gesture(
+                .simultaneousGesture(
                     DragGesture(minimumDistance: 60)
                         .onEnded { value in
+                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
                             handleSwipe(translation: value.translation.width)
                         }
                 )

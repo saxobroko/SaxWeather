@@ -16,7 +16,7 @@ struct StyledCardModifier: ViewModifier {
             .padding(.vertical, visual.cardPaddingV)
             .frame(maxWidth: .infinity)
             .background(cardBackground(for: visual))
-            .overlay(cardOverlay(for: visual))
+            .overlay(cardOverlay(for: visual).allowsHitTesting(false))
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: visual.cornerRadius,
@@ -127,7 +127,7 @@ struct ThemedCardModifier: ViewModifier {
             .padding(.vertical, visual.cardPaddingV)
             .frame(maxWidth: .infinity)
             .background(themedBackground)
-            .overlay(themedOverlay)
+            .overlay(themedOverlay.allowsHitTesting(false))
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: visual.cornerRadius,
