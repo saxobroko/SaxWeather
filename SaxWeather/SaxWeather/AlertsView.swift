@@ -16,7 +16,7 @@ private var secondarySystemBackgroundColor: Color {
 }
 
 struct AlertsView: View {
-    @ObservedObject var alertManager: WeatherAlertManager
+    @EnvironmentObject var alertManager: WeatherAlertManager
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
     @ObservedObject private var registry = CustomisationRegistry.shared
@@ -75,11 +75,22 @@ struct AlertsView: View {
                     }
 
                     // Weather alert attribution (required for legal compliance)
-                    WeatherAttributionView(
-                        dataSource: alertManager.alertDataSource,
-                        stationID: nil,
-                        useAlertSource: true
-                    )
+                    Group {
+                        if alertManager.precipitationTimeline != nil {
+                            WeatherAttributionView(
+                                dataSource: alertManager.precipitationDataSource,
+                                stationID: nil,
+                                usePrecipitationSource: true
+                            )
+                        }
+                        if alertManager.alertDataSource != "none" {
+                            WeatherAttributionView(
+                                dataSource: alertManager.alertDataSource,
+                                stationID: nil,
+                                useAlertSource: true
+                            )
+                        }
+                    }
                     .padding(.top, 16)
                     .transition(.opacity)
                 }
@@ -517,7 +528,7 @@ struct AlertsView: View {
                 }
             }
 
-            Text("Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events.")
+            Text("Enable notifications to receive rain start/stop alerts and severe weather warnings for your location.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -561,8 +572,8 @@ struct AlertsView: View {
 struct AlertsView_Previews: PreviewProvider {
     static var previews: some View {
         let weatherService = WeatherService()
-        let alertManager = WeatherAlertManager()
 
-        return AlertsView(alertManager: alertManager, weatherService: weatherService)
+        return AlertsView(weatherService: weatherService)
+            .environmentObject(WeatherAlertManager.shared)
     }
 }

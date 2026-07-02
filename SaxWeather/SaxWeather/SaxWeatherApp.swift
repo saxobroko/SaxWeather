@@ -367,6 +367,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct SaxWeatherApp: App {
     // Create the shared instances
+    @StateObject private var weatherAlertManager = WeatherAlertManager.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var weatherService = WeatherService()
     // Customisation engine — single source of truth for every
@@ -409,6 +410,7 @@ struct SaxWeatherApp: App {
             ContentView()
                 .environmentObject(storeManager)
                 .environmentObject(weatherService)
+                .environmentObject(weatherAlertManager)
                 .environmentObject(customisationRegistry)
                 .environmentObject(deepLinkHandler)
                 .environmentObject(locationDeepLinkHandler)
@@ -466,6 +468,15 @@ struct SaxWeatherApp: App {
                         // App became active - reload widgets with fresh data
                         WidgetCenter.shared.reloadAllTimelines()
                         print("🔄 Widgets reloaded - app became active")
+
+                        Task {
+                            if let coordinates = await weatherService.getCoordinates() {
+                                await weatherAlertManager.fetchAlerts(
+                                    latitude: coordinates.latitude,
+                                    longitude: coordinates.longitude
+                                )
+                            }
+                        }
 
                         // Re-schedule background refresh
                         appDelegate.scheduleAppRefresh()

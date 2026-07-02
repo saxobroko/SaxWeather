@@ -14,12 +14,14 @@ struct WeatherAttributionView: View {
     let stationID: String?
     let useForecastSource: Bool // Use forecast source instead of current weather source
     let useAlertSource: Bool // Use alert source (for Alerts screen)
+    let usePrecipitationSource: Bool // Precipitation forecast on Alerts screen
     
-    init(dataSource: String, stationID: String? = nil, useForecastSource: Bool = false, useAlertSource: Bool = false) {
+    init(dataSource: String, stationID: String? = nil, useForecastSource: Bool = false, useAlertSource: Bool = false, usePrecipitationSource: Bool = false) {
         self.dataSource = dataSource
         self.stationID = stationID
         self.useForecastSource = useForecastSource
         self.useAlertSource = useAlertSource
+        self.usePrecipitationSource = usePrecipitationSource
     }
     
     var body: some View {
@@ -56,6 +58,12 @@ struct WeatherAttributionView: View {
             }
             
         case "openmeteo":
+            if usePrecipitationSource {
+                return (
+                    "Precipitation forecast by Open-Meteo.com",
+                    URL(string: "https://open-meteo.com/")!
+                )
+            }
             return (
                 "Weather data by Open-Meteo.com",
                 URL(string: "https://open-meteo.com/")!
@@ -81,10 +89,10 @@ struct WeatherAttributionView: View {
             )
             
         case "metno":
-            return (
-                "Alerts from MET Norway",
-                URL(string: "https://www.met.no/")!
-            )
+            return nil
+
+        case "none":
+            return nil
             
         default:
             // No attribution needed for unknown sources
