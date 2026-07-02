@@ -8,7 +8,14 @@
 
     },
     " %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
     },
     "'%@' will replace your current theme." : {
 
@@ -342,6 +349,9 @@
     "App State" : {
 
     },
+    "App version" : {
+      "comment" : "Diagnostic label for app version."
+    },
     "Appearance" : {
 
     },
@@ -359,6 +369,9 @@
     },
     "AQI Scale Reference" : {
 
+    },
+    "Attached automatically when you send. No API keys or personal data are included." : {
+      "comment" : "Diagnostics privacy footer."
     },
     "Attribution" : {
 
@@ -441,6 +454,12 @@
     "Browse and purchase cosmetic items for the app" : {
 
     },
+    "Bug Report" : {
+      "comment" : "Feedback category for reporting bugs."
+    },
+    "Build" : {
+      "comment" : "Diagnostic label for build number."
+    },
     "Built-in (Default)" : {
 
     },
@@ -476,6 +495,9 @@
     },
     "Cards" : {
 
+    },
+    "Category" : {
+      "comment" : "Feedback category picker label.\nFeedback category section header."
     },
     "Change Custom Background" : {
 
@@ -525,6 +547,9 @@
     "Confirm Destructive Actions" : {
 
     },
+    "Contact Developer" : {
+      "comment" : "Navigation title for general feedback form."
+    },
     "Coordinates are valid" : {
 
     },
@@ -533,6 +558,9 @@
     },
     "Copied" : {
 
+    },
+    "Copied to Clipboard" : {
+      "comment" : "Alert title when mail is unavailable."
     },
     "Copy Debug Bundle JSON" : {
 
@@ -627,6 +655,9 @@
     "Data from WU Station: %@" : {
 
     },
+    "Data source" : {
+      "comment" : "Diagnostic label for weather data source."
+    },
     "Dawn / Day / Dusk / Night" : {
 
     },
@@ -648,6 +679,9 @@
     "Delete location?" : {
 
     },
+    "Describe the feature and how it would help you." : {
+      "comment" : "Footer hint for feature requests."
+    },
     "Detailed forecast data" : {
 
     },
@@ -659,6 +693,9 @@
     },
     "Developer Debug" : {
 
+    },
+    "Diagnostics" : {
+      "comment" : "Diagnostics section header."
     },
     "Direction" : {
 
@@ -704,6 +741,9 @@
     },
     "Eight synthwave-themed background images, one for each weather condition." : {
       "comment" : "Subtitle for the Neon Backgrounds cosmetic tile."
+    },
+    "Email (optional)" : {
+      "comment" : "Optional reply email field placeholder."
     },
     "Enable Alerts" : {
 
@@ -1158,8 +1198,14 @@
     "Family Sharing" : {
 
     },
+    "Feature Idea" : {
+      "comment" : "Feedback category for feature requests."
+    },
     "Featured" : {
       "comment" : "Section header for the featured carousel."
+    },
+    "Feedback" : {
+
     },
     "Feel touch feedback for actions" : {
 
@@ -1417,6 +1463,9 @@
     "Leave a tip to support the app" : {
 
     },
+    "Leave your email if you'd like a reply. It is only included in the message you send." : {
+      "comment" : "Privacy note for optional email."
+    },
     "Light" : {
 
     },
@@ -1513,6 +1562,12 @@
     "Melbourne" : {
 
     },
+    "Message" : {
+      "comment" : "Feedback message section header."
+    },
+    "Message Required" : {
+      "comment" : "Alert title when feedback message is empty."
+    },
     "Micro" : {
 
     },
@@ -1564,6 +1619,9 @@
     "No hourly data available" : {
 
     },
+    "No mail account is configured. Your message was copied to the clipboard — paste it into an email to %@." : {
+      "comment" : "Explains clipboard fallback when Mail is unavailable."
+    },
     "No matches for '%@'" : {
 
     },
@@ -1613,7 +1671,7 @@
 
     },
     "OK" : {
-
+      "comment" : "Dismiss button."
     },
     "Onboarding step %lld of %lld" : {
       "localizations" : {
@@ -1637,11 +1695,20 @@
     "Open-Meteo" : {
 
     },
+    "Opens Mail with your message prefilled." : {
+      "comment" : "Send via in-app mail hint."
+    },
     "Opens the app to show the forecast for a location." : {
 
     },
+    "Opens your mail app, or copies the message if no mail account is set up." : {
+      "comment" : "Send via mailto or clipboard hint."
+    },
     "OpenWeatherMap" : {
 
+    },
+    "Other" : {
+      "comment" : "Feedback category for general feedback."
     },
     "Overlay" : {
 
@@ -1731,6 +1798,9 @@
     "Please check your location settings or try again later" : {
 
     },
+    "Please describe your feedback before sending." : {
+      "comment" : "Validation message for empty feedback."
+    },
     "Please enable GPS or enter valid coordinates in Settings" : {
 
     },
@@ -1759,6 +1829,9 @@
 
     },
     "Premium" : {
+
+    },
+    "Preparing share" : {
 
     },
     "Preset" : {
@@ -1815,6 +1888,9 @@
     "Purchase Required" : {
 
     },
+    "Questions, praise, or anything else about SaxWeather." : {
+      "comment" : "Footer hint for general feedback."
+    },
     "Radius" : {
 
     },
@@ -1868,6 +1944,15 @@
     },
     "Replaces the eight shipped weather background images with aurora-themed versions." : {
       "comment" : "Long description for Aurora Backgrounds."
+    },
+    "Reply Email" : {
+      "comment" : "Optional reply email section header."
+    },
+    "Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included." : {
+
+    },
+    "Request a Feature" : {
+      "comment" : "Navigation title for feature request form."
     },
     "Requires iOS 16+" : {
 
@@ -2005,6 +2090,9 @@
     },
     "Selected" : {
       "comment" : "Accessibility value: row is the active chart skin.\nAccessibility value: row is the active palette."
+    },
+    "Send Feedback" : {
+      "comment" : "Navigation title for bug feedback form.\nPrimary send feedback button."
     },
     "Set: %@" : {
 
@@ -2367,6 +2455,9 @@
     "Typography" : {
 
     },
+    "Unit system" : {
+      "comment" : "Diagnostic label for unit system."
+    },
     "Units" : {
 
     },
@@ -2484,6 +2575,9 @@
     "Weather Underground station is active and will override custom locations." : {
 
     },
+    "What happened? What did you expect? Steps to reproduce help a lot." : {
+      "comment" : "Footer hint for bug reports."
+    },
     "What to Wear" : {
 
     },
@@ -2545,6 +2639,9 @@
     },
     "You're Welcome!" : {
 
+    },
+    "Your message" : {
+      "comment" : "Feedback message field placeholder."
     },
     "Your support helps keep SaxWeather free and ad-free for everyone!" : {
 

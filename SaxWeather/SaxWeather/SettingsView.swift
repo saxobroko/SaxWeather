@@ -22,6 +22,7 @@ struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
     @EnvironmentObject var storeManager: StoreManager
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
+    @EnvironmentObject private var locationsManager: SavedLocationsManager
     @AppStorage("wuApiKey") private var wuApiKey = ""
     @AppStorage("stationID") private var stationID = ""
     @AppStorage("owmApiKey") private var owmApiKey = ""
@@ -37,7 +38,6 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
-    @StateObject private var locationsManager = SavedLocationsManager()
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var showingAddLocationSheet = false
     @State private var addLocationMode: AddLocationMode? = nil
@@ -137,6 +137,10 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .padding()
+                        }
+                        GroupBox(label: Text("Feedback").font(.title3).fontWeight(.semibold)) {
+                            feedbackSection
+                                .padding()
                         }
                         GroupBox(label: Text("About").font(.title3).fontWeight(.semibold)) {
                             aboutSection
@@ -402,6 +406,12 @@ struct SettingsView: View {
             BehaviourSettingsView()
         case .backupAndRestore:
             SettingsBackupAndRestoreView()
+        case .feedback(let category):
+            FeedbackView(
+                initialCategory: category,
+                dataSource: weatherService.currentDataSource,
+                unitSystem: unitSystem
+            )
         case .about:
             AboutSettingsView()
         case .attribution:
@@ -592,6 +602,14 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Cosmetics")
             .accessibilityHint("Browse and purchase cosmetic items for the app")
+        }
+
+        Section {
+            feedbackSection
+        } header: {
+            Text("Feedback")
+        } footer: {
+            Text("Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included.")
         }
 
         Section {
@@ -912,6 +930,30 @@ struct SettingsView: View {
         }
     }
     
+    private var feedbackSection: some View {
+        Group {
+            NavigationLink {
+                FeedbackView(
+                    initialCategory: .bug,
+                    dataSource: weatherService.currentDataSource,
+                    unitSystem: unitSystem
+                )
+            } label: {
+                Label("Send Feedback", systemImage: "envelope.fill")
+            }
+
+            NavigationLink {
+                FeedbackView(
+                    initialCategory: .idea,
+                    dataSource: weatherService.currentDataSource,
+                    unitSystem: unitSystem
+                )
+            } label: {
+                Label("Request a Feature", systemImage: "lightbulb.fill")
+            }
+        }
+    }
+
     private var aboutSection: some View {
         Group {
             // Version
@@ -1714,6 +1756,7 @@ enum SettingsSearchRoute: Hashable {
     case accessibility
     case behaviour
     case backupAndRestore
+    case feedback(FeedbackCategory)
     case about
     case attribution
 
@@ -1782,6 +1825,14 @@ struct SettingsSearchItem: Identifiable {
               subtitle: "Leave a tip",
               symbolName: "heart.fill",
               action: .sheet(.tipJar)),
+        .init(id: "sendFeedback", title: "Send Feedback",
+              subtitle: "Report a bug to the developer",
+              symbolName: "envelope.fill",
+              action: .navigate(.feedback(.bug))),
+        .init(id: "requestFeature", title: "Request a Feature",
+              subtitle: "Suggest an improvement",
+              symbolName: "lightbulb.fill",
+              action: .navigate(.feedback(.idea))),
         .init(id: "about", title: "About",
               subtitle: "Version & developer",
               symbolName: "info.circle.fill",
@@ -2040,8 +2091,10 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(weatherService: WeatherService())
             .environmentObject(StoreManager.shared)
+            .environmentObject(SavedLocationsManager())
         SettingsView(weatherService: WeatherService(), isOnboarding: true)
             .environmentObject(StoreManager.shared)
+            .environmentObject(SavedLocationsManager())
     }
 }
 
