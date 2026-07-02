@@ -19,7 +19,7 @@ struct OpenMeteoResponse: Codable {
     let current_units: CurrentUnits?
     let current: Current?
     let daily_units: DailyUnits?
-    let daily: Daily
+    let daily: Daily?
     
     init(from decoder: Decoder) throws {
         #if DEBUG
@@ -62,7 +62,7 @@ struct OpenMeteoResponse: Codable {
             self.current = try container.decodeIfPresent(Current.self, forKey: .current)
             
             self.daily_units = try container.decodeIfPresent(DailyUnits.self, forKey: .daily_units)
-            self.daily = try container.decode(Daily.self, forKey: .daily)
+            self.daily = try container.decodeIfPresent(Daily.self, forKey: .daily)
         } catch {
             #if DEBUG
             print("❌ Decoding error:", error)

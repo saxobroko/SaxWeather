@@ -58,7 +58,7 @@ extension WeatherService {
             )
             
             // Create forecasts separately to break up the complex expression
-            let forecasts = createForecasts(from: response.daily)
+            let forecasts = response.daily.map { createForecasts(from: $0) } ?? []
             
             // Update weather model with the response data
             var weather = Weather(
@@ -211,8 +211,8 @@ extension WeatherService {
             )
             
             let owmDaily = OWMDaily(temp: OWMDaily.OWMDailyTemp(
-                min: openMeteoResponse.daily.temperature_2m_min.first ?? 0,
-                max: openMeteoResponse.daily.temperature_2m_max.first ?? 0
+                min: openMeteoResponse.daily?.temperature_2m_min.first ?? 0,
+                max: openMeteoResponse.daily?.temperature_2m_max.first ?? 0
             ))
             
             return (owmCurrent, owmDaily)
@@ -232,6 +232,8 @@ extension WeatherService {
     }
     
     func createDetailedForecast(from response: OpenMeteoResponse) {
+        guard let daily = response.daily else { return }
+
         // Initialize date formatter for ISO8601 dates
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withFullDate]
@@ -239,73 +241,73 @@ extension WeatherService {
         // Create daily forecasts using indices
         var dailyForecasts: [WeatherForecast.DailyForecast] = []
         
-        for index in response.daily.time.indices {
+        for index in daily.time.indices {
             // Skip if any required values are missing
-            guard index < response.daily.weather_code.count,
-                  index < response.daily.temperature_2m_max.count,
-                  index < response.daily.temperature_2m_min.count else {
+            guard index < daily.weather_code.count,
+                  index < daily.temperature_2m_max.count,
+                  index < daily.temperature_2m_min.count else {
                 continue
             }
             
-            let timeString = response.daily.time[index]
+            let timeString = daily.time[index]
             let date = dateFormatter.date(from: timeString) ?? Date()
             
             // Get precipitation sum with fallback to 0
             var precipitation: Double = 0.0
-            if index < response.daily.precipitation_sum.count {
+            if index < daily.precipitation_sum.count {
                 // Force unwrapping with safe default: if it's nil, use 0.0
-                precipitation = response.daily.precipitation_sum[index] ?? 0.0
+                precipitation = daily.precipitation_sum[index] ?? 0.0
             }
             
             // Get precipitation probability with fallback to 0
             var precipProb: Double = 0.0
-            if index < response.daily.precipitation_probability_max.count {
-                precipProb = Double(response.daily.precipitation_probability_max[index])
+            if index < daily.precipitation_probability_max.count {
+                precipProb = Double(daily.precipitation_probability_max[index])
             }
             
             // Get wind speed with fallback to 0
             var windSpeed: Double = 0.0
-            if index < response.daily.wind_speed_10m_max.count {
-                windSpeed = response.daily.wind_speed_10m_max[index]
+            if index < daily.wind_speed_10m_max.count {
+                windSpeed = daily.wind_speed_10m_max[index]
             }
             
             // Get wind direction with fallback to 0
             var windDir: Double = 0.0
-            if index < response.daily.wind_direction_10m_dominant.count {
+            if index < daily.wind_direction_10m_dominant.count {
                 // Force unwrapping with safe default: if it's nil, use 0.0
-                windDir = response.daily.wind_direction_10m_dominant[index] ?? 0.0
+                windDir = daily.wind_direction_10m_dominant[index] ?? 0.0
             }
             
             // Get humidity with fallback to 0
             var humidity: Double = 0.0
-            if index < response.daily.relative_humidity_2m_max.count {
-                humidity = Double(response.daily.relative_humidity_2m_max[index])
+            if index < daily.relative_humidity_2m_max.count {
+                humidity = Double(daily.relative_humidity_2m_max[index])
             }
             
             // Get pressure with fallback to 0
             var pressure: Double = 0.0
-            if index < response.daily.pressure_msl_max.count {
-                pressure = response.daily.pressure_msl_max[index]
+            if index < daily.pressure_msl_max.count {
+                pressure = daily.pressure_msl_max[index]
             }
             
             // Get UV index with fallback to 0
             var uvIndex: Double = 0.0
-            if index < response.daily.uv_index_max.count {
-                uvIndex = response.daily.uv_index_max[index]
+            if index < daily.uv_index_max.count {
+                uvIndex = daily.uv_index_max[index]
             }
             
             // Get sunrise/sunset
-            let sunriseStr = index < response.daily.sunrise.count ? response.daily.sunrise[index] : ""
-            let sunsetStr = index < response.daily.sunset.count ? response.daily.sunset[index] : ""
+            let sunriseStr = index < daily.sunrise.count ? daily.sunrise[index] : ""
+            let sunsetStr = index < daily.sunset.count ? daily.sunset[index] : ""
             let sunrise = dateFormatter.date(from: sunriseStr)
             let sunset = dateFormatter.date(from: sunsetStr)
             
             // Debug info
             #if DEBUG
             print("🔄 Creating forecast for day \(timeString):")
-            print("   Temperature: \(response.daily.temperature_2m_max[index])°/\(response.daily.temperature_2m_min[index])°")
+            print("   Temperature: \(daily.temperature_2m_max[index])°/\(daily.temperature_2m_min[index])°")
             print("   Humidity: \(humidity)%")
-            print("   Weather Code: \(response.daily.weather_code[index])")
+            print("   Weather Code: \(daily.weather_code[index])")
             print("   Precipitation: \(precipitation)")
             print("   Wind Direction: \(windDir)")
             #endif
@@ -313,11 +315,11 @@ extension WeatherService {
             // Create forecast with guaranteed non-optional values
             let forecast = WeatherForecast.DailyForecast(
                 date: date,
-                tempMax: response.daily.temperature_2m_max[index],
-                tempMin: response.daily.temperature_2m_min[index],
+                tempMax: daily.temperature_2m_max[index],
+                tempMin: daily.temperature_2m_min[index],
                 precipitation: precipitation,
                 precipitationProbability: precipProb,
-                weatherCode: response.daily.weather_code[index],
+                weatherCode: daily.weather_code[index],
                 windSpeed: windSpeed,
                 windDirection: windDir,
                 humidity: humidity,
@@ -338,8 +340,10 @@ extension WeatherService {
     // MARK: - Forecast Methods
     @MainActor
     func fetchForecasts() async {
+        #if DEBUG
         print("\n📅 FORECAST DATA SOURCE")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        #endif
         
         // Check if API keys are disabled
         let disableAPIKeys = UserDefaults.standard.bool(forKey: "disableAPIKeys")
@@ -348,15 +352,19 @@ extension WeatherService {
         let preferOpenMeteo = UserDefaults.standard.bool(forKey: "useOpenMeteoAsDefault")
         
         if disableAPIKeys {
+            #if DEBUG
             print("🔒 API Keys are DISABLED - using only Apple Weather or Open-Meteo for forecasts")
+            #endif
         }
         
         // If WeatherKit was used for current weather, forecasts are already included
         if currentDataSource == "weatherkit" {
             if #available(iOS 16.0, macOS 13.0, *) {
+                #if DEBUG
                 print("📍 Using Apple WeatherKit for forecasts (matches current weather source)")
                 print("✅ SUCCESS: WeatherKit already provided forecast data with current conditions")
                 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                #endif
                 return
             }
         }
@@ -364,11 +372,15 @@ extension WeatherService {
         // If using WU or OWM for current weather, choose forecast source based on user preference
         if currentDataSource == "weatherunderground" || currentDataSource == "openweathermap" {
             if preferOpenMeteo {
+                #if DEBUG
                 print("⚙️  Current weather from \(currentDataSource.uppercased()), using OpenMeteo for forecasts (user preference)")
+                #endif
             } else {
                 // User prefers WeatherKit, try to use it for forecasts
                 if #available(iOS 16.0, macOS 13.0, *) {
+                    #if DEBUG
                     print("⚙️  Current weather from \(currentDataSource.uppercased()), attempting WeatherKit for forecasts (user preference)")
+                    #endif
                     
                     var lat = ""
                     var lon = ""
@@ -384,19 +396,27 @@ extension WeatherService {
                     if !lat.isEmpty && !lon.isEmpty {
                         do {
                             let _ = try await fetchWeatherKitWeather(latitude: lat, longitude: lon)
+                            #if DEBUG
                             print("✅ SUCCESS: Using WeatherKit for forecasts (user preference)")
                             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                            #endif
                             return
                         } catch {
+                            #if DEBUG
                             print("❌ FAILED: WeatherKit forecast unavailable (\(error.localizedDescription))")
                             print("   → Falling back to OpenMeteo")
+                            #endif
                         }
                     } else {
+                        #if DEBUG
                         print("❌ No coordinates available for WeatherKit forecast, falling back to OpenMeteo")
+                        #endif
                     }
                 } else {
+                    #if DEBUG
                     print("⚠️  User prefers WeatherKit but it's unavailable (iOS 16+ required)")
                     print("   → Using OpenMeteo for forecasts instead")
+                    #endif
                 }
             }
         }
@@ -463,15 +483,17 @@ extension WeatherService {
 
         do {
             // Use the forecast-only helper
+            #if DEBUG
             print("📍 Fetching forecast data from OpenMeteo")
+            #endif
             self.forecast = try await fetchOpenMeteoForecast(
                 latitude: latitude,
                 longitude: longitude
             )
             self.forecastDataSource = "openmeteo" // Track forecast source
+            #if DEBUG
             print("✅ SUCCESS: Using OpenMeteo for \(forecastDays)-day forecast")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-            #if DEBUG
             print("✅ Forecast data processing complete")
             #endif
 
@@ -480,9 +502,9 @@ extension WeatherService {
                 self.saveWeatherDataForWidget(weather)
             }
         } catch {
+            #if DEBUG
             print("❌ FAILED: OpenMeteo forecast unavailable (\(error.localizedDescription))")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-            #if DEBUG
             print("❌ Failed to fetch forecasts: \(error.localizedDescription)")
             #endif
             self.error = WeatherError.apiError("Failed to fetch forecast: \(error.localizedDescription)")
