@@ -48,7 +48,9 @@ class ExtendedWeatherService {
             // Weather Underground typically provides station-specific data
             // Extended features not available through PWS API
             // Explicitly fetch from Open-Meteo
+            #if DEBUG
             print("📍 WU detected - fetching extended data from Open-Meteo")
+            #endif
             break
             
         case "openmeteo":
@@ -62,7 +64,9 @@ class ExtendedWeatherService {
         
         // Fill gaps with Open-Meteo (always fetch Air Quality from Open-Meteo as fallback)
         if sunMoon == nil || hourlyPrecip.isEmpty || airQuality == nil {
+            #if DEBUG
             print("📍 Fetching missing extended data from Open-Meteo (sunMoon: \(sunMoon == nil), precip: \(hourlyPrecip.isEmpty), aqi: \(airQuality == nil))")
+            #endif
             
             let (openMeteoAQI, openMeteoSun, openMeteoPrecip) = await fetchFromOpenMeteo(
                 latitude: latitude,
@@ -75,7 +79,9 @@ class ExtendedWeatherService {
                 hourlyPrecip = openMeteoPrecip
             }
             
+            #if DEBUG
             print("📍 After Open-Meteo fallback - sunMoon: \(sunMoon != nil), precip: \(hourlyPrecip.count) hours, aqi: \(airQuality?.aqi ?? -1)")
+            #endif
         }
         
         return (airQuality, pollen, sunMoon, hourlyPrecip)
@@ -114,11 +120,15 @@ class ExtendedWeatherService {
                 )
             }
             
+            #if DEBUG
             print("✅ Extended data from WeatherKit: Sun/Moon + \(hourlyPrecip.count)h precipitation")
+            #endif
             return (sunMoon, Array(hourlyPrecip))
             
         } catch {
+            #if DEBUG
             print("⚠️ Failed to fetch WeatherKit extended data: \(error)")
+            #endif
             return (nil, [])
         }
     }
@@ -126,7 +136,9 @@ class ExtendedWeatherService {
     
     // MARK: - Open-Meteo Fallback
     private func fetchFromOpenMeteo(latitude: Double, longitude: Double) async -> (airQuality: AirQualityData?, sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+        #if DEBUG
         print("🌍 fetchFromOpenMeteo called with coordinates: \(latitude), \(longitude)")
+        #endif
         
         // Fetch each component independently to avoid one failure blocking others
         async let airQualityResult = fetchAirQuality(latitude: latitude, longitude: longitude)
@@ -137,10 +149,12 @@ class ExtendedWeatherService {
         let sunMoon = await sunMoonResult
         let hourlyPrecip = await hourlyPrecipResult
         
+        #if DEBUG
         print("✅ Extended data from Open-Meteo:")
         print("   - AQI: \(airQuality != nil ? "✓ (AQI \(airQuality!.aqi))" : "✗")")
         print("   - Sun/Moon: \(sunMoon != nil ? "✓" : "✗")")
         print("   - Precipitation: \(hourlyPrecip.count > 0 ? "✓ (\(hourlyPrecip.count)h)" : "✗")")
+        #endif
         
         return (airQuality, sunMoon, hourlyPrecip)
     }
@@ -175,7 +189,9 @@ class ExtendedWeatherService {
             
             return AirQualityData(aqi: aqi, category: category, pollutants: pollutants)
         } catch {
+            #if DEBUG
             print("❌ Air Quality fetch error: \(error)")
+            #endif
             return nil
         }
     }
@@ -184,39 +200,48 @@ class ExtendedWeatherService {
     private func fetchSunMoon(latitude: Double, longitude: Double) async -> SunMoonData? {
         let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&daily=sunrise,sunset&timezone=auto&forecast_days=1"
         
+        #if DEBUG
         print("🌅 Fetching Sun/Moon data from: \(urlString)")
+        #endif
         
         guard let url = URL(string: urlString) else {
+            #if DEBUG
             print("❌ Sun/Moon: Invalid URL")
+            #endif
             return nil
         }
         
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             
+            #if DEBUG
             if let httpResponse = response as? HTTPURLResponse {
                 print("🌅 Sun/Moon API response status: \(httpResponse.statusCode)")
             }
             
-            // Debug: Print raw response
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("🌅 Sun/Moon raw response: \(jsonString.prefix(200))...")
             }
+            #endif
             
             let decodedResponse = try JSONDecoder().decode(SunMoonResponse.self, from: data)
             
             guard let daily = decodedResponse.daily,
                   let sunriseString = daily.sunrise.first,
                   let sunsetString = daily.sunset.first else {
+                #if DEBUG
                 print("❌ Sun/Moon: Missing daily data or sunrise/sunset")
                 print("   - daily exists: \(decodedResponse.daily != nil)")
                 print("   - sunrise count: \(decodedResponse.daily?.sunrise.count ?? 0)")
                 print("   - sunset count: \(decodedResponse.daily?.sunset.count ?? 0)")
+                #endif
                 return nil
             }
             
+            #if DEBUG
             print("🌅 Sun/Moon strings: sunrise=\(sunriseString), sunset=\(sunsetString)")
             print("🌅 Timezone from API: \(decodedResponse.timezone ?? "unknown")")
+            #endif
             
             // Create a date formatter that handles the Open-Meteo format (without timezone suffix)
             let dateFormatter = DateFormatter()
@@ -231,16 +256,18 @@ class ExtendedWeatherService {
             
             guard let sunrise = dateFormatter.date(from: sunriseString),
                   let sunset = dateFormatter.date(from: sunsetString) else {
+                #if DEBUG
                 print("❌ Sun/Moon: Failed to parse dates from strings")
                 print("   - Tried format: yyyy-MM-dd'T'HH:mm")
                 print("   - Timezone: \(dateFormatter.timeZone.identifier)")
+                #endif
                 return nil
             }
             
             // Calculate moon phase (simplified - based on date)
             let moonPhase = calculateMoonPhase(for: Date())
             
-            // Debug: Print formatted times
+            #if DEBUG
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "HH:mm"
             timeFormatter.timeZone = dateFormatter.timeZone
@@ -248,6 +275,7 @@ class ExtendedWeatherService {
             print("   - Sunrise: \(timeFormatter.string(from: sunrise)) (\(sunrise))")
             print("   - Sunset: \(timeFormatter.string(from: sunset)) (\(sunset))")
             print("   - Moon Phase: \(moonPhase)")
+            #endif
             
             return SunMoonData(
                 sunrise: sunrise,
@@ -257,6 +285,7 @@ class ExtendedWeatherService {
                 moonset: nil   // Open-Meteo doesn't provide this
             )
         } catch {
+            #if DEBUG
             print("❌ Sun/Moon fetch error: \(error)")
             if let decodingError = error as? DecodingError {
                 switch decodingError {
@@ -272,6 +301,7 @@ class ExtendedWeatherService {
                     print("   - Unknown decoding error")
                 }
             }
+            #endif
             return nil
         }
     }
@@ -280,34 +310,43 @@ class ExtendedWeatherService {
     private func fetchHourlyPrecipitation(latitude: Double, longitude: Double) async -> [HourlyPrecipitation] {
         let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=precipitation_probability,precipitation&timezone=auto&forecast_days=2"
         
+        #if DEBUG
         print("🌧️ Fetching Precipitation data from: \(urlString)")
+        #endif
         
         guard let url = URL(string: urlString) else {
+            #if DEBUG
             print("❌ Precipitation: Invalid URL")
+            #endif
             return []
         }
         
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             
+            #if DEBUG
             if let httpResponse = response as? HTTPURLResponse {
                 print("🌧️ Precipitation API response status: \(httpResponse.statusCode)")
             }
             
-            // Debug: Print raw response
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("🌧️ Precipitation raw response: \(jsonString.prefix(300))...")
             }
+            #endif
             
             let decodedResponse = try JSONDecoder().decode(HourlyPrecipResponse.self, from: data)
             
             guard let hourly = decodedResponse.hourly else {
+                #if DEBUG
                 print("❌ Precipitation: Missing hourly data")
+                #endif
                 return []
             }
             
+            #if DEBUG
             print("🌧️ Precipitation data received: \(hourly.time.count) hours")
             print("🌧️ Timezone from API: \(decodedResponse.timezone ?? "unknown")")
+            #endif
             
             // Create a date formatter that handles the Open-Meteo format
             let dateFormatter = DateFormatter()
@@ -324,7 +363,9 @@ class ExtendedWeatherService {
             
             for (index, timeString) in hourly.time.enumerated() {
                 guard let date = dateFormatter.date(from: timeString) else {
+                    #if DEBUG
                     print("⚠️ Failed to parse time: \(timeString)")
+                    #endif
                     continue
                 }
                 
@@ -340,10 +381,13 @@ class ExtendedWeatherService {
                 )
             }
             
+            #if DEBUG
             print("✅ Precipitation data created: \(precipData.count) hours")
+            #endif
             
             return precipData
         } catch {
+            #if DEBUG
             print("❌ Hourly precipitation fetch error: \(error)")
             if let decodingError = error as? DecodingError {
                 switch decodingError {
@@ -359,6 +403,7 @@ class ExtendedWeatherService {
                     print("   - Unknown decoding error")
                 }
             }
+            #endif
             return []
         }
     }
