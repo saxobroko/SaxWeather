@@ -19,8 +19,14 @@ struct AlertsView: View {
     @EnvironmentObject var alertManager: WeatherAlertManager
     @ObservedObject var weatherService: WeatherService
     @State private var isRefreshing = false
+    @State private var selectedAlert: WeatherAlert?
+    @AppStorage("aiAlertSummariesEnabled") private var aiSummariesEnabled = true
+    @State private var alertsSummary: String?
+    @State private var isSummarisingAll = false
+    @State private var summariseAllError: String?
     @ObservedObject private var registry = CustomisationRegistry.shared
     @EnvironmentObject private var storeManager: StoreManager
+    @EnvironmentObject private var previewManager: PreviewProfileManager
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
     private var alertsBackgroundStrategy: BackgroundStrategy {
@@ -31,7 +37,9 @@ struct AlertsView: View {
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
     }
 
@@ -116,6 +124,12 @@ struct AlertsView: View {
             Task {
                 await refreshData()
             }
+        }
+        .sheet(item: $selectedAlert) { alert in
+            WeatherAlertDetailsView(
+                alert: alert,
+                source: alertManager.alertDataSource
+            )
         }
     }
 
@@ -379,14 +393,21 @@ struct AlertsView: View {
                 .styledCard()
                 .padding(.horizontal)
             } else {
+                summariseAllSection
+
                 ForEach(alertManager.alerts) { alert in
-                    alertView(for: alert)
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.92)),
-                                removal: .opacity
-                            )
+                    Button {
+                        selectedAlert = alert
+                    } label: {
+                        alertCard(for: alert)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.92)),
+                            removal: .opacity
                         )
+                    )
                 }
                 .animation(
                     .easeInOut(duration: 0.4),
@@ -396,7 +417,82 @@ struct AlertsView: View {
         }
     }
 
-    private func alertView(for alert: WeatherAlert) -> some View {
+    @ViewBuilder
+    private var summariseAllSection: some View {
+        if aiSummariesEnabled && WeatherAlertExplainer.isSupported {
+            VStack(alignment: .leading, spacing: 12) {
+                if let alertsSummary {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(Color.accentColor)
+                        Text("Summary")
+                            .font(.headline)
+                        Spacer()
+                        Button {
+                            Task { await summariseAllAlerts() }
+                        } label: {
+                            if isSummarisingAll {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                        }
+                        .disabled(isSummarisingAll)
+                    }
+
+                    Text(alertsSummary)
+                        .font(.body)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Label("Summarised on-device by Apple Intelligence", systemImage: "lock.fill")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else {
+                    Button {
+                        Task { await summariseAllAlerts() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isSummarisingAll {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "sparkles")
+                            }
+                            Text(isSummarisingAll ? "Summarising…" : "Summarise all alerts")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        .foregroundStyle(Color.accentColor)
+                    }
+                    .disabled(isSummarisingAll)
+                }
+
+                if let summariseAllError {
+                    Text(summariseAllError)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(16)
+            .styledCard()
+            .padding(.horizontal)
+        }
+    }
+
+    private func summariseAllAlerts() async {
+        let alerts = alertManager.alerts
+        guard !alerts.isEmpty else { return }
+        isSummarisingAll = true
+        summariseAllError = nil
+        defer { isSummarisingAll = false }
+
+        do {
+            alertsSummary = try await WeatherAlertExplainer.summariseAll(alerts: alerts)
+        } catch {
+            summariseAllError = error.localizedDescription
+        }
+    }
+
+    private func alertCard(for alert: WeatherAlert) -> some View {
         let content = VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 Circle()
@@ -424,17 +520,14 @@ struct AlertsView: View {
                 }
                 
                 Spacer(minLength: 0)
-                
-                // Show chevron icon if URL is available
-                if alert.detailsURL != nil {
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
-            if !alert.description.isEmpty && alert.description != alert.type {
-                Text(alert.description)
+            if let preview = alertPreviewText(for: alert) {
+                Text(preview)
                     .font(.body)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -451,13 +544,10 @@ struct AlertsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                // Show "Tap for details" hint if URL is available
-                if alert.detailsURL != nil {
-                    Spacer()
-                    Text("Tap for details")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                }
+                Spacer()
+                Text("Tap for details")
+                    .font(.caption)
+                    .foregroundStyle(Color.accentColor)
             }
             .padding(.leading, 28)
         }
@@ -469,23 +559,17 @@ struct AlertsView: View {
         )
         .padding(.horizontal)
         
-        // Wrap in button if URL is available
-        if let url = alert.detailsURL {
-            return AnyView(
-                Button(action: {
-                    #if os(iOS)
-                    UIApplication.shared.open(url)
-                    #elseif os(macOS)
-                    NSWorkspace.shared.open(url)
-                    #endif
-                }) {
-                    content
-                }
-                .buttonStyle(PlainButtonStyle())
-            )
-        } else {
-            return AnyView(content)
+        return content
+    }
+
+    private func alertPreviewText(for alert: WeatherAlert) -> String? {
+        if !alert.description.isEmpty && alert.description != alert.type {
+            return alert.description
         }
+        if let affectedArea = alert.affectedArea, !affectedArea.isEmpty {
+            return "Affected areas: \(affectedArea)"
+        }
+        return nil
     }
 
     private func alertSeverityColor(_ severity: WeatherAlert.AlertSeverity) -> Color {
@@ -558,12 +642,290 @@ struct AlertsView: View {
     private func refreshData() async {
         isRefreshing = true
 
+        // A refreshed alert set invalidates any earlier AI summary.
+        alertsSummary = nil
+        summariseAllError = nil
+
         // Use WeatherService's coordinate helper to respect API key settings
         if let coords = await weatherService.getCoordinates() {
             await alertManager.fetchAlerts(latitude: coords.latitude, longitude: coords.longitude)
         }
 
         isRefreshing = false
+    }
+}
+
+private struct WeatherAlertDetailsView: View {
+    let alert: WeatherAlert
+    let source: String
+
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("aiAlertSummariesEnabled") private var aiSummariesEnabled = true
+    @State private var fullText: String?
+    @State private var warningImage: UIImage?
+    @State private var isLoadingFullText = false
+    @State private var fullTextLoadFailed = false
+    @State private var explanation: String?
+    @State private var isExplaining = false
+    @State private var explanationError: String?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+
+                    explanationSection
+
+                    if let affectedArea = alert.affectedArea, !affectedArea.isEmpty {
+                        detailSection(title: "Affected areas") {
+                            Text(affectedArea)
+                                .font(.body)
+                        }
+                    }
+
+                    if !alert.description.isEmpty && alert.description != alert.type {
+                        detailSection(title: "Summary") {
+                            Text(alert.description)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    if let warningImage {
+                        detailSection(title: "Warning map") {
+                            Image(uiImage: warningImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+
+                    if isLoadingFullText {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Loading full warning…")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    } else if let fullText, !fullText.isEmpty {
+                        detailSection(title: "Full warning") {
+                            Text(fullText)
+                                .font(.body)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    } else if fullTextLoadFailed, warningImage == nil, alert.detailsURL != nil {
+                        Text("Could not load the full warning text. Use the link below to read it on the source website.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    linksSection
+
+                    detailSection(title: "Reported") {
+                        Text(dateText)
+                            .font(.headline)
+                        Text("Source: \(sourceDisplayName)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding()
+            }
+            .navigationTitle("Alert details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task(id: alert.detailsURL?.absoluteString) {
+                await loadFullTextIfNeeded()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var explanationSection: some View {
+        if aiSummariesEnabled && WeatherAlertExplainer.isSupported {
+            VStack(alignment: .leading, spacing: 12) {
+                if let explanation {
+                    detailSection(title: "In plain language") {
+                        Text(explanation)
+                            .font(.body)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Label("Summarised on-device by Apple Intelligence", systemImage: "sparkles")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Button {
+                        Task { await explainAlert() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isExplaining {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "sparkles")
+                            }
+                            Text(isExplaining ? "Explaining…" : "Explain in plain language")
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                    }
+                    .disabled(isExplaining || !hasExplainableContent)
+                }
+
+                if let explanationError {
+                    Text(explanationError)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private var hasExplainableContent: Bool {
+        explanationInput != nil
+    }
+
+    private var explanationInput: String? {
+        if let fullText, !fullText.isEmpty { return fullText }
+        if !alert.description.isEmpty { return alert.description }
+        if let area = alert.affectedArea, !area.isEmpty {
+            return "\(alert.type) for \(area)"
+        }
+        return nil
+    }
+
+    private func explainAlert() async {
+        guard let details = explanationInput else { return }
+        isExplaining = true
+        explanationError = nil
+        defer { isExplaining = false }
+
+        do {
+            explanation = try await WeatherAlertExplainer.explain(
+                title: alert.type,
+                affectedArea: alert.affectedArea,
+                details: details
+            )
+        } catch {
+            explanationError = error.localizedDescription
+        }
+    }
+
+    private var linksSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let url = alert.detailsURL {
+                Link(destination: url) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.right.square")
+                        Text(WeatherAlertContentLoader.detailLinkLabel(for: source))
+                    }
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                }
+            }
+
+            if let sourceURL = WeatherAlertContentLoader.sourceHomepageURL(for: source) {
+                Link(destination: sourceURL) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "link")
+                        Text(WeatherAlertContentLoader.sourceLinkLabel(for: source))
+                    }
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func detailSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            content()
+        }
+    }
+
+    private var sourceDisplayName: String {
+        switch source.lowercased() {
+        case "bom":
+            return "Bureau of Meteorology"
+        case "weatherkit":
+            return "Apple Weather"
+        default:
+            return source
+        }
+    }
+
+    @MainActor
+    private func loadFullTextIfNeeded() async {
+        guard let url = alert.detailsURL else { return }
+        isLoadingFullText = true
+        fullTextLoadFailed = false
+        fullText = nil
+        warningImage = nil
+
+        let content = await WeatherAlertContentLoader.loadDetailContent(from: url, source: source)
+        fullText = content.text
+        if let imageData = content.imageData {
+            warningImage = UIImage(data: imageData)
+        }
+        fullTextLoadFailed = content.isEmpty
+        isLoadingFullText = false
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(severityColor(alert.severity))
+                .frame(width: 16, height: 16)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(alert.type)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                    Text(alert.severity.rawValue.uppercased())
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(severityColor(alert.severity))
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var dateText: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: alert.date)
+    }
+
+    private func severityColor(_ severity: WeatherAlert.AlertSeverity) -> Color {
+        switch severity.color {
+        case "red":
+            return Color.red
+        case "orange":
+            return Color.orange
+        case "yellow":
+            return Color.yellow
+        default:
+            return Color.blue
+        }
     }
 }
 

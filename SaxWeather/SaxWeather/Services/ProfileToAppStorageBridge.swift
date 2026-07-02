@@ -114,6 +114,7 @@ enum ProfileToAppStorageBridge {
         defaults.set(knobs.behaviour.weatherAlertSounds, forKey: "weatherAlertSounds")
         defaults.set(knobs.behaviour.rainAlertsEnabled, forKey: "rainAlertsEnabled")
         defaults.set(knobs.behaviour.severeWeatherAlertsEnabled, forKey: "severeWeatherAlertsEnabled")
+        defaults.set(knobs.behaviour.aiAlertSummariesEnabled, forKey: "aiAlertSummariesEnabled")
         if let s = knobs.behaviour.quietHoursStart {
             defaults.set(s, forKey: "quietHoursStart")
         } else {
@@ -450,6 +451,10 @@ enum ProfileToAppStorageBridge {
             knobs.behaviour.severeWeatherAlertsEnabled =
                 defaults.bool(forKey: "severeWeatherAlertsEnabled")
         }
+        if defaults.object(forKey: "aiAlertSummariesEnabled") != nil {
+            knobs.behaviour.aiAlertSummariesEnabled =
+                defaults.bool(forKey: "aiAlertSummariesEnabled")
+        }
         if defaults.object(forKey: "quietHoursStart") != nil {
             knobs.behaviour.quietHoursStart =
                 defaults.integer(forKey: "quietHoursStart")
@@ -564,6 +569,7 @@ enum ProfileToAppStorageBridge {
         "hapticIntensity", "pullToRefresh", "tapDayToExpand",
         "longPressToCustomise", "confirmDestructive",
         "weatherAlertSounds", "rainAlertsEnabled", "severeWeatherAlertsEnabled",
+        "aiAlertSummariesEnabled",
         "quietHoursStart", "quietHoursEnd",
         "refreshSound", "vibrateOnPullToRefresh", "confirmQuit",
         // Accessibility

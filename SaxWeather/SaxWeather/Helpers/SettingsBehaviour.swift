@@ -131,6 +131,16 @@ enum SettingsBehaviour {
         UserDefaults.standard.bool(forKey: "refreshSound")
     }
 
+    /// `true` → offer on-device Apple Intelligence plain-language summaries
+    /// for weather alerts. Matches `@AppStorage("aiAlertSummariesEnabled")`
+    /// (default `true`).
+    static var aiAlertSummariesEnabled: Bool {
+        if UserDefaults.standard.object(forKey: "aiAlertSummariesEnabled") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "aiAlertSummariesEnabled")
+    }
+
     // MARK: - Quiet hours
 
     static var quietHoursStart: Int? {

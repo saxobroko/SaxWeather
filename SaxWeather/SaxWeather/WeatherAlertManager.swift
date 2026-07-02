@@ -8,7 +8,6 @@
 import Foundation
 import UserNotifications
 import CoreLocation
-import XMLCoder
 #if canImport(WeatherKit)
 import WeatherKit
 #endif
@@ -108,6 +107,24 @@ final class WeatherAlertManager: ObservableObject {
 
     // MARK: - Bureau of Meteorology (BOM) - Australia
 
+    /// BOM publishes one warnings feed per state, so results are filtered to this
+    /// radius around the user to drop warnings for far-away parts of the state.
+    private static let bomAlertRadiusKilometers: Double = 150
+
+    private func australianStateName(for stateCode: String) -> String {
+        switch stateCode.uppercased() {
+        case "VIC": return "Victoria"
+        case "NSW": return "New South Wales"
+        case "QLD": return "Queensland"
+        case "SA": return "South Australia"
+        case "WA": return "Western Australia"
+        case "TAS": return "Tasmania"
+        case "NT": return "Northern Territory"
+        case "ACT": return "Australian Capital Territory"
+        default: return "Australia"
+        }
+    }
+
     private func isInAustralia(latitude: Double, longitude: Double) -> Bool {
         latitude >= -44 && latitude <= -10 && longitude >= 113 && longitude <= 154
     }
@@ -138,9 +155,24 @@ final class WeatherAlertManager: ObservableObject {
             let bomAlerts = try parseBOMAlerts(from: data)
             guard !bomAlerts.isEmpty else { return false }
 
-            alerts = bomAlerts
+            let nearbyAlerts = await WeatherAlertProximityFilter.shared.filter(
+                alerts: bomAlerts,
+                userLatitude: latitude,
+                userLongitude: longitude,
+                stateName: australianStateName(for: stateCode),
+                maxDistanceKm: Self.bomAlertRadiusKilometers
+            )
+
+            guard !nearbyAlerts.isEmpty else {
+                alerts = []
+                alertDataSource = "bom"
+                clearPendingSevereNotifications()
+                return true
+            }
+
+            alerts = nearbyAlerts
             alertDataSource = "bom"
-            scheduleAlertNotifications(for: bomAlerts)
+            scheduleAlertNotifications(for: nearbyAlerts)
             return true
         } catch {
             print("BOM alerts fetch failed: \(error.localizedDescription)")
@@ -185,8 +217,8 @@ final class WeatherAlertManager: ObservableObject {
     }
 
     private func parseBOMAlerts(from data: Data) throws -> [WeatherAlert] {
-        let rssResponse = try XMLDecoder().decode(RSS.self, from: data)
-        guard let items = rssResponse.channel.item, !items.isEmpty else { return [] }
+        let items = try BOMRSSParser.parseItems(from: data)
+        guard !items.isEmpty else { return [] }
 
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -197,15 +229,48 @@ final class WeatherAlertManager: ObservableObject {
             let title = cleanAlertText(rawTitle)
             guard !title.lowercased().contains("warning summary") else { return nil }
 
-            let description = item.description.map { cleanAlertText($0) } ?? title
+            let affectedArea = extractAffectedArea(from: title)
+            let cleanedDescription = item.description.map { cleanAlertText($0) } ?? ""
+            let description: String
+            if !cleanedDescription.isEmpty && cleanedDescription != title {
+                description = cleanedDescription
+            } else if let affectedArea {
+                description = "Affected areas: \(affectedArea)"
+            } else {
+                description = ""
+            }
+
             return WeatherAlert(
                 id: item.guid ?? UUID().uuidString,
                 type: title,
                 severity: determineBOMSeverity(from: title),
                 description: description,
-                date: dateFormatter.date(from: item.pubDate ?? "") ?? Date()
+                date: dateFormatter.date(from: item.pubDate ?? "") ?? Date(),
+                affectedArea: affectedArea,
+                detailsURL: alertDetailsURL(link: item.link, guid: item.guid)
             )
         }
+    }
+
+    private func extractAffectedArea(from title: String) -> String? {
+        let lower = title.lowercased() as NSString
+        let range = lower.range(of: " for ", options: .backwards)
+        guard range.location != NSNotFound else { return nil }
+        let start = range.location + range.length
+        let area = title.dropFirst(start)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        return area.isEmpty ? nil : area
+    }
+
+    private func alertDetailsURL(link: String?, guid: String?) -> URL? {
+        if let link, let url = URL(string: link), url.scheme != nil {
+            return url
+        }
+        if let guid, let url = URL(string: guid), url.scheme != nil {
+            return url
+        }
+        return nil
     }
 
     private func determineBOMSeverity(from title: String) -> WeatherAlert.AlertSeverity {
@@ -230,11 +295,8 @@ final class WeatherAlertManager: ObservableObject {
             let weatherAlerts = weather.weatherAlerts ?? []
 
             let convertedAlerts = weatherAlerts.map { alert in
-                var description = ""
-                if let region = alert.region {
-                    description += "Region: \(region)\n"
-                }
-                description += "Source: \(alert.source)"
+                let affectedArea = alert.region
+                let description = affectedArea.map { "Affected area: \($0)" } ?? ""
 
                 return WeatherAlert(
                     id: UUID().uuidString,
@@ -242,6 +304,7 @@ final class WeatherAlertManager: ObservableObject {
                     severity: mapWeatherKitSeverity(alert.severity),
                     description: description,
                     date: Date(),
+                    affectedArea: affectedArea,
                     detailsURL: alert.detailsURL
                 )
             }
@@ -253,7 +316,7 @@ final class WeatherAlertManager: ObservableObject {
             } else {
                 clearPendingSevereNotifications()
             }
-            return true
+            return !convertedAlerts.isEmpty
             #else
             return false
             #endif
@@ -372,18 +435,10 @@ final class WeatherAlertManager: ObservableObject {
 
 // MARK: - BOM RSS Models
 
-struct RSS: Decodable {
-    let channel: RSSChannel
-}
-
-struct RSSChannel: Decodable {
-    let title: String?
-    let item: [RSSItem]?
-}
-
-struct RSSItem: Decodable {
+struct RSSItem {
     let title: String?
     let description: String?
+    let link: String?
     let pubDate: String?
     let guid: String?
 }
@@ -446,6 +501,7 @@ struct WeatherAlert: Identifiable {
     let severity: AlertSeverity
     let description: String
     let date: Date
+    var affectedArea: String? = nil
     var detailsURL: URL? = nil
 
     enum AlertSeverity: String {

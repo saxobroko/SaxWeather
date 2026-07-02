@@ -331,6 +331,9 @@ struct BehaviourSpec: Codable, Hashable {
     var rainAlertsEnabled: Bool = true
     /// Matches `@AppStorage("severeWeatherAlertsEnabled")` default `true`.
     var severeWeatherAlertsEnabled: Bool = true
+    /// Matches `@AppStorage("aiAlertSummariesEnabled")` default `true`.
+    /// Enables on-device Apple Intelligence plain-language alert summaries.
+    var aiAlertSummariesEnabled: Bool = true
     /// Matches `@AppStorage("speakWeatherAlerts")` default `true`.
     var speakWeatherAlerts: Bool = true
     /// Hour-of-day in 24h clock. Nil = no quiet hours.

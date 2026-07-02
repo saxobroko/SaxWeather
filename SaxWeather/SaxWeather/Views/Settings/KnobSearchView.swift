@@ -258,6 +258,8 @@ struct KnobEditorSheet: View {
             bool(\.behaviour.rainAlertsEnabled)
         case "severeWeatherAlertsEnabled":
             bool(\.behaviour.severeWeatherAlertsEnabled)
+        case "aiAlertSummariesEnabled":
+            bool(\.behaviour.aiAlertSummariesEnabled)
         case "speakWeatherAlerts":
             bool(\.behaviour.speakWeatherAlerts)
         case "refreshSound":
@@ -624,6 +626,8 @@ struct KnobEditorSheet: View {
         case "rainAlertsEnabled":   customisation.set(\.behaviour.rainAlertsEnabled, defaults.behaviour.rainAlertsEnabled)
         case "severeWeatherAlertsEnabled":
             customisation.set(\.behaviour.severeWeatherAlertsEnabled, defaults.behaviour.severeWeatherAlertsEnabled)
+        case "aiAlertSummariesEnabled":
+            customisation.set(\.behaviour.aiAlertSummariesEnabled, defaults.behaviour.aiAlertSummariesEnabled)
         case "speakWeatherAlerts":  customisation.set(\.behaviour.speakWeatherAlerts, defaults.behaviour.speakWeatherAlerts)
         case "quietHoursStart":     customisation.set(\.behaviour.quietHoursStart, defaults.behaviour.quietHoursStart)
         case "quietHoursEnd":       customisation.set(\.behaviour.quietHoursEnd, defaults.behaviour.quietHoursEnd)
