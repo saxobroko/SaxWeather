@@ -1,8 +1,9 @@
 //
-//  SharedWeatherLinkSheet.swift
+//  LocationWeatherPreviewSheet.swift
 //  SaxWeather
 //
-//  Full-screen preview when opening a shared weather link.
+//  Full-screen weather preview for share links, location peeks,
+//  and add-location flows.
 //
 
 import SwiftUI
@@ -11,10 +12,12 @@ import CoreLocation
 import UIKit
 #endif
 
-struct SharedWeatherLinkSheet: View {
-    let link: PendingWeatherLink
+struct LocationWeatherPreviewSheet: View {
+    let request: LocationWeatherPreviewRequest
     @ObservedObject var locationsManager: SavedLocationsManager
     let onDismiss: () -> Void
+    let onUseLocation: (() -> Void)?
+    let onAddAndUseLocation: (() -> Void)?
 
     @StateObject private var previewWeatherService = WeatherService()
     @EnvironmentObject private var storeManager: StoreManager
@@ -27,6 +30,7 @@ struct SharedWeatherLinkSheet: View {
     @State private var selectedFeelsLikeMetric: WeatherMetricInfo?
     @State private var didAddLocation = false
     @State private var showAddedAlert = false
+    @State private var showAPIKeysWarning = false
 
     var body: some View {
         NavigationStack {
@@ -60,14 +64,7 @@ struct SharedWeatherLinkSheet: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: addLocation) {
-                        Image(systemName: addButtonSymbol)
-                            .font(.title2)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(addButtonColor)
-                    }
-                    .disabled(isLocationAlreadySaved || didAddLocation)
-                    .accessibilityLabel(isLocationAlreadySaved ? "Location already saved" : "Add location")
+                    trailingToolbarContent
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -89,10 +86,58 @@ struct SharedWeatherLinkSheet: View {
         } message: {
             Text("\(locationTitle) was added to your saved locations.")
         }
+        .alert("API Keys Active", isPresented: $showAPIKeysWarning) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Custom locations are currently ignored because a Weather Underground station is configured. Disable API keys in Settings → Locations to use saved locations.")
+        }
         .task {
             configurePreviewService()
-            await previewWeatherService.fetchWeather(calledFrom: "SharedWeatherLinkSheet")
+            await previewWeatherService.fetchWeather(calledFrom: "LocationWeatherPreviewSheet")
         }
+    }
+
+    // MARK: - Toolbar
+
+    @ViewBuilder
+    private var trailingToolbarContent: some View {
+        switch request.mode {
+        case .sharedLink, .peekOnly:
+            if showsAddButton {
+                Button(action: addLocationOnly) {
+                    Image(systemName: addButtonSymbol)
+                        .font(.title2)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(addButtonColor)
+                }
+                .disabled(isLocationAlreadySaved || didAddLocation)
+                .accessibilityLabel(
+                    isLocationAlreadySaved ? "Location already saved" : "Add location"
+                )
+            }
+
+        case .locationPeek:
+            Button(action: useLocationTapped) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.green)
+            }
+            .accessibilityLabel("Use this location")
+
+        case .addLocation:
+            Button(action: addAndUseTapped) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Add and use location")
+        }
+    }
+
+    private var showsAddButton: Bool {
+        request.mode == .sharedLink || (request.mode == .peekOnly && !isLocationAlreadySaved)
     }
 
     // MARK: - Layout
@@ -197,13 +242,13 @@ struct SharedWeatherLinkSheet: View {
                 .padding(.top, 40)
         } else if let error = previewWeatherService.error {
             ErrorView(weatherError: error) {
-                await previewWeatherService.fetchWeather(calledFrom: "SharedWeatherLinkSheet.retry")
+                await previewWeatherService.fetchWeather(calledFrom: "LocationWeatherPreviewSheet.retry")
             } onOpenSettings: {
                 AppSettingsRouter.open()
             }
             .padding(.top, 40)
         } else {
-            ProgressView("Loading shared weather…")
+            ProgressView("Loading weather…")
                 .padding(.top, 80)
         }
     }
@@ -222,37 +267,40 @@ struct SharedWeatherLinkSheet: View {
             .environmentObject(storeManager)
     }
 
+    @ViewBuilder
     private var footerView: some View {
         VStack(spacing: 4) {
             WeatherAttributionView(
                 dataSource: previewWeatherService.currentDataSource,
-                stationID: link.stationID
+                stationID: request.stationID
             )
 
-            Text("Shared via SaxWeather")
-                .accessibleFont(size: 12)
-                .foregroundColor(.primary)
-                .padding(.bottom, 10)
+            if request.mode == .sharedLink {
+                Text("Shared via SaxWeather")
+                    .accessibleFont(size: 12)
+                    .foregroundColor(.primary)
+                    .padding(.bottom, 10)
+            }
         }
     }
 
     // MARK: - Helpers
 
     private var locationTitle: String {
-        if let name = link.name, !name.isEmpty {
+        if let name = request.name, !name.isEmpty {
             return name
         }
         if let weatherName = previewWeatherService.weather?.locationName, !weatherName.isEmpty {
             return weatherName
         }
-        return String(format: "%.4f, %.4f", link.latitude, link.longitude)
+        return String(format: "%.4f, %.4f", request.latitude, request.longitude)
     }
 
     private var shouldShowLocationHeader: Bool {
         guard SettingsBehaviour.showLocationHeader else { return false }
 
         let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
-        let stationID = link.stationID ?? ""
+        let stationID = request.stationID ?? ""
         let hasWeatherUnderground = !wuApiKey.isEmpty && !stationID.isEmpty
 
         if hasWeatherUnderground && !disableAPIKeys {
@@ -264,8 +312,8 @@ struct SharedWeatherLinkSheet: View {
 
     private var isLocationAlreadySaved: Bool {
         locationsManager.locations.contains {
-            abs($0.latitude - link.latitude) < 0.0001
-                && abs($0.longitude - link.longitude) < 0.0001
+            abs($0.latitude - request.latitude) < 0.0001
+                && abs($0.longitude - request.longitude) < 0.0001
         }
     }
 
@@ -283,26 +331,46 @@ struct SharedWeatherLinkSheet: View {
         return .white
     }
 
+    private var isOverriddenByAPIKeys: Bool {
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        return !disableAPIKeys && (!wuApiKey.isEmpty || !stationID.isEmpty)
+    }
+
     private func configurePreviewService() {
         previewWeatherService.useGPS = false
         previewWeatherService.shareLinkPreview = ShareLinkPreviewContext(
-            latitude: link.latitude,
-            longitude: link.longitude,
-            stationID: link.stationID
+            latitude: request.latitude,
+            longitude: request.longitude,
+            stationID: request.stationID
         )
         previewWeatherService.currentLocation = CLLocationCoordinate2D(
-            latitude: link.latitude,
-            longitude: link.longitude
+            latitude: request.latitude,
+            longitude: request.longitude
         )
     }
 
-    private func addLocation() {
+    private func useLocationTapped() {
+        if isOverriddenByAPIKeys && !request.isGPSPreview {
+            showAPIKeysWarning = true
+            return
+        }
+        onUseLocation?()
+        onDismiss()
+    }
+
+    private func addAndUseTapped() {
+        onAddAndUseLocation?()
+        onDismiss()
+    }
+
+    private func addLocationOnly() {
         guard !isLocationAlreadySaved else { return }
 
         if locationsManager.addLocation(
             name: locationTitle,
-            latitude: link.latitude,
-            longitude: link.longitude
+            latitude: request.latitude,
+            longitude: request.longitude
         ) {
             didAddLocation = true
             showAddedAlert = true
