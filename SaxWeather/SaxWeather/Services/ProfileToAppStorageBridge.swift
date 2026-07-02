@@ -70,6 +70,7 @@ enum ProfileToAppStorageBridge {
         defaults.set(knobs.layout.cardDensity.rawValue, forKey: "cardDensity")
         defaults.set(knobs.layout.swipeBetweenLocations, forKey: "swipeBetweenLocations")
         defaults.set(knobs.layout.showLocationHeader, forKey: "showLocationHeader")
+        defaults.set(knobs.layout.previewBeforeChangingLocation, forKey: "previewBeforeChangingLocation")
         defaults.set(knobs.layout.showHeroLastUpdated, forKey: "showHeroLastUpdated")
         defaults.set(knobs.layout.compactCardsInLandscape, forKey: "compactCardsInLandscape")
 
@@ -111,6 +112,8 @@ enum ProfileToAppStorageBridge {
                      forKey: "longPressToCustomise")
         defaults.set(knobs.behaviour.confirmDestructive, forKey: "confirmDestructive")
         defaults.set(knobs.behaviour.weatherAlertSounds, forKey: "weatherAlertSounds")
+        defaults.set(knobs.behaviour.rainAlertsEnabled, forKey: "rainAlertsEnabled")
+        defaults.set(knobs.behaviour.severeWeatherAlertsEnabled, forKey: "severeWeatherAlertsEnabled")
         if let s = knobs.behaviour.quietHoursStart {
             defaults.set(s, forKey: "quietHoursStart")
         } else {
@@ -317,6 +320,10 @@ enum ProfileToAppStorageBridge {
             knobs.layout.showLocationHeader =
                 defaults.bool(forKey: "showLocationHeader")
         }
+        if defaults.object(forKey: "previewBeforeChangingLocation") != nil {
+            knobs.layout.previewBeforeChangingLocation =
+                defaults.bool(forKey: "previewBeforeChangingLocation")
+        }
         if defaults.object(forKey: "showHeroLastUpdated") != nil {
             knobs.layout.showHeroLastUpdated =
                 defaults.bool(forKey: "showHeroLastUpdated")
@@ -435,6 +442,14 @@ enum ProfileToAppStorageBridge {
             knobs.behaviour.weatherAlertSounds =
                 defaults.bool(forKey: "weatherAlertSounds")
         }
+        if defaults.object(forKey: "rainAlertsEnabled") != nil {
+            knobs.behaviour.rainAlertsEnabled =
+                defaults.bool(forKey: "rainAlertsEnabled")
+        }
+        if defaults.object(forKey: "severeWeatherAlertsEnabled") != nil {
+            knobs.behaviour.severeWeatherAlertsEnabled =
+                defaults.bool(forKey: "severeWeatherAlertsEnabled")
+        }
         if defaults.object(forKey: "quietHoursStart") != nil {
             knobs.behaviour.quietHoursStart =
                 defaults.integer(forKey: "quietHoursStart")
@@ -533,7 +548,8 @@ enum ProfileToAppStorageBridge {
         // Layout
         "forecastDays", "displayMode", "showHamburgerMenu",
         "hourlyHours", "cardDensity", "swipeBetweenLocations",
-        "showLocationHeader", "showHeroLastUpdated", "compactCardsInLandscape",
+        "showLocationHeader", "previewBeforeChangingLocation",
+        "showHeroLastUpdated", "compactCardsInLandscape",
         // Data
         "unitSystem", "useOpenMeteoAsDefault", "disableAPIKeys",
         "preferredDataSource", "refreshCadence",
@@ -547,7 +563,8 @@ enum ProfileToAppStorageBridge {
         "enableHapticFeedback", "speakWeatherAlerts",
         "hapticIntensity", "pullToRefresh", "tapDayToExpand",
         "longPressToCustomise", "confirmDestructive",
-        "weatherAlertSounds", "quietHoursStart", "quietHoursEnd",
+        "weatherAlertSounds", "rainAlertsEnabled", "severeWeatherAlertsEnabled",
+        "quietHoursStart", "quietHoursEnd",
         "refreshSound", "vibrateOnPullToRefresh", "confirmQuit",
         // Accessibility
         "reduceMotion", "enhancedVoiceOverLabels",

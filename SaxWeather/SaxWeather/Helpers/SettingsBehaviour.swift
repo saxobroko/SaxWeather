@@ -113,6 +113,20 @@ enum SettingsBehaviour {
         return UserDefaults.standard.bool(forKey: "weatherAlertSounds")
     }
 
+    static var rainAlertsEnabled: Bool {
+        if UserDefaults.standard.object(forKey: "rainAlertsEnabled") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "rainAlertsEnabled")
+    }
+
+    static var severeWeatherAlertsEnabled: Bool {
+        if UserDefaults.standard.object(forKey: "severeWeatherAlertsEnabled") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "severeWeatherAlertsEnabled")
+    }
+
     static var refreshSound: Bool {
         UserDefaults.standard.bool(forKey: "refreshSound")
     }
@@ -253,6 +267,16 @@ enum SettingsBehaviour {
             return true
         }
         return UserDefaults.standard.bool(forKey: "showLocationHeader")
+    }
+
+    /// `true` → show a full-screen weather preview before
+    /// adopting a new location. Matches
+    /// `@AppStorage("previewBeforeChangingLocation")` (default `true`).
+    static var previewBeforeChangingLocation: Bool {
+        if UserDefaults.standard.object(forKey: "previewBeforeChangingLocation") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "previewBeforeChangingLocation")
     }
 
     /// `true` → display the “Last updated” button on the

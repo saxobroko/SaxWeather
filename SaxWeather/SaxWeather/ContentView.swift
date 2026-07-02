@@ -59,7 +59,6 @@ struct ContentView: View {
     @ObservedObject private var registry = CustomisationRegistry.shared
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var weatherAlertManager = WeatherAlertManager()
     @State private var showingLocationMenu = false
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var selectedTab: Int = 0
@@ -81,7 +80,7 @@ struct ContentView: View {
     @State private var pendingUsageChart: String?
     @State private var pendingUsageBackground: String?
     @State private var selectedFeelsLikeMetric: WeatherMetricInfo?
-    @State private var presentedSharedWeatherLink: PendingWeatherLink?
+    @State private var presentedLocationPreview: LocationWeatherPreviewRequest?
 
     // Phase 3 — live cosmetic-preview coordinator. Owned at the
     // root so navigation logic + countdown overlay can both
@@ -213,8 +212,89 @@ struct ContentView: View {
             ?? locationDeepLinkHandler.pendingLink
         guard let link else { return }
         locationDeepLinkHandler.clearPending()
+        presentLocationPreview(.sharedLink(from: link))
+    }
+
+    private func presentLocationPreview(_ request: LocationWeatherPreviewRequest) {
         withAnimation(.easeInOut(duration: 0.25)) {
-            presentedSharedWeatherLink = link
+            presentedLocationPreview = request
+        }
+    }
+
+    private func dismissLocationPreview() {
+        presentedLocationPreview = nil
+    }
+
+    private var isLocationSwitchBlockedByAPIKeys: Bool {
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        return !disableAPIKeys && (!wuApiKey.isEmpty || !stationID.isEmpty)
+    }
+
+    private func adoptPreviewLocation(_ request: LocationWeatherPreviewRequest) {
+        if request.isGPSPreview {
+            locationsManager.selectCurrentLocation()
+            weatherService.useGPS = true
+        } else if let savedID = request.savedLocationID,
+                  let location = locationsManager.locations.first(where: { $0.id == savedID }) {
+            locationsManager.selectLocation(location)
+            weatherService.useGPS = false
+        } else {
+            weatherService.useGPS = false
+
+            let latString = String(request.latitude)
+            let lonString = String(request.longitude)
+            UserDefaults.standard.set(latString, forKey: "latitude")
+            UserDefaults.standard.set(lonString, forKey: "longitude")
+            WidgetSyncService.shared.syncManualCoordinates(
+                latitude: latString,
+                longitude: lonString
+            )
+
+            if let stationID = request.stationID, !stationID.isEmpty {
+                let wuKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+                if !wuKey.isEmpty {
+                    UserDefaults.standard.set(stationID, forKey: "stationID")
+                }
+            }
+
+            if let match = locationsManager.locations.first(where: {
+                abs($0.latitude - request.latitude) < 0.0001
+                    && abs($0.longitude - request.longitude) < 0.0001
+            }) {
+                locationsManager.selectLocation(match)
+            }
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "LocationWeatherPreview.adopt")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 0
+        }
+    }
+
+    private func addAndUsePreviewLocation(_ request: LocationWeatherPreviewRequest) {
+        let locationName = request.name ?? String(
+            format: "%.4f, %.4f",
+            request.latitude,
+            request.longitude
+        )
+
+        if locationsManager.addLocation(
+            name: locationName,
+            latitude: request.latitude,
+            longitude: request.longitude
+        ), let addedLocation = locationsManager.locations.last {
+            locationsManager.selectLocation(addedLocation)
+            weatherService.useGPS = false
+            Task {
+                await weatherService.fetchWeather(calledFrom: "LocationWeatherPreview.addAndUse")
+            }
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = 0
+            }
         }
     }
 
@@ -299,7 +379,7 @@ struct ContentView: View {
                         .tag(1)
 
                         NavigationStack {
-                            AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                            AlertsView(weatherService: weatherService)
                         }
                         .tabItem {
                             Label("Alerts", systemImage: "exclamationmark.triangle")
@@ -390,21 +470,38 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.weatherLinkNotification)) { _ in
                 consumePendingWeatherLink()
             }
+            .onReceive(NotificationCenter.default.publisher(for: LocationPreviewNavigation.requestNotification)) { _ in
+                if let request = LocationPreviewNavigation.consumePending() {
+                    presentLocationPreview(request)
+                }
+            }
             .onAppear {
                 consumePendingAppIntentNavigation()
                 consumePendingWeatherLink()
+                if let request = LocationPreviewNavigation.consumePending() {
+                    presentLocationPreview(request)
+                }
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     consumePendingAppIntentNavigation()
                     consumePendingWeatherLink()
+                    if let request = LocationPreviewNavigation.consumePending() {
+                        presentLocationPreview(request)
+                    }
                 }
             }
-            .fullScreenCover(item: $presentedSharedWeatherLink) { link in
-                SharedWeatherLinkSheet(
-                    link: link,
+            .fullScreenCover(item: $presentedLocationPreview) { request in
+                LocationWeatherPreviewSheet(
+                    request: request,
                     locationsManager: locationsManager,
-                    onDismiss: { presentedSharedWeatherLink = nil }
+                    onDismiss: dismissLocationPreview,
+                    onUseLocation: {
+                        adoptPreviewLocation(request)
+                    },
+                    onAddAndUseLocation: {
+                        addAndUsePreviewLocation(request)
+                    }
                 )
                 .environmentObject(storeManager)
                 .environmentObject(registry)
@@ -687,6 +784,12 @@ struct ContentView: View {
             HamburgerLocationMenuView(
                 locationsManager: locationsManager,
                 weatherService: weatherService,
+                previewBeforeChangingLocation: SettingsBehaviour.previewBeforeChangingLocation,
+                isLocationSwitchBlockedByAPIKeys: isLocationSwitchBlockedByAPIKeys,
+                onRequestPreview: { request in
+                    showingLocationMenu = false
+                    presentLocationPreview(request)
+                },
                 onDismiss: { showingLocationMenu = false }
             )
         }
@@ -708,7 +811,15 @@ struct ContentView: View {
         .modifier(LocationSwipeModifier(
             enabled: SettingsBehaviour.swipeBetweenLocations,
             locationsManager: locationsManager,
-            weatherService: weatherService
+            weatherService: weatherService,
+            previewBeforeChangingLocation: SettingsBehaviour.previewBeforeChangingLocation
+                && !isLocationSwitchBlockedByAPIKeys,
+            onSwipeToLocation: { target in
+                let coordinates = weatherService.currentLocation
+                presentLocationPreview(
+                    .locationPeek(savedLocation: target, coordinates: coordinates)
+                )
+            }
         ))
         // `experimentalSwipeRefresh` — register pull-to-refresh on
         // the whole home screen so it works outside the scroll view.
@@ -1505,6 +1616,9 @@ extension WeatherRowView where Accessory == EmptyView {
 struct HamburgerLocationMenuView: View {
     @ObservedObject var locationsManager: SavedLocationsManager
     @ObservedObject var weatherService: WeatherService
+    let previewBeforeChangingLocation: Bool
+    let isLocationSwitchBlockedByAPIKeys: Bool
+    let onRequestPreview: (LocationWeatherPreviewRequest) -> Void
     let onDismiss: () -> Void
 
     @AppStorage("disableAPIKeys") private var disableAPIKeys = false
@@ -1525,7 +1639,11 @@ struct HamburgerLocationMenuView: View {
         UserDefaults.standard.string(forKey: "stationID") ?? ""
     }
     private var isOverriddenByAPIKeys: Bool {
-        !disableAPIKeys && (!wuApiKey.isEmpty || !stationID.isEmpty)
+        isLocationSwitchBlockedByAPIKeys
+    }
+
+    private var shouldPreviewBeforeSwitching: Bool {
+        previewBeforeChangingLocation && !isOverriddenByAPIKeys
     }
 
     private var isGPSSelected: Bool {
@@ -1568,7 +1686,7 @@ struct HamburgerLocationMenuView: View {
                         isSelected: isGPSSelected,
                         isDisabled: false
                     ) {
-                        selectCurrentLocation()
+                        handleLocationTap(locationsManager.currentLocationEntry)
                     }
 
                     if locationsManager.locations.isEmpty {
@@ -1591,7 +1709,18 @@ struct HamburgerLocationMenuView: View {
                                     locationsManager.selectedLocation?.id == location.id,
                                 isDisabled: false
                             ) {
-                                selectLocation(location)
+                                handleLocationTap(location)
+                            }
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                #if canImport(UIKit)
+                                HapticFeedbackHelper.shared.medium()
+                                #endif
+                                onRequestPreview(
+                                    .peekOnly(
+                                        savedLocation: location,
+                                        coordinates: weatherService.currentLocation
+                                    )
+                                )
                             }
                         }
                     }
@@ -1684,6 +1813,24 @@ struct HamburgerLocationMenuView: View {
 
     // MARK: - Selection Handlers
 
+    private func handleLocationTap(_ location: SavedLocation) {
+        if shouldPreviewBeforeSwitching {
+            onRequestPreview(
+                .locationPeek(
+                    savedLocation: location,
+                    coordinates: weatherService.currentLocation
+                )
+            )
+            return
+        }
+
+        if location.isCurrentLocation {
+            selectCurrentLocation()
+        } else {
+            selectLocation(location)
+        }
+    }
+
     private func selectCurrentLocation() {
         #if canImport(UIKit)
         HapticFeedbackHelper.shared.light()
@@ -1730,23 +1877,15 @@ struct HamburgerLocationMenuView: View {
         let validatedLon = validationResult.normalizedLongitude ?? lon
         let locationName = mapSelectedLocationName ?? "Selected Location"
 
-        if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-            if let addedLocation = locationsManager.locations.last {
-                locationsManager.selectLocation(addedLocation)
-                weatherService.useGPS = false
-                Task {
-                    await weatherService.fetchWeather(calledFrom: "HamburgerLocationMenuView.addMapLocation")
-                }
-            }
-            mapSelectedLocation = nil
-            mapSelectedLocationName = nil
-            onDismiss()
-        } else {
-            alertMessage = "Invalid coordinates. Please try again."
-            showingAlert = true
-            mapSelectedLocation = nil
-            mapSelectedLocationName = nil
-        }
+        mapSelectedLocation = nil
+        mapSelectedLocationName = nil
+        onRequestPreview(
+            .addLocation(
+                name: locationName,
+                latitude: validatedLat,
+                longitude: validatedLon
+            )
+        )
     }
 }
 
@@ -1762,6 +1901,9 @@ struct HamburgerLocationMenuView_Previews: PreviewProvider {
         HamburgerLocationMenuView(
             locationsManager: SavedLocationsManager(),
             weatherService: WeatherService(),
+            previewBeforeChangingLocation: true,
+            isLocationSwitchBlockedByAPIKeys: false,
+            onRequestPreview: { _ in },
             onDismiss: {}
         )
     }
@@ -1812,6 +1954,8 @@ struct LocationSwipeModifier: ViewModifier {
     let enabled: Bool
     @ObservedObject var locationsManager: SavedLocationsManager
     @ObservedObject var weatherService: WeatherService
+    let previewBeforeChangingLocation: Bool
+    let onSwipeToLocation: (SavedLocation) -> Void
 
     func body(content: Content) -> some View {
         if enabled {
@@ -1846,6 +1990,12 @@ struct LocationSwipeModifier: ViewModifier {
         #if canImport(UIKit)
         HapticFeedbackHelper.shared.light()
         #endif
+
+        if previewBeforeChangingLocation {
+            onSwipeToLocation(target)
+            return
+        }
+
         if target.isCurrentLocation {
             locationsManager.selectCurrentLocation()
             weatherService.useGPS = true

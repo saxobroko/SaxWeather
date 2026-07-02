@@ -12,6 +12,12 @@ import MapKit
 import UIKit
 #endif
 
+private func requestAddLocationPreview(name: String, latitude: Double, longitude: Double) {
+    LocationPreviewNavigation.request(
+        .addLocation(name: name, latitude: latitude, longitude: longitude)
+    )
+}
+
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
     @EnvironmentObject var storeManager: StoreManager
@@ -1252,24 +1258,16 @@ struct SettingsView: View {
                     
                     // Use the geocoded name or a default name
                     let locationName = mapSelectedLocationName ?? "Selected Location"
-                    
-                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-                        // Find the newly added location to select it
-                        if let addedLocation = locationsManager.locations.last {
-                            locationsManager.selectLocation(addedLocation)
-                            weatherService.useGPS = false
-                            Task {
-                                await weatherService.fetchWeather(calledFrom: "SettingsView.addMapLocation")
-                            }
-                        }
-                        // Reset state
-                        addLocationMode = nil
-                        mapSelectedLocation = nil
-                        mapSelectedLocationName = nil
-                    } else {
-                        alertMessage = "Invalid coordinates. Please try again."
-                        showingAlert = true
-                    }
+
+                    requestAddLocationPreview(
+                        name: locationName,
+                        latitude: validatedLat,
+                        longitude: validatedLon
+                    )
+                    addLocationMode = nil
+                    mapSelectedLocation = nil
+                    mapSelectedLocationName = nil
+                    showingAddLocationSheet = false
                 } else {
                     alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                     showingAlert = true
@@ -1303,21 +1301,16 @@ struct SettingsView: View {
                         let validatedLat = validationResult.normalizedLatitude ?? lat
                         let validatedLon = validationResult.normalizedLongitude ?? lon
                         
-                        if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
-                            // Find the newly added location to select it
-                            if let addedLocation = locationsManager.locations.last {
-                                locationsManager.selectLocation(addedLocation)
-                                weatherService.useGPS = false
-                                Task { await weatherService.fetchWeather(calledFrom: "SettingsView.addLocation") }
-                            }
-                            showingAddLocationSheet = false
-                            newLocationName = ""
-                            newLatitude = ""
-                            newLongitude = ""
-                        } else {
-                            alertMessage = "Invalid coordinates. Please check your values and try again."
-                            showingAlert = true
-                        }
+                        requestAddLocationPreview(
+                            name: newLocationName,
+                            latitude: validatedLat,
+                            longitude: validatedLon
+                        )
+                        showingAddLocationSheet = false
+                        addLocationMode = nil
+                        newLocationName = ""
+                        newLatitude = ""
+                        newLongitude = ""
                     } else {
                         alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
                         showingAlert = true
@@ -1382,23 +1375,18 @@ struct SettingsView: View {
                                 let validatedLat = validationResult.normalizedLatitude ?? lat
                                 let validatedLon = validationResult.normalizedLongitude ?? lon
                                 
-                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
-                                    // Find the newly added location to select it
-                                    if let addedLocation = locationsManager.locations.last {
-                                        locationsManager.selectLocation(addedLocation)
-                                        weatherService.useGPS = false
-                                        Task { await weatherService.fetchWeather(calledFrom: "SettingsView.citySearch") }
-                                    }
-                                    showingAddLocationSheet = false
-                                    citySearchQuery = ""
-                                    citySearchResults = []
-                                    selectedSearchCompletion = nil
-                                    citySearchCoordinate = nil
-                                    citySearchError = nil
-                                } else {
-                                    // Handle error - but we don't have access to alertMessage/showingAlert here
-                                    print("Failed to add location")
-                                }
+                                requestAddLocationPreview(
+                                    name: name,
+                                    latitude: validatedLat,
+                                    longitude: validatedLon
+                                )
+                                showingAddLocationSheet = false
+                                addLocationMode = nil
+                                citySearchQuery = ""
+                                citySearchResults = []
+                                selectedSearchCompletion = nil
+                                citySearchCoordinate = nil
+                                citySearchError = nil
                             } else {
                                 // Handle error - but we don't have access to alertMessage/showingAlert here
                                 print("Invalid coordinates: \(validationResult.errorMessage ?? "Unknown error")")
@@ -1945,6 +1933,7 @@ enum SearchKnobValueFormatter {
         case "showHamburgerMenu":           return k.layout.showHamburgerMenu ? "On" : "Off"
         case "swipeBetweenLocations":       return k.layout.swipeBetweenLocations ? "On" : "Off"
         case "showLocationHeader":          return k.layout.showLocationHeader ? "On" : "Off"
+        case "previewBeforeChangingLocation": return k.layout.previewBeforeChangingLocation ? "On" : "Off"
         case "showHeroLastUpdated":         return k.layout.showHeroLastUpdated ? "On" : "Off"
         case "compactCardsInLandscape":     return k.layout.compactCardsInLandscape ? "On" : "Off"
 
@@ -1982,6 +1971,8 @@ enum SearchKnobValueFormatter {
         case "longPressToCustomise":        return k.behaviour.longPressToCustomise ? "On" : "Off"
         case "confirmDestructive":          return k.behaviour.confirmDestructive ? "On" : "Off"
         case "weatherAlertSounds":          return k.behaviour.weatherAlertSounds ? "On" : "Off"
+        case "rainAlertsEnabled":           return k.behaviour.rainAlertsEnabled ? "On" : "Off"
+        case "severeWeatherAlertsEnabled":  return k.behaviour.severeWeatherAlertsEnabled ? "On" : "Off"
         case "speakWeatherAlerts":          return k.behaviour.speakWeatherAlerts ? "On" : "Off"
         case "quietHours":                  return quietHoursSummary(start: k.behaviour.quietHoursStart,
                                                                      end:   k.behaviour.quietHoursEnd)
@@ -2530,24 +2521,16 @@ struct LocationsSettingsView: View {
                     
                     // Use the geocoded name or a default name
                     let locationName = mapSelectedLocationName ?? "Selected Location"
-                    
-                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-                        // Find the newly added location to select it
-                        if let addedLocation = locationsManager.locations.last {
-                            locationsManager.selectLocation(addedLocation)
-                            weatherService.useGPS = false
-                            Task {
-                                await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addMapLocation")
-                            }
-                        }
-                        // Reset state
-                        addLocationMode = nil
-                        mapSelectedLocation = nil
-                        mapSelectedLocationName = nil
-                    } else {
-                        alertMessage = "Invalid coordinates. Please try again."
-                        showingAlert = true
-                    }
+
+                    requestAddLocationPreview(
+                        name: locationName,
+                        latitude: validatedLat,
+                        longitude: validatedLon
+                    )
+                    addLocationMode = nil
+                    mapSelectedLocation = nil
+                    mapSelectedLocationName = nil
+                    showingAddLocationSheet = false
                 } else {
                     alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                     showingAlert = true
@@ -2610,24 +2593,16 @@ struct LocationsSettingsView: View {
                             let validatedLat = validationResult.normalizedLatitude ?? lat
                             let validatedLon = validationResult.normalizedLongitude ?? lon
                             
-                            if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
-                                // Find the newly added location to select it
-                                if let addedLocation = locationsManager.locations.last {
-                                    locationsManager.selectLocation(addedLocation)
-                                    weatherService.useGPS = false
-                                    Task {
-                                        await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addManualLocation")
-                                    }
-                                }
-                                showingAddLocationSheet = false
-                                addLocationMode = nil
-                                newLocationName = ""
-                                newLatitude = ""
-                                newLongitude = ""
-                            } else {
-                                alertMessage = "Invalid coordinates. Please check your values and try again."
-                                showingAlert = true
-                            }
+                            requestAddLocationPreview(
+                                name: newLocationName,
+                                latitude: validatedLat,
+                                longitude: validatedLon
+                            )
+                            showingAddLocationSheet = false
+                            addLocationMode = nil
+                            newLocationName = ""
+                            newLatitude = ""
+                            newLongitude = ""
                         } else {
                             alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
                             showingAlert = true
@@ -2733,26 +2708,18 @@ struct LocationsSettingsView: View {
                                 let validatedLat = validationResult.normalizedLatitude ?? lat
                                 let validatedLon = validationResult.normalizedLongitude ?? lon
                                 
-                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
-                                    // Find the newly added location to select it
-                                    if let addedLocation = locationsManager.locations.last {
-                                        locationsManager.selectLocation(addedLocation)
-                                        weatherService.useGPS = false
-                                        Task {
-                                            await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addCityLocation")
-                                        }
-                                    }
-                                    showingAddLocationSheet = false
-                                    addLocationMode = nil
-                                    citySearchQuery = ""
-                                    citySearchResults = []
-                                    selectedSearchCompletion = nil
-                                    citySearchCoordinate = nil
-                                    citySearchError = nil
-                                } else {
-                                    alertMessage = "Invalid coordinates. Please try again."
-                                    showingAlert = true
-                                }
+                                requestAddLocationPreview(
+                                    name: name,
+                                    latitude: validatedLat,
+                                    longitude: validatedLon
+                                )
+                                showingAddLocationSheet = false
+                                addLocationMode = nil
+                                citySearchQuery = ""
+                                citySearchResults = []
+                                selectedSearchCompletion = nil
+                                citySearchCoordinate = nil
+                                citySearchError = nil
                             } else {
                                 alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                                 showingAlert = true
@@ -3086,6 +3053,7 @@ struct PreferencesSettingsView: View {
     @AppStorage("cardDensity") private var cardDensity: String = CardDensity.regular.rawValue
     @AppStorage("swipeBetweenLocations") private var swipeBetweenLocations: Bool = true
     @AppStorage("showLocationHeader") private var showLocationHeader: Bool = true
+    @AppStorage("previewBeforeChangingLocation") private var previewBeforeChangingLocation: Bool = true
     @AppStorage("showHeroLastUpdated") private var showHeroLastUpdated: Bool = false
     @AppStorage("compactCardsInLandscape") private var compactCardsInLandscape: Bool = true
     @AppStorage("showLocationLabel") private var showLocationLabel: Bool = true
@@ -3262,6 +3230,18 @@ struct PreferencesSettingsView: View {
                 }
                 .onChange(of: showLocationHeader) { newValue in
                     customisationRegistry.set(\.layout.showLocationHeader, newValue)
+                }
+                Toggle(isOn: $previewBeforeChangingLocation) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Preview Before Changing Location")
+                            .font(.body)
+                        Text("Show a full-screen weather preview before switching or adding a location.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .onChange(of: previewBeforeChangingLocation) { newValue in
+                    customisationRegistry.set(\.layout.previewBeforeChangingLocation, newValue)
                 }
                 Toggle(isOn: $showHeroLastUpdated) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -3645,6 +3625,8 @@ struct BehaviourSettingsView: View {
 
     // MARK: - Alerts & Sounds
     @AppStorage("weatherAlertSounds") private var weatherAlertSounds = true
+    @AppStorage("rainAlertsEnabled") private var rainAlertsEnabled = true
+    @AppStorage("severeWeatherAlertsEnabled") private var severeWeatherAlertsEnabled = true
     @AppStorage("quietHoursStart") private var quietHoursStart: Int = 22
     @AppStorage("quietHoursEnd") private var quietHoursEnd: Int = 7
     @AppStorage("refreshSound") private var refreshSound = false
@@ -3721,6 +3703,8 @@ struct BehaviourSettingsView: View {
             .onChange(of: confirmQuit) { customisationRegistry.set(\.behaviour.confirmQuit, $0) }
 
             Section {
+                Toggle("Rain Alerts", isOn: $rainAlertsEnabled)
+                Toggle("Severe Weather Alerts", isOn: $severeWeatherAlertsEnabled)
                 Toggle("Weather Alert Sounds", isOn: $weatherAlertSounds)
                 Toggle("Enable Quiet Hours", isOn: quietHoursEnabled)
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3747,8 +3731,10 @@ struct BehaviourSettingsView: View {
             } header: {
                 Label("Alerts & Sounds", systemImage: "speaker.wave.3.fill")
             } footer: {
-                Text("Quiet Hours mutes alert sounds during a daily time range. Times wrap past midnight (e.g. 22:00 → 07:00).")
+                Text("Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. Quiet Hours mutes notification sounds during a daily time range.")
             }
+            .onChange(of: rainAlertsEnabled) { customisationRegistry.set(\.behaviour.rainAlertsEnabled, $0) }
+            .onChange(of: severeWeatherAlertsEnabled) { customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, $0) }
             .onChange(of: weatherAlertSounds) { customisationRegistry.set(\.behaviour.weatherAlertSounds, $0) }
             .onChange(of: quietHoursStart) { newValue in
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3810,6 +3796,8 @@ struct BehaviourSettingsView: View {
         customisationRegistry.set(\.behaviour.longPressToCustomise, defaults.behaviour.longPressToCustomise)
         customisationRegistry.set(\.behaviour.confirmDestructive, defaults.behaviour.confirmDestructive)
         customisationRegistry.set(\.behaviour.weatherAlertSounds, defaults.behaviour.weatherAlertSounds)
+        customisationRegistry.set(\.behaviour.rainAlertsEnabled, defaults.behaviour.rainAlertsEnabled)
+        customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, defaults.behaviour.severeWeatherAlertsEnabled)
         customisationRegistry.set(\.behaviour.refreshSound, defaults.behaviour.refreshSound)
         customisationRegistry.set(\.behaviour.vibrateOnPullToRefresh, defaults.behaviour.vibrateOnPullToRefresh)
         customisationRegistry.set(\.behaviour.confirmQuit, defaults.behaviour.confirmQuit)

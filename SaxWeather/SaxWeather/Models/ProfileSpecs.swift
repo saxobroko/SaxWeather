@@ -259,6 +259,9 @@ struct LayoutSpec: Codable, Hashable {
     /// v2 — show the "Weather for X" location header above the
     /// hero card. Off hides it for a cleaner minimal look.
     var showLocationHeader: Bool = true
+    /// v2 — show a full-screen weather preview before adopting
+    /// a new location from the menu, swipe gesture, or settings.
+    var previewBeforeChangingLocation: Bool = true
     /// v2 — show the "Last updated" button below the location
     /// header on the hero card. Off hides it for a cleaner look.
     var showHeroLastUpdated: Bool = false
@@ -324,6 +327,10 @@ struct BehaviourSpec: Codable, Hashable {
     var longPressToCustomise: Bool = true
     var confirmDestructive: Bool = true
     var weatherAlertSounds: Bool = true
+    /// Matches `@AppStorage("rainAlertsEnabled")` default `true`.
+    var rainAlertsEnabled: Bool = true
+    /// Matches `@AppStorage("severeWeatherAlertsEnabled")` default `true`.
+    var severeWeatherAlertsEnabled: Bool = true
     /// Matches `@AppStorage("speakWeatherAlerts")` default `true`.
     var speakWeatherAlerts: Bool = true
     /// Hour-of-day in 24h clock. Nil = no quiet hours.

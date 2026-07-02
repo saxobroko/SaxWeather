@@ -212,6 +212,8 @@ struct KnobEditorSheet: View {
             bool(\.layout.swipeBetweenLocations)
         case "showLocationHeader":
             bool(\.layout.showLocationHeader)
+        case "previewBeforeChangingLocation":
+            bool(\.layout.previewBeforeChangingLocation)
         case "showHeroLastUpdated":
             bool(\.layout.showHeroLastUpdated)
         case "compactCardsInLandscape":
@@ -252,6 +254,10 @@ struct KnobEditorSheet: View {
             bool(\.behaviour.confirmDestructive)
         case "weatherAlertSounds":
             bool(\.behaviour.weatherAlertSounds)
+        case "rainAlertsEnabled":
+            bool(\.behaviour.rainAlertsEnabled)
+        case "severeWeatherAlertsEnabled":
+            bool(\.behaviour.severeWeatherAlertsEnabled)
         case "speakWeatherAlerts":
             bool(\.behaviour.speakWeatherAlerts)
         case "refreshSound":
@@ -568,6 +574,8 @@ struct KnobEditorSheet: View {
             customisation.set(\.layout.swipeBetweenLocations, defaults.layout.swipeBetweenLocations)
         case "showLocationHeader":
             customisation.set(\.layout.showLocationHeader, defaults.layout.showLocationHeader)
+        case "previewBeforeChangingLocation":
+            customisation.set(\.layout.previewBeforeChangingLocation, defaults.layout.previewBeforeChangingLocation)
         case "showHeroLastUpdated":
             customisation.set(\.layout.showHeroLastUpdated, defaults.layout.showHeroLastUpdated)
         case "compactCardsInLandscape":
@@ -613,6 +621,9 @@ struct KnobEditorSheet: View {
             customisation.set(\.behaviour.longPressToCustomise, defaults.behaviour.longPressToCustomise)
         case "confirmDestructive":  customisation.set(\.behaviour.confirmDestructive, defaults.behaviour.confirmDestructive)
         case "weatherAlertSounds":  customisation.set(\.behaviour.weatherAlertSounds, defaults.behaviour.weatherAlertSounds)
+        case "rainAlertsEnabled":   customisation.set(\.behaviour.rainAlertsEnabled, defaults.behaviour.rainAlertsEnabled)
+        case "severeWeatherAlertsEnabled":
+            customisation.set(\.behaviour.severeWeatherAlertsEnabled, defaults.behaviour.severeWeatherAlertsEnabled)
         case "speakWeatherAlerts":  customisation.set(\.behaviour.speakWeatherAlerts, defaults.behaviour.speakWeatherAlerts)
         case "quietHoursStart":     customisation.set(\.behaviour.quietHoursStart, defaults.behaviour.quietHoursStart)
         case "quietHoursEnd":       customisation.set(\.behaviour.quietHoursEnd, defaults.behaviour.quietHoursEnd)
