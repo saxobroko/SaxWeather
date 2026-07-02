@@ -2022,6 +2022,9 @@
     "Shows an explanation of this measurement" : {
 
     },
+    "Shows how this value was calculated" : {
+
+    },
     "Shows static weather icons instead of animated ones" : {
 
     },

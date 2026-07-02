@@ -40,6 +40,10 @@ struct Weather: Codable {
     var sunData: SunMoonData?
     var pollen: PollenData?
     var hourlyPrecipitation: [HourlyPrecipitation] = []
+    /// IANA timezone for the active weather location (from Open-Meteo
+    /// or the device when using WeatherKit). Used to label hourly
+    /// precipitation times in the location's local clock.
+    var locationTimeZoneIdentifier: String?
     private let cachedCondition: String
     let lastUpdateTime: Date
     var forecasts: [Forecast] = []

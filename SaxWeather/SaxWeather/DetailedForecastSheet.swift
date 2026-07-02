@@ -24,10 +24,7 @@ struct DetailedForecastSheet: View {
     // Shared asymmetric transition reused across the
     // detail grid so each card fades and scales in uniformly.
     private var cardTransition: AnyTransition {
-        .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.9)),
-            removal: .opacity
-        )
+        .cardAppearance
     }
 
     var body: some View {

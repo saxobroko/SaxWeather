@@ -423,7 +423,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         do {
             // Pass the current data source to respect priority system
-            let (airQuality, pollen, sunMoon, hourlyPrecip) = try await ExtendedWeatherService.shared.fetchExtendedData(
+            let (airQuality, pollen, sunMoon, hourlyPrecip, locationTimeZoneIdentifier) = try await ExtendedWeatherService.shared.fetchExtendedData(
                 latitude: coordinates.latitude,
                 longitude: coordinates.longitude,
                 dataSource: self.currentDataSource,
@@ -440,6 +440,9 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 currentWeather.sunData = sunMoon
                 currentWeather.pollen = pollen
                 currentWeather.hourlyPrecipitation = hourlyPrecip
+                if let locationTimeZoneIdentifier {
+                    currentWeather.locationTimeZoneIdentifier = locationTimeZoneIdentifier
+                }
 
                 // Reassign through the @Published property so
                 // SwiftUI subscribers receive an update event.

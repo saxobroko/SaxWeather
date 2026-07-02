@@ -22,11 +22,18 @@ class ExtendedWeatherService {
         longitude: Double,
         dataSource: String,
         existingWeather: Weather? = nil
-    ) async throws -> (airQuality: AirQualityData?, pollen: PollenData?, sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+    ) async throws -> (
+        airQuality: AirQualityData?,
+        pollen: PollenData?,
+        sunMoon: SunMoonData?,
+        hourlyPrecip: [HourlyPrecipitation],
+        locationTimeZoneIdentifier: String?
+    ) {
         
         var airQuality: AirQualityData?
         var sunMoon: SunMoonData?
         var hourlyPrecip: [HourlyPrecipitation] = []
+        var locationTimeZoneIdentifier: String?
         let pollen: PollenData? = nil // No data source available yet
         
         // Strategy: Extract from primary source first, then fill gaps with Open-Meteo
@@ -35,6 +42,7 @@ class ExtendedWeatherService {
             #if canImport(WeatherKit)
             if #available(iOS 16.0, macOS 13.0, *) {
                 (sunMoon, hourlyPrecip) = await fetchFromWeatherKit(latitude: latitude, longitude: longitude)
+                locationTimeZoneIdentifier = TimeZone.current.identifier
             }
             #endif
             
@@ -55,8 +63,11 @@ class ExtendedWeatherService {
             
         case "openmeteo":
             // Already using Open-Meteo as primary, fetch everything
-            (airQuality, sunMoon, hourlyPrecip) = await fetchFromOpenMeteo(latitude: latitude, longitude: longitude)
-            return (airQuality, pollen, sunMoon, hourlyPrecip)
+            (airQuality, sunMoon, hourlyPrecip, locationTimeZoneIdentifier) = await fetchFromOpenMeteo(
+                latitude: latitude,
+                longitude: longitude
+            )
+            return (airQuality, pollen, sunMoon, hourlyPrecip, locationTimeZoneIdentifier)
             
         default:
             break
@@ -68,7 +79,7 @@ class ExtendedWeatherService {
             print("📍 Fetching missing extended data from Open-Meteo (sunMoon: \(sunMoon == nil), precip: \(hourlyPrecip.isEmpty), aqi: \(airQuality == nil))")
             #endif
             
-            let (openMeteoAQI, openMeteoSun, openMeteoPrecip) = await fetchFromOpenMeteo(
+            let (openMeteoAQI, openMeteoSun, openMeteoPrecip, openMeteoTimeZone) = await fetchFromOpenMeteo(
                 latitude: latitude,
                 longitude: longitude
             )
@@ -78,13 +89,14 @@ class ExtendedWeatherService {
             if hourlyPrecip.isEmpty {
                 hourlyPrecip = openMeteoPrecip
             }
+            locationTimeZoneIdentifier = locationTimeZoneIdentifier ?? openMeteoTimeZone
             
             #if DEBUG
             print("📍 After Open-Meteo fallback - sunMoon: \(sunMoon != nil), precip: \(hourlyPrecip.count) hours, aqi: \(airQuality?.aqi ?? -1)")
             #endif
         }
         
-        return (airQuality, pollen, sunMoon, hourlyPrecip)
+        return (airQuality, pollen, sunMoon, hourlyPrecip, locationTimeZoneIdentifier)
     }
     
     // MARK: - WeatherKit Data Extraction
@@ -135,7 +147,12 @@ class ExtendedWeatherService {
     #endif
     
     // MARK: - Open-Meteo Fallback
-    private func fetchFromOpenMeteo(latitude: Double, longitude: Double) async -> (airQuality: AirQualityData?, sunMoon: SunMoonData?, hourlyPrecip: [HourlyPrecipitation]) {
+    private func fetchFromOpenMeteo(latitude: Double, longitude: Double) async -> (
+        airQuality: AirQualityData?,
+        sunMoon: SunMoonData?,
+        hourlyPrecip: [HourlyPrecipitation],
+        locationTimeZoneIdentifier: String?
+    ) {
         #if DEBUG
         print("🌍 fetchFromOpenMeteo called with coordinates: \(latitude), \(longitude)")
         #endif
@@ -147,7 +164,7 @@ class ExtendedWeatherService {
         
         let airQuality = await airQualityResult
         let sunMoon = await sunMoonResult
-        let hourlyPrecip = await hourlyPrecipResult
+        let (hourlyPrecip, locationTimeZoneIdentifier) = await hourlyPrecipResult
         
         #if DEBUG
         print("✅ Extended data from Open-Meteo:")
@@ -156,10 +173,8 @@ class ExtendedWeatherService {
         print("   - Precipitation: \(hourlyPrecip.count > 0 ? "✓ (\(hourlyPrecip.count)h)" : "✗")")
         #endif
         
-        return (airQuality, sunMoon, hourlyPrecip)
+        return (airQuality, sunMoon, hourlyPrecip, locationTimeZoneIdentifier)
     }
-    
-    // MARK: - Air Quality
     private func fetchAirQuality(latitude: Double, longitude: Double) async -> AirQualityData? {
         // Open-Meteo Air Quality API
         let urlString = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=\(latitude)&longitude=\(longitude)&current=european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone"
@@ -244,22 +259,17 @@ class ExtendedWeatherService {
             #endif
             
             // Create a date formatter that handles the Open-Meteo format (without timezone suffix)
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+            let timeZone = OpenMeteoDateParser.timeZone(
+                identifier: decodedResponse.timezone,
+                utcOffsetSeconds: decodedResponse.utc_offset_seconds
+            )
             
-            // Use the timezone provided by the API
-            if let timezone = decodedResponse.timezone {
-                dateFormatter.timeZone = TimeZone(identifier: timezone)
-            } else {
-                dateFormatter.timeZone = TimeZone.current
-            }
-            
-            guard let sunrise = dateFormatter.date(from: sunriseString),
-                  let sunset = dateFormatter.date(from: sunsetString) else {
+            guard let sunrise = OpenMeteoDateParser.date(from: sunriseString, timeZone: timeZone),
+                  let sunset = OpenMeteoDateParser.date(from: sunsetString, timeZone: timeZone) else {
                 #if DEBUG
                 print("❌ Sun/Moon: Failed to parse dates from strings")
-                print("   - Tried format: yyyy-MM-dd'T'HH:mm")
-                print("   - Timezone: \(dateFormatter.timeZone.identifier)")
+                print("   - Tried format: yyyy-MM-dd'T'HH:mm[:ss]")
+                print("   - Timezone: \(timeZone.identifier)")
                 #endif
                 return nil
             }
@@ -270,7 +280,7 @@ class ExtendedWeatherService {
             #if DEBUG
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "HH:mm"
-            timeFormatter.timeZone = dateFormatter.timeZone
+            timeFormatter.timeZone = timeZone
             print("✅ Sun/Moon data created:")
             print("   - Sunrise: \(timeFormatter.string(from: sunrise)) (\(sunrise))")
             print("   - Sunset: \(timeFormatter.string(from: sunset)) (\(sunset))")
@@ -307,7 +317,7 @@ class ExtendedWeatherService {
     }
     
     // MARK: - Hourly Precipitation
-    private func fetchHourlyPrecipitation(latitude: Double, longitude: Double) async -> [HourlyPrecipitation] {
+    private func fetchHourlyPrecipitation(latitude: Double, longitude: Double) async -> ([HourlyPrecipitation], String?) {
         let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=precipitation_probability,precipitation&timezone=auto&forecast_days=2"
         
         #if DEBUG
@@ -318,7 +328,7 @@ class ExtendedWeatherService {
             #if DEBUG
             print("❌ Precipitation: Invalid URL")
             #endif
-            return []
+            return ([], nil)
         }
         
         do {
@@ -340,29 +350,26 @@ class ExtendedWeatherService {
                 #if DEBUG
                 print("❌ Precipitation: Missing hourly data")
                 #endif
-                return []
+                return ([], nil)
             }
             
             #if DEBUG
             print("🌧️ Precipitation data received: \(hourly.time.count) hours")
             print("🌧️ Timezone from API: \(decodedResponse.timezone ?? "unknown")")
+            if let offset = decodedResponse.utc_offset_seconds {
+                print("🌧️ UTC offset from API: \(offset)s")
+            }
             #endif
             
-            // Create a date formatter that handles the Open-Meteo format
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-            
-            // Use the timezone provided by the API
-            if let timezone = decodedResponse.timezone {
-                dateFormatter.timeZone = TimeZone(identifier: timezone)
-            } else {
-                dateFormatter.timeZone = TimeZone.current
-            }
+            let timeZone = OpenMeteoDateParser.timeZone(
+                identifier: decodedResponse.timezone,
+                utcOffsetSeconds: decodedResponse.utc_offset_seconds
+            )
             
             var precipData: [HourlyPrecipitation] = []
             
             for (index, timeString) in hourly.time.enumerated() {
-                guard let date = dateFormatter.date(from: timeString) else {
+                guard let date = OpenMeteoDateParser.date(from: timeString, timeZone: timeZone) else {
                     #if DEBUG
                     print("⚠️ Failed to parse time: \(timeString)")
                     #endif
@@ -385,7 +392,7 @@ class ExtendedWeatherService {
             print("✅ Precipitation data created: \(precipData.count) hours")
             #endif
             
-            return precipData
+            return (precipData, decodedResponse.timezone ?? timeZone.identifier)
         } catch {
             #if DEBUG
             print("❌ Hourly precipitation fetch error: \(error)")
@@ -404,7 +411,7 @@ class ExtendedWeatherService {
                 }
             }
             #endif
-            return []
+            return ([], nil)
         }
     }
     
@@ -441,6 +448,7 @@ struct AirQualityResponse: Codable {
 struct SunMoonResponse: Codable {
     let daily: DailySunMoon?
     let timezone: String?
+    let utc_offset_seconds: Int?
     
     struct DailySunMoon: Codable {
         let sunrise: [String]
@@ -451,6 +459,7 @@ struct SunMoonResponse: Codable {
 struct HourlyPrecipResponse: Codable {
     let hourly: HourlyPrecip?
     let timezone: String?
+    let utc_offset_seconds: Int?
     
     struct HourlyPrecip: Codable {
         let time: [String]

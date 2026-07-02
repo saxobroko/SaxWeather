@@ -546,8 +546,21 @@ struct SunMoonDetailView: View {
 // MARK: - Precipitation Detail View
 struct PrecipitationDetailView: View {
     let data: [HourlyPrecipitation]
+    var timeZoneIdentifier: String? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+
+    private var hourLabelFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        if let timeZoneIdentifier,
+           let timeZone = TimeZone(identifier: timeZoneIdentifier) {
+            formatter.timeZone = timeZone
+        }
+        return formatter
+    }
     
     private var peakPrecipitation: HourlyPrecipitation? {
         data.max(by: { $0.probability < $1.probability })
@@ -577,7 +590,7 @@ struct PrecipitationDetailView: View {
                                 InfoCard(
                                     icon: "cloud.rain.fill",
                                     title: "Peak Precipitation",
-                                    value: "\(peak.probability)% at \(peak.hour.formatted(date: .omitted, time: .shortened))",
+                                    value: "\(peak.probability)% at \(hourLabelFormatter.string(from: peak.hour))",
                                     color: .blue
                                 )
                             }
@@ -607,7 +620,10 @@ struct PrecipitationDetailView: View {
                         
                         VStack(spacing: 8) {
                             ForEach(data.prefix(24), id: \.hour) { hour in
-                                HourlyPrecipRow(data: hour)
+                                HourlyPrecipRow(
+                                    data: hour,
+                                    timeZoneIdentifier: timeZoneIdentifier
+                                )
                             }
                         }
                         .padding(.horizontal)
@@ -940,6 +956,19 @@ struct MoonPhaseCard: View {
 
 struct HourlyPrecipRow: View {
     let data: HourlyPrecipitation
+    var timeZoneIdentifier: String? = nil
+    
+    private var hourLabelFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        if let timeZoneIdentifier,
+           let timeZone = TimeZone(identifier: timeZoneIdentifier) {
+            formatter.timeZone = timeZone
+        }
+        return formatter
+    }
     
     private var intensityColor: Color {
         switch data.probability {
@@ -952,7 +981,7 @@ struct HourlyPrecipRow: View {
     
     var body: some View {
         HStack {
-            Text(data.hour.formatted(date: .omitted, time: .shortened))
+            Text(hourLabelFormatter.string(from: data.hour))
                 .font(.system(size: 14, weight: .medium))
                 .frame(width: 70, alignment: .leading)
             

@@ -80,6 +80,35 @@ extension View {
     }
 }
 
+// MARK: - Card Appearance Animation
+extension AnyTransition {
+    /// Standard fade + scale insert used for weather cards app-wide.
+    static var cardAppearance: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.92)),
+            removal: .opacity
+        )
+    }
+}
+
+extension Animation {
+    static var cardAppearance: Animation {
+        .easeInOut(duration: 0.4)
+    }
+}
+
+extension View {
+    /// Applies the standard card appearance transition, respecting Reduce Motion.
+    func cardAppearanceTransition() -> some View {
+        accessibleTransition(.cardAppearance)
+    }
+
+    /// Standard timing for grouped card appearance animations.
+    func cardAppearanceAnimation<V: Equatable>(value: V) -> some View {
+        accessibleAnimation(.cardAppearance, value: value)
+    }
+}
+
 // MARK: - Contrast Modifier
 struct ContrastModifier: ViewModifier {
     @AppStorage("increaseContrast") private var increaseContrast = false

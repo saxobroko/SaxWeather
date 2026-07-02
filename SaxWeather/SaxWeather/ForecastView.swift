@@ -145,14 +145,7 @@ struct ForecastView: View {
                                         )
                                 }
                             }
-                            .animation(
-                                .easeInOut(duration: 0.35),
-                                value: isLoadingHourly
-                            )
-                            .animation(
-                                .easeInOut(duration: 0.35),
-                                value: conditionSummary
-                            )
+                            .cardAppearanceAnimation(value: isLoadingHourly)
                         }
                         .padding(16)
                         .styledCard()
@@ -179,27 +172,14 @@ struct ForecastView: View {
                             } else {
                                 ForEach(hourlyData) { hour in
                                     hourlyForecastItem(hour)
-                                        .transition(
-                                            .asymmetric(
-                                                insertion: .opacity
-                                                    .combined(with: .scale(scale: 0.92)),
-                                                removal: .opacity
-                                            )
-                                        )
+                                        .cardAppearanceTransition()
                                 }
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 4)
                     }
-                    .animation(
-                        .easeInOut(duration: 0.4),
-                        value: isLoadingHourly
-                    )
-                    .animation(
-                        .easeInOut(duration: 0.4),
-                        value: hourlyData.count
-                    )
+                    .cardAppearanceAnimation(value: isLoadingHourly)
                     
                     // YOUR ORIGINAL DAILY FORECAST SECTION
                     // Daily forecast cards in a vertical stack
@@ -292,6 +272,7 @@ struct ForecastView: View {
         .navigationBarHidden(true)
         #endif
         .onAppear {
+            guard hourlyData.isEmpty else { return }
             fetchHourlyForecast()
         }
     }
@@ -393,6 +374,7 @@ struct ForecastView: View {
     }
     
     private func fetchHourlyForecast() {
+        guard hourlyData.isEmpty else { return }
         isLoadingHourly = true
         
         Task {

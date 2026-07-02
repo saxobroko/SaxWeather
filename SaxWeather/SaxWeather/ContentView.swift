@@ -79,6 +79,7 @@ struct ContentView: View {
     @State private var pendingUsagePalette: String?
     @State private var pendingUsageChart: String?
     @State private var pendingUsageBackground: String?
+    @State private var selectedFeelsLikeMetric: WeatherMetricInfo?
 
     // Phase 3 — live cosmetic-preview coordinator. Owned at the
     // root so navigation logic + countdown overlay can both
@@ -602,6 +603,17 @@ struct ContentView: View {
                 onDismiss: { showingLocationMenu = false }
             )
         }
+        .sheet(item: $selectedFeelsLikeMetric) { metric in
+            WeatherMetricInfoContent(
+                title: metric.title,
+                value: metric.value,
+                description: metric.description
+            )
+            #if os(iOS)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            #endif
+        }
         // `swipeBetweenLocations` Behaviour setting — swipe
         // horizontally on the home screen to switch between
         // saved locations. Only fires when the user has more
@@ -738,10 +750,23 @@ struct ContentView: View {
                         #endif
                     }
                     if let feelsLike = weather.feelsLike {
-                        Text(String(format: "Feels like %.1f%@", feelsLike, unitSymbol))
-                            .accessibleFont(size: 20, weight: .medium)
-                            .accessibleContrast()
-                            .foregroundColor(.primary)
+                        Button {
+                            selectedFeelsLikeMetric = WeatherMetricInfo(
+                                title: "Feels Like",
+                                value: String(format: "%.1f%@", feelsLike, unitSymbol),
+                                description: WeatherMetricDescriptions.feelsLikeDescription(
+                                    for: weather,
+                                    unitSystem: unitSystem
+                                )
+                            )
+                        } label: {
+                            Text(String(format: "Feels like %.1f%@", feelsLike, unitSymbol))
+                                .accessibleFont(size: 20, weight: .medium)
+                                .accessibleContrast()
+                                .foregroundColor(.primary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Shows how this value was calculated")
                     }
 
                     HStack {
@@ -1130,7 +1155,10 @@ struct ExtendedWeatherSection: View {
 
             // Hourly Precipitation Graph
             if !weather.hourlyPrecipitation.isEmpty {
-                PrecipitationGraphView(hourlyData: weather.hourlyPrecipitation)
+                PrecipitationGraphView(
+                    hourlyData: weather.hourlyPrecipitation,
+                    timeZoneIdentifier: weather.locationTimeZoneIdentifier
+                )
                     .padding(.horizontal, 20)
                     .transition(
                         .opacity.combined(with: .move(edge: .bottom))
@@ -1202,11 +1230,13 @@ struct WeatherMetricInfoContent: View {
 
             Divider()
 
-            Text(description)
-                .font(.system(size: 15))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(4)
+            ScrollView {
+                Text(description)
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineSpacing(4)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)

@@ -34,7 +34,12 @@ struct DetailedWeatherView: View {
                 // transition so the grid populates smoothly
                 // instead of snapping in once data arrives.
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    WeatherCard(title: "Feels Like", value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "—", icon: "thermometer")
+                    WeatherCard(
+                        title: "Feels Like",
+                        value: weatherService.weather?.feelsLike.map { String(format: "%.0f%@", $0, unitSymbol) } ?? "—",
+                        icon: "thermometer",
+                        onTap: presentFeelsLikeMetric
+                    )
                         .transition(
                             .asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.92)),
@@ -202,7 +207,9 @@ struct DetailedWeatherView: View {
                 description: metric.description
             )
             #if os(iOS)
-            .presentationDetents([.height(260)])
+            .presentationDetents(
+                metric.title == "Feels Like" ? [.medium, .large] : [.height(260)]
+            )
             .presentationDragIndicator(.visible)
             #endif
         }
@@ -213,6 +220,20 @@ struct DetailedWeatherView: View {
             title: title,
             value: value,
             description: WeatherMetricDescriptions.description(for: title, unitSystem: unitSystem)
+        )
+    }
+
+    private func presentFeelsLikeMetric() {
+        guard let weather = weatherService.weather,
+              let feelsLike = weather.feelsLike else { return }
+
+        selectedMetric = WeatherMetricInfo(
+            title: "Feels Like",
+            value: String(format: "%.0f%@", feelsLike, unitSymbol),
+            description: WeatherMetricDescriptions.feelsLikeDescription(
+                for: weather,
+                unitSystem: unitSystem
+            )
         )
     }
     
@@ -282,12 +303,16 @@ struct DetailedWeatherView: View {
                             )
                     }
                     if let feels = weatherService.weather?.feelsLike {
-                        Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
-                            .font(.caption)
-                            .foregroundStyle(colorScheme == .dark ?
-                                Color.white.opacity(0.6) :
-                                Color.black.opacity(0.5)
-                            )
+                        Button(action: presentFeelsLikeMetric) {
+                            Text("Feels like " + String(format: "%.0f%@", feels, unitSymbol))
+                                .font(.caption)
+                                .foregroundStyle(colorScheme == .dark ?
+                                    Color.white.opacity(0.6) :
+                                    Color.black.opacity(0.5)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Shows how this value was calculated")
                     }
                 }
                 Spacer()

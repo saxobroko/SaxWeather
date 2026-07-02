@@ -473,12 +473,41 @@ struct SunArcView: View {
 // MARK: - Precipitation Graph
 struct PrecipitationGraphView: View {
     let hourlyData: [HourlyPrecipitation]
+    var timeZoneIdentifier: String? = nil
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingDetail = false
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
     private var chartColors: ChartColorScheme {
         ChartColorScheme.rainProbability(activeSkin: chartPaletteStore.activeSkin)
+    }
+
+    private var locationCalendar: Calendar {
+        var calendar = Calendar.current
+        if let timeZoneIdentifier,
+           let timeZone = TimeZone(identifier: timeZoneIdentifier) {
+            calendar.timeZone = timeZone
+        }
+        return calendar
+    }
+
+    private var displayData: [HourlyPrecipitation] {
+        let now = Date()
+        guard let startIndex = hourlyData.firstIndex(where: {
+            locationCalendar.compare($0.hour, to: now, toGranularity: .hour) != .orderedAscending
+        }) else {
+            return Array(hourlyData.prefix(24))
+        }
+        return Array(hourlyData.dropFirst(startIndex).prefix(24))
+    }
+
+    private var hourLabelFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = locationCalendar.timeZone
+        return formatter
     }
 
     var body: some View {
@@ -530,9 +559,9 @@ struct PrecipitationGraphView: View {
                         // undifferentiated strip of bars — a
                         // common source of the "glitchy" feel
                         // users reported.
-                        if let nowIndex = currentHourIndex() {
+                        if !displayData.isEmpty {
                             let columnWidth = columnWidth(in: geometry.size)
-                            let x = columnWidth * CGFloat(nowIndex) + columnWidth / 2
+                            let x = columnWidth / 2
                             Rectangle()
                                 .fill(chartColors.accent.opacity(0.85))
                                 .frame(width: 2, height: geometry.size.height)
@@ -551,7 +580,7 @@ struct PrecipitationGraphView: View {
                         // never appears empty for users with no
                         // rain in the next 24 hours.
                         HStack(alignment: .bottom, spacing: 2) {
-                            ForEach(Array(hourlyData.prefix(24).enumerated()), id: \.offset) { _, data in
+                            ForEach(Array(displayData.enumerated()), id: \.offset) { _, data in
                                 VStack(spacing: 2) {
                                     Spacer(minLength: 0)
 
@@ -576,9 +605,9 @@ struct PrecipitationGraphView: View {
                                         .cornerRadius(2)
                                         .animation(.easeInOut(duration: 0.4), value: data.probability)
 
-                                    // Hour label (show every 3 hours)
-                                    if Calendar.current.component(.hour, from: data.hour) % 3 == 0 {
-                                        Text(data.hour, style: .time)
+                                    // Hour label (show every 3 hours in the location timezone)
+                                    if locationCalendar.component(.hour, from: data.hour) % 3 == 0 {
+                                        Text(hourLabelFormatter.string(from: data.hour))
                                             .font(.system(size: 9))
                                             .foregroundColor(.secondary)
                                             .fixedSize()
@@ -604,7 +633,7 @@ struct PrecipitationGraphView: View {
                 // transitions between fetches (e.g. when the user
                 // changes location) ease smoothly instead of
                 // snapping.
-                .animation(.easeInOut(duration: 0.3), value: hourlyData.count)
+                .animation(.easeInOut(duration: 0.3), value: displayData.count)
                 
                 // Legend
                 HStack(spacing: 16) {
@@ -625,7 +654,10 @@ struct PrecipitationGraphView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
-            PrecipitationDetailView(data: hourlyData)
+            PrecipitationDetailView(
+                data: displayData,
+                timeZoneIdentifier: timeZoneIdentifier
+            )
         }
     }
     
@@ -638,15 +670,8 @@ struct PrecipitationGraphView: View {
         }
     }
 
-    private func currentHourIndex() -> Int? {
-        let now = Date()
-        return hourlyData.prefix(24).firstIndex { entry in
-            Calendar.current.isDate(entry.hour, equalTo: now, toGranularity: .hour)
-        }
-    }
-
     private func columnWidth(in size: CGSize) -> CGFloat {
-        let columns = max(1, hourlyData.prefix(24).count)
+        let columns = max(1, displayData.count)
         let spacing: CGFloat = 2
         let totalSpacing = spacing * CGFloat(columns - 1)
         return max(0, (size.width - totalSpacing) / CGFloat(columns))
