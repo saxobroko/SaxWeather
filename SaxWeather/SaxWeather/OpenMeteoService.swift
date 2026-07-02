@@ -66,4 +66,47 @@ actor OpenMeteoService {
             throw WeatherError.apiError(error.localizedDescription)
         }
     }
+
+    func fetchHourlyPrecipitation(latitude: Double, longitude: Double) async throws -> [HourlyPrecipitation] {
+        let urlString = "https://api.open-meteo.com/v1/forecast?" +
+            "latitude=\(latitude)" +
+            "&longitude=\(longitude)" +
+            "&hourly=precipitation_probability,precipitation" +
+            "&timezone=auto" +
+            "&forecast_days=1"
+
+        guard let url = URL(string: urlString) else {
+            throw WeatherError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw WeatherError.apiError("Failed to fetch hourly precipitation")
+        }
+
+        let decodedResponse = try jsonDecoder.decode(HourlyPrecipResponse.self, from: data)
+        guard let hourly = decodedResponse.hourly else {
+            return []
+        }
+
+        let timeZone = OpenMeteoDateParser.timeZone(
+            identifier: decodedResponse.timezone,
+            utcOffsetSeconds: decodedResponse.utc_offset_seconds
+        )
+
+        return hourly.time.enumerated().compactMap { index, timeString in
+            guard let date = OpenMeteoDateParser.date(from: timeString, timeZone: timeZone),
+                  index < hourly.precipitation_probability.count,
+                  index < hourly.precipitation.count else {
+                return nil
+            }
+
+            return HourlyPrecipitation(
+                hour: date,
+                probability: hourly.precipitation_probability[index],
+                amount: hourly.precipitation[index]
+            )
+        }
+    }
 }

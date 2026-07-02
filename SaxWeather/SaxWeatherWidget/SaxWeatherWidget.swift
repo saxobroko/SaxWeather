@@ -37,6 +37,17 @@ struct WeatherWidgetEntry: TimelineEntry {
     let uvIndex: Int?
     let pressure: Double?
     let lastUpdateDate: Date? // Added for "last updated" timestamp
+    let nextRainTime: Date?
+    let nextRainProbability: Int?
+    let locationTimeZoneIdentifier: String?
+
+    var rainLineText: String? {
+        WidgetRainLine.formatLine(
+            time: nextRainTime,
+            probability: nextRainProbability,
+            timeZoneIdentifier: locationTimeZoneIdentifier
+        )
+    }
 
     // MARK: - Data state flags
     //
@@ -87,6 +98,9 @@ struct WeatherWidgetEntry: TimelineEntry {
         uvIndex: Int? = nil,
         pressure: Double? = nil,
         lastUpdateDate: Date? = nil,
+        nextRainTime: Date? = nil,
+        nextRainProbability: Int? = nil,
+        locationTimeZoneIdentifier: String? = nil,
         isOffline: Bool = false,
         isStale: Bool = false,
         hasEverFetched: Bool = true
@@ -102,6 +116,9 @@ struct WeatherWidgetEntry: TimelineEntry {
         self.uvIndex = uvIndex
         self.pressure = pressure
         self.lastUpdateDate = lastUpdateDate
+        self.nextRainTime = nextRainTime
+        self.nextRainProbability = nextRainProbability
+        self.locationTimeZoneIdentifier = locationTimeZoneIdentifier
         self.isOffline = isOffline
         self.isStale = isStale
         self.hasEverFetched = hasEverFetched
@@ -336,6 +353,9 @@ struct Provider: TimelineProvider {
             uvIndex: nil,
             pressure: nil,
             lastUpdateDate: nil,
+            nextRainTime: nil,
+            nextRainProbability: nil,
+            locationTimeZoneIdentifier: nil,
             isOffline: false,
             isStale: false,
             hasEverFetched: false
@@ -363,6 +383,9 @@ struct Provider: TimelineProvider {
             uvIndex: entry.uvIndex,
             pressure: entry.pressure,
             lastUpdateDate: entry.lastUpdateDate,
+            nextRainTime: entry.nextRainTime,
+            nextRainProbability: entry.nextRainProbability,
+            locationTimeZoneIdentifier: entry.locationTimeZoneIdentifier,
             isOffline: isOffline,
             isStale: isStale,
             hasEverFetched: hasEverFetched
@@ -420,6 +443,9 @@ struct Provider: TimelineProvider {
         if let v = entry.windSpeed     { payload["windSpeed"]    = v }
         if let v = entry.uvIndex       { payload["uvIndex"]      = v }
         if let v = entry.pressure      { payload["pressure"]     = v }
+        if let v = entry.nextRainTime  { payload["nextRainTime"] = v.timeIntervalSince1970 }
+        if let v = entry.nextRainProbability { payload["nextRainProbability"] = v }
+        if let v = entry.locationTimeZoneIdentifier { payload["locationTimeZoneIdentifier"] = v }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []) else { return }
         defaults.set(data, forKey: WidgetSharedConfig.Keys.latestWeather)
@@ -596,7 +622,11 @@ struct Provider: TimelineProvider {
             windSpeed: cachedCurrentEntry.windSpeed,
             uvIndex: cachedCurrentEntry.uvIndex,
             pressure: cachedCurrentEntry.pressure,
-            lastUpdateDate: cachedCurrentEntry.lastUpdateDate
+            lastUpdateDate: cachedCurrentEntry.lastUpdateDate,
+            nextRainTime: cachedCurrentEntry.nextRainTime ?? firstForecastEntry?.nextRainTime,
+            nextRainProbability: cachedCurrentEntry.nextRainProbability ?? firstForecastEntry?.nextRainProbability,
+            locationTimeZoneIdentifier: cachedCurrentEntry.locationTimeZoneIdentifier
+                ?? firstForecastEntry?.locationTimeZoneIdentifier
         )
 
         let futureForecastEntries = forecastEntries.filter { $0.date > now.addingTimeInterval(60) }
@@ -609,15 +639,16 @@ struct Provider: TimelineProvider {
         unitSystem: String
     ) async throws -> [WeatherWidgetEntry] {
         // Determine temperature unit for API
-        let tempUnit = unitSystem == "Imperial" ? "fahrenheit" : "celsius"
-        let windUnit = unitSystem == "Metric" ? "kmh" : "mph"
-        let pressureUnit = unitSystem == "Imperial" ? "inHg" : "hPa"
+        let units = UnitSystem.from(rawValue: unitSystem)
+        let tempUnit = units.usesCelsius ? "celsius" : "fahrenheit"
+        let windUnit = units.usesKmh ? "kmh" : "mph"
+        let pressureUnit = units.pressureLabel
         
         let urlString = "https://api.open-meteo.com/v1/forecast?" +
             "latitude=\(latitude)" +
             "&longitude=\(longitude)" +
             "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,pressure_msl,uv_index,weather_code" +
-            "&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,pressure_msl,uv_index,weather_code" +
+            "&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,pressure_msl,uv_index,weather_code,precipitation_probability" +
             "&daily=temperature_2m_max,temperature_2m_min,weather_code" +
             "&temperature_unit=\(tempUnit)" +
             "&wind_speed_unit=\(windUnit)" +
@@ -664,6 +695,10 @@ struct Provider: TimelineProvider {
         
         let daily = apiResponse.daily
         var entries: [WeatherWidgetEntry] = []
+        let locationTimeZoneIdentifier = apiResponse.timezone
+
+        var nextRainTime: Date?
+        var nextRainProbability: Int?
         
         // Use hourly data if available, otherwise fall back to current data
         if let hourly = apiResponse.hourly, !hourly.time.isEmpty {
@@ -671,6 +706,18 @@ struct Provider: TimelineProvider {
             let now = Date()
             let currentHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
             let parsedHourlyDates = hourly.time.map { parseOpenMeteoHour($0) }
+            let precipHours = zip(parsedHourlyDates, hourly.precipitationProbabilityValues).compactMap { date, probability -> (Date, Int)? in
+                guard let date else { return nil }
+                return (date, probability)
+            }
+            if let nextRain = WidgetRainLine.nextSignificantRain(
+                hours: precipHours,
+                timeZoneIdentifier: locationTimeZoneIdentifier
+            ) {
+                nextRainTime = nextRain.time
+                nextRainProbability = nextRain.probability
+            }
+
             let startIndex = parsedHourlyDates.firstIndex { date in
                 guard let date else { return false }
                 return date >= currentHour
@@ -684,7 +731,8 @@ struct Provider: TimelineProvider {
                 hourly.windSpeed10m.count,
                 hourly.pressureMsl.count,
                 hourly.uvIndex.count,
-                hourly.weatherCode.count
+                hourly.weatherCode.count,
+                hourly.precipitationProbabilityValues.count
             ].min() ?? 0
             let safeStartIndex = availableCount > 0 ? min(startIndex, availableCount - 1) : 0
             let endIndex = min(safeStartIndex + 12, availableCount)
@@ -718,7 +766,10 @@ struct Provider: TimelineProvider {
                     windSpeed: windSpeed,
                     uvIndex: uvIndex,
                     pressure: pressure,
-                    lastUpdateDate: Date()
+                    lastUpdateDate: Date(),
+                    nextRainTime: nextRainTime,
+                    nextRainProbability: nextRainProbability,
+                    locationTimeZoneIdentifier: locationTimeZoneIdentifier
                 )
                 
                 entries.append(entry)
@@ -749,7 +800,10 @@ struct Provider: TimelineProvider {
                 windSpeed: windSpeed,
                 uvIndex: Int(current.uvIndex),
                 pressure: pressure,
-                lastUpdateDate: Date()
+                lastUpdateDate: Date(),
+                nextRainTime: nextRainTime,
+                nextRainProbability: nextRainProbability,
+                locationTimeZoneIdentifier: locationTimeZoneIdentifier
             )
             
             entries.append(entry)
@@ -786,6 +840,15 @@ struct Provider: TimelineProvider {
         let now = Date()
         let calendar = Calendar.current
         let currentHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+        let locationTimeZoneIdentifier = TimeZone.current.identifier
+
+        let precipHours = weather.hourlyForecast.forecast.prefix(24).map {
+            ($0.date, Int(($0.precipitationChance * 100).rounded()))
+        }
+        let nextRain = WidgetRainLine.nextSignificantRain(
+            hours: precipHours,
+            timeZoneIdentifier: locationTimeZoneIdentifier
+        )
         
         let entries = weather.hourlyForecast.forecast
             .filter { $0.date >= currentHour }
@@ -817,7 +880,10 @@ struct Provider: TimelineProvider {
                     windSpeed: windSpeed,
                     uvIndex: hour.uvIndex.value,
                     pressure: pressure,
-                    lastUpdateDate: now
+                    lastUpdateDate: now,
+                    nextRainTime: nextRain?.time,
+                    nextRainProbability: nextRain?.probability,
+                    locationTimeZoneIdentifier: locationTimeZoneIdentifier
                 )
             }
         
@@ -960,6 +1026,9 @@ struct Provider: TimelineProvider {
         let uvIndex = weatherDict["uvIndex"] as? Int
         let pressure = weatherDict["pressure"] as? Double
         let lastUpdateTimestamp = weatherDict["lastUpdateDate"] as? Double
+        let nextRainTimestamp = weatherDict["nextRainTime"] as? Double
+        let nextRainProbability = weatherDict["nextRainProbability"] as? Int
+        let locationTimeZoneIdentifier = weatherDict["locationTimeZoneIdentifier"] as? String
 
         return WeatherWidgetEntry(
             date: Date(),
@@ -972,7 +1041,10 @@ struct Provider: TimelineProvider {
             windSpeed: windSpeed,
             uvIndex: uvIndex,
             pressure: pressure,
-            lastUpdateDate: lastUpdateTimestamp != nil ? Date(timeIntervalSince1970: lastUpdateTimestamp!) : nil
+            lastUpdateDate: lastUpdateTimestamp != nil ? Date(timeIntervalSince1970: lastUpdateTimestamp!) : nil,
+            nextRainTime: nextRainTimestamp.map { Date(timeIntervalSince1970: $0) },
+            nextRainProbability: nextRainProbability,
+            locationTimeZoneIdentifier: locationTimeZoneIdentifier
         )
     }
 
@@ -1027,6 +1099,9 @@ struct Provider: TimelineProvider {
         let uvIndex     = weatherDict["uvIndex"] as? Int
         let condition   = weatherDict["condition"] as? String
         let lastUpdateTimestamp = weatherDict["lastUpdateDate"] as? Double
+        let nextRainTimestamp = weatherDict["nextRainTime"] as? Double
+        let nextRainProbability = weatherDict["nextRainProbability"] as? Int
+        let locationTimeZoneIdentifier = weatherDict["locationTimeZoneIdentifier"] as? String
 
         return WeatherWidgetEntry(
             date: Date(),
@@ -1039,7 +1114,10 @@ struct Provider: TimelineProvider {
             windSpeed: windSpeed,
             uvIndex: uvIndex,
             pressure: pressure,
-            lastUpdateDate: lastUpdateTimestamp != nil ? Date(timeIntervalSince1970: lastUpdateTimestamp!) : nil
+            lastUpdateDate: lastUpdateTimestamp != nil ? Date(timeIntervalSince1970: lastUpdateTimestamp!) : nil,
+            nextRainTime: nextRainTimestamp.map { Date(timeIntervalSince1970: $0) },
+            nextRainProbability: nextRainProbability,
+            locationTimeZoneIdentifier: locationTimeZoneIdentifier
         )
     }
 }
@@ -1190,6 +1268,22 @@ struct SaxWeatherWidgetEntryView : View {
         }
     }
 
+    private func rainLineView(fontSize: CGFloat = 13, weight: Font.Weight = .medium) -> some View {
+        Group {
+            if let rainLine = entry.rainLineText {
+                HStack(spacing: 4) {
+                    Image(systemName: "cloud.rain.fill")
+                        .font(.system(size: fontSize - 1, weight: weight))
+                    Text(rainLine)
+                        .font(.system(size: fontSize, weight: weight))
+                }
+                .foregroundColor(.blue.opacity(0.9))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            }
+        }
+    }
+
     /// Compact offline indicator badge. Rendered in the small
     /// widget's top-right corner when the cached data is being
     /// shown while the device is offline. Designed to be
@@ -1298,6 +1392,8 @@ struct SaxWeatherWidgetEntryView : View {
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
+
+                        rainLineView(fontSize: 13)
                     }
                     
                     Spacer()
@@ -1381,7 +1477,9 @@ struct SaxWeatherWidgetEntryView : View {
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
-                        
+
+                        rainLineView(fontSize: 14)
+
                         // Feels like right below condition
                         if let feelsLike = entry.feelsLike {
                             Text("Feels like \(String(format: "%.1f", feelsLike))°")
@@ -1620,6 +1718,8 @@ struct SaxWeatherWidgetEntryView : View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
+
+                    rainLineView(fontSize: 11, weight: .semibold)
                 }
                 
                 Spacer()
@@ -1640,6 +1740,10 @@ struct SaxWeatherWidgetEntryView : View {
                         Text("H:\(String(format: "%.0f", high))° L:\(String(format: "%.0f", low))°")
                     } else if let condition = entry.condition {
                         Text(condition)
+                    }
+                    if let rainLine = entry.rainLineText {
+                        Text("·")
+                        Text(rainLine)
                     }
                 }
             } else {
@@ -1843,7 +1947,8 @@ struct ForecastProvider: TimelineProvider {
         let validatedLongitude = validationResult.normalizedLongitude ?? longitude
         
         let unitSystem = sharedDefaults?.string(forKey: "unitSystem") ?? "Metric"
-        let tempUnit = unitSystem == "Imperial" ? "fahrenheit" : "celsius"
+        let units = UnitSystem.from(rawValue: unitSystem)
+        let tempUnit = units.usesCelsius ? "celsius" : "fahrenheit"
         
         // Update the URL to use validated coordinates
         let urlString = "https://api.open-meteo.com/v1/forecast?" +
@@ -2021,6 +2126,7 @@ struct SaxWeatherWidget: Widget {
 
 // MARK: - OpenMeteo Response Models for Widgets
 struct OpenMeteoWidgetResponse: Codable {
+    let timezone: String?
     let current: OpenMeteoCurrentWidget?
     let hourly: OpenMeteoHourlyWidget?
     let daily: OpenMeteoDailyWidget
@@ -2055,6 +2161,7 @@ struct OpenMeteoHourlyWidget: Codable {
     let pressureMsl: [Double]
     let uvIndex: [Double]
     let weatherCode: [Int]
+    let precipitationProbability: [Int]?
     
     enum CodingKeys: String, CodingKey {
         case time
@@ -2065,6 +2172,11 @@ struct OpenMeteoHourlyWidget: Codable {
         case pressureMsl = "pressure_msl"
         case uvIndex = "uv_index"
         case weatherCode = "weather_code"
+        case precipitationProbability = "precipitation_probability"
+    }
+
+    var precipitationProbabilityValues: [Int] {
+        precipitationProbability ?? []
     }
 }
 
@@ -2114,7 +2226,7 @@ struct OpenMeteoDailyWidget: Codable {
     SaxWeatherWidget()
 } timeline: {
     WeatherWidgetEntry(date: .now, temperature: 28.1, condition: "Sunny", high: 31.5, low: 23.8, humidity: 62.0, feelsLike: 29.5, windSpeed: 15.0, uvIndex: 8, pressure: 1015.0, lastUpdateDate: .now)
-    WeatherWidgetEntry(date: .now, temperature: 15.6, condition: "Rainy", high: 17.8, low: 12.4, humidity: 88.0, feelsLike: 14.2, windSpeed: 25.0, uvIndex: 2, pressure: 1005.0, lastUpdateDate: .now.addingTimeInterval(-240))
+    WeatherWidgetEntry(date: .now, temperature: 15.6, condition: "Rainy", high: 17.8, low: 12.4, humidity: 88.0, feelsLike: 14.2, windSpeed: 25.0, uvIndex: 2, pressure: 1005.0, lastUpdateDate: .now.addingTimeInterval(-240), nextRainTime: Calendar.current.date(byAdding: .hour, value: 2, to: .now), nextRainProbability: 65, locationTimeZoneIdentifier: TimeZone.current.identifier)
 }
 
 #Preview(as: .accessoryInline) {
