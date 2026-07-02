@@ -16,6 +16,7 @@ struct DetailedWeatherView: View {
     @ObservedObject var weatherService: WeatherService
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @StateObject private var locationsManager = SavedLocationsManager()
+    @State private var selectedMetric: WeatherMetricInfo?
     
     var body: some View {
         ScrollView {
@@ -40,21 +41,36 @@ struct DetailedWeatherView: View {
                                 removal: .opacity
                             )
                         )
-                    WeatherCard(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "—", icon: "sun.max")
+                    WeatherCard(
+                        title: "UV Index",
+                        value: weatherService.weather?.uvIndex.map { String($0) } ?? "—",
+                        icon: "sun.max",
+                        onTap: { presentMetric(title: "UV Index", value: weatherService.weather?.uvIndex.map { String($0) } ?? "—") }
+                    )
                         .transition(
                             .asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.92)),
                                 removal: .opacity
                             )
                         )
-                    WeatherCard(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "—", icon: "humidity")
+                    WeatherCard(
+                        title: "Humidity",
+                        value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "—",
+                        icon: "humidity",
+                        onTap: { presentMetric(title: "Humidity", value: weatherService.weather?.humidity.map { String(format: "%d%%", Int($0)) } ?? "—") }
+                    )
                         .transition(
                             .asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.92)),
                                 removal: .opacity
                             )
                         )
-                    WeatherCard(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—", icon: "gauge")
+                    WeatherCard(
+                        title: "Pressure",
+                        value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—",
+                        icon: "gauge",
+                        onTap: { presentMetric(title: "Pressure", value: weatherService.weather?.pressure.map { String(format: "%.0f hPa", $0) } ?? "—") }
+                    )
                         .transition(
                             .asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.92)),
@@ -83,7 +99,18 @@ struct DetailedWeatherView: View {
                 // WIND CARD (full width).
                 if let wind = weatherService.weather?.windSpeed, let gust = weatherService.weather?.windGust {
                     let direction = weatherService.forecast?.daily.first?.windDirection ?? 0
-                    WindCard(wind: wind, gust: gust, direction: direction, unit: windUnit)
+                    WindCard(
+                        wind: wind,
+                        gust: gust,
+                        direction: direction,
+                        unit: windUnit,
+                        onTap: {
+                            presentMetric(
+                                title: "Wind Speed",
+                                value: String(format: "%.0f %@", wind, windUnit)
+                            )
+                        }
+                    )
                         .padding(.horizontal, 16)
                         .transition(
                             .opacity.combined(with: .move(edge: .bottom))
@@ -168,13 +195,32 @@ struct DetailedWeatherView: View {
                 value: weatherService.hourlyData.count
             )
         }
+        .sheet(item: $selectedMetric) { metric in
+            WeatherMetricInfoContent(
+                title: metric.title,
+                value: metric.value,
+                description: metric.description
+            )
+            #if os(iOS)
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
+            #endif
+        }
+    }
+    
+    private func presentMetric(title: String, value: String) {
+        selectedMetric = WeatherMetricInfo(
+            title: title,
+            value: value,
+            description: WeatherMetricDescriptions.description(for: title, unitSystem: unitSystem)
+        )
     }
     
     private var unitSymbol: String {
-        unitSystem == "Metric" ? "°C" : "°F"
+        UnitSystem.from(rawValue: unitSystem).temperatureLabel
     }
     private var windUnit: String {
-        unitSystem == "Metric" ? "km/h" : "mph"
+        UnitSystem.from(rawValue: unitSystem).speedLabel
     }
     // Display location name or coordinates
     private var locationDisplayName: String {
@@ -276,11 +322,27 @@ struct WeatherCard: View {
     let title: String
     let value: String
     let icon: String
+    var onTap: (() -> Void)? = nil
 
     // Phase 3 — styling (background / border / corner radius) is
     // delegated to `.styledCard()` which reads cardStyle, cornerRadius,
     // cardOpacity and the palette from the customisation registry.
     var body: some View {
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    cardContent
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows an explanation of this measurement")
+            } else {
+                cardContent
+            }
+        }
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
@@ -314,6 +376,7 @@ struct WindCard: View {
     let gust: Double
     let direction: Double
     let unit: String
+    var onTap: (() -> Void)? = nil
 
     // Phase 3 — styling delegated to `.styledCard()`. Reads
     // cardStyle, cornerRadius, cardOpacity and palette from the
@@ -321,6 +384,21 @@ struct WindCard: View {
     // removed because `.styledCard()` does its own availability
     // check internally.
     var body: some View {
+        Group {
+            if let onTap {
+                Button(action: onTap) {
+                    cardContent
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows an explanation of this measurement")
+            } else {
+                cardContent
+            }
+        }
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "wind")
