@@ -1,0 +1,48 @@
+name: Crowdin Sync
+
+# Pushes new/changed source strings up to Crowdin, and pulls finished
+# translations back down as a pull request. Non-technical translators only
+# ever touch the Crowdin web UI — this workflow keeps the repo in sync.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - SaxWeather/SaxWeather/Localizable.xcstrings
+      - crowdin.yml
+  schedule:
+    # Pull any translations completed since the last run (daily, 03:00 UTC).
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: crowdin-sync
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Crowdin push sources and open translations PR
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: true
+          localization_branch_name: chore/crowdin-translations
+          create_pull_request: true
+          pull_request_title: "chore(i18n): new Crowdin translations"
+          pull_request_body: "Automated pull of completed translations from Crowdin."
+          pull_request_base_branch_name: main
+          config: crowdin.yml
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

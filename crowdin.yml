@@ -1,0 +1,21 @@
+## Crowdin configuration for SaxWeather
+##
+## Credentials are read from environment variables (set as GitHub Actions
+## secrets, or exported locally). Never commit the token itself.
+##   CROWDIN_PROJECT_ID     -> Crowdin project numeric ID
+##   CROWDIN_PERSONAL_TOKEN -> Crowdin personal access token
+##
+## The String Catalog is a single *multilingual* file that holds every
+## language in one JSON blob, so `multilingual: 1` is required and the
+## source and translation paths point at the same file.
+
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_PERSONAL_TOKEN
+base_path: .
+base_url: https://api.crowdin.com
+preserve_hierarchy: true
+
+files:
+  - source: /SaxWeather/SaxWeather/Localizable.xcstrings
+    translation: /SaxWeather/SaxWeather/Localizable.xcstrings
+    multilingual: 1

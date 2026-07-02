@@ -1,0 +1,85 @@
+name: Crowdin Pre-translate (MT seed)
+
+# One-shot machine-translation seed. Run this manually after the Crowdin
+# project exists and target languages are added. It uploads the latest
+# sources, machine-translates every empty string, then downloads the result
+# as a pull request. Human contributors then review/fix the MT output in the
+# Crowdin UI (Crowdin marks MT strings as "pre-translated / needs review").
+#
+# You need a Machine Translation engine configured in Crowdin:
+#   Project Settings -> Machine Translation -> add/enable an engine, copy its ID.
+
+on:
+  workflow_dispatch:
+    inputs:
+      engine_id:
+        description: "Crowdin MT engine ID (Project Settings > Machine Translation)"
+        required: true
+      languages:
+        description: 'Comma-separated language codes (e.g. "es,fr,de,ja"), or "all"'
+        required: false
+        default: "all"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: crowdin-pretranslate
+  cancel-in-progress: false
+
+jobs:
+  pretranslate:
+    runs-on: ubuntu-latest
+    env:
+      CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+      CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Crowdin CLI
+        run: npm install -g @crowdin/cli
+
+      - name: Upload latest sources
+        run: crowdin upload sources --config crowdin.yml --no-progress
+
+      - name: Machine pre-translate empty strings
+        run: |
+          set -euo pipefail
+          LANG_ARGS=""
+          if [ "${{ github.event.inputs.languages }}" != "all" ]; then
+            IFS=',' read -ra LANGS <<< "${{ github.event.inputs.languages }}"
+            for l in "${LANGS[@]}"; do
+              trimmed="$(echo "$l" | xargs)"
+              [ -n "$trimmed" ] && LANG_ARGS="$LANG_ARGS -l $trimmed"
+            done
+          fi
+          crowdin pre-translate \
+            --config crowdin.yml \
+            --method mt \
+            --engine-id "${{ github.event.inputs.engine_id }}" \
+            $LANG_ARGS \
+            --no-progress
+
+      - name: Download machine-translated strings as a PR
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_translations: true
+          localization_branch_name: chore/crowdin-mt-seed
+          create_pull_request: true
+          pull_request_title: "chore(i18n): machine-translation seed"
+          pull_request_body: "Initial machine-translated strings from Crowdin. These are marked pre-translated and still need human review."
+          pull_request_base_branch_name: main
+          config: crowdin.yml
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

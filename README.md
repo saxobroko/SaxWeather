@@ -15,3 +15,9 @@ iOS/macOS weather app with support for Weather Underground (personal weather sta
 
 - iOS 17+ / macOS 14+
 - Xcode 15+
+
+## Translations
+
+SaxWeather is translated by the community through Crowdin — no Mac, Xcode, or
+coding required. Want to help translate the app into your language? See
+[TRANSLATING.md](TRANSLATING.md) to get started.
