@@ -224,6 +224,9 @@
     "Add an outline around text for low-vision users." : {
 
     },
+    "Add and use location" : {
+
+    },
     "Add API Keys in Settings" : {
 
     },
@@ -585,6 +588,9 @@
     "Custom Image" : {
 
     },
+    "Custom locations are currently ignored because a Weather Underground station is configured. Disable API keys in Settings → Locations to use saved locations." : {
+
+    },
     "Custom locations are currently overridden by Weather Underground station. To use custom locations, either disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
 
     },
@@ -714,7 +720,7 @@
     "Enable Notifications" : {
 
     },
-    "Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events." : {
+    "Enable notifications to receive rain start/stop alerts and severe weather warnings for your location." : {
 
     },
     "Enable Quiet Hours" : {
@@ -1420,10 +1426,10 @@
     "Loading forecast data..." : {
 
     },
-    "Loading shared weather…" : {
+    "Loading weather data..." : {
 
     },
-    "Loading weather data..." : {
+    "Loading weather…" : {
 
     },
     "Location" : {
@@ -1761,6 +1767,9 @@
     "Pressure" : {
 
     },
+    "Preview Before Changing Location" : {
+
+    },
     "Preview on your forecast for %llds" : {
       "comment" : "Button to start a preview that applies the cosmetic temporarily."
     },
@@ -1806,10 +1815,13 @@
     "Purchase Required" : {
 
     },
-    "Quiet Hours mutes alert sounds during a daily time range. Times wrap past midnight (e.g. 22:00 → 07:00)." : {
+    "Radius" : {
 
     },
-    "Radius" : {
+    "Rain Alerts" : {
+
+    },
+    "Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. Quiet Hours mutes notification sounds during a daily time range." : {
 
     },
     "Rain expected to start in %@" : {
@@ -2003,6 +2015,9 @@
     "Settings" : {
 
     },
+    "Severe Weather Alerts" : {
+
+    },
     "Shadow" : {
 
     },
@@ -2034,6 +2049,9 @@
 
     },
     "Shared via SaxWeather" : {
+
+    },
+    "Show a full-screen weather preview before switching or adding a location." : {
 
     },
     "Show Forecast" : {
@@ -2387,6 +2405,9 @@
     },
     "Use this" : {
       "comment" : "Button to use an already-owned cosmetic."
+    },
+    "Use this location" : {
+
     },
     "UV Index" : {
 

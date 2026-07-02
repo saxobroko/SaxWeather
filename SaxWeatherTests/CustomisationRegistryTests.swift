@@ -367,7 +367,8 @@ final class CustomisationRegistryTests: XCTestCase {
         // Genuinely new v2 knobs.
         let newOnes = [
             "iconSizeMultiplier",
-            "swipeBetweenLocations", "showLocationHeader", "compactCardsInLandscape",
+            "swipeBetweenLocations", "showLocationHeader", "previewBeforeChangingLocation",
+            "compactCardsInLandscape",
             "showHourlySummary", "detailedColumnCount",
             "vibrateOnPullToRefresh", "confirmQuit",
             "experimentalNewHeroLayout", "experimentalSwipeRefresh",
