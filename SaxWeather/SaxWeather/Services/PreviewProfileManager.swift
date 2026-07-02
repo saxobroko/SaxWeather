@@ -33,6 +33,11 @@ final class PreviewProfileManager: ObservableObject {
 
     var onRestore: ((CustomisationProfile) -> Void)?
 
+    /// `true` while a timed preview is active for `productID`.
+    func isPreviewing(_ productID: String) -> Bool {
+        activePreview?.productID == productID
+    }
+
     private var countdownTimer: Timer?
 
     // MARK: - Persistence keys

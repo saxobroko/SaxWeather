@@ -96,6 +96,7 @@ struct CosmeticsStoreView: View {
     private func presentDeepLinkedProductIfNeeded() {
         guard let productID = initialPendingProductID else { return }
         guard let product = CosmeticCatalog.product(id: productID) else { return }
+        guard storeManager.isVisibleInStore(product) else { return }
         // Don't overwrite an already-presented detail sheet.
         guard selectedProduct == nil else { return }
         selectedProduct = product
@@ -172,7 +173,7 @@ struct CosmeticsStoreView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(CosmeticCatalog.shippedProducts
+                    ForEach(storeVisibleProducts
                         .filter { $0.productKind != .supporterPack }
                         .sorted { $0.priceCents < $1.priceCents }
                     ) { product in
@@ -205,7 +206,7 @@ struct CosmeticsStoreView: View {
                 ForEach(visiblePacks, id: \.id) { pack in
                     PackDisclosureRow(
                         pack: pack,
-                        products: CosmeticCatalog.products(inPack: pack.id),
+                        products: visibleProducts(inPack: pack.id),
                         isOwned: { product in storeManager.owns(product) },
                         isPurchasing: { product in storeManager.purchaseInProgressID == product.id },
                         onTapProduct: { selectedProduct = $0 }
@@ -215,18 +216,34 @@ struct CosmeticsStoreView: View {
         }
     }
 
+    /// Products that pass the catalog gate, StoreKit
+    /// availability, and the owned-product exception.
+    private var storeVisibleProducts: [CosmeticProduct] {
+        storeManager.storeVisibleProducts()
+    }
+
+    private func visibleProducts(inPack packID: String) -> [CosmeticProduct] {
+        CosmeticCatalog.products(inPack: packID)
+            .filter { storeManager.isVisibleInStore($0) }
+    }
+
     /// The packs visible in the store list. The Supporter
     /// Pack is handled separately in `supporterPackSection`
     /// so it's not duplicated here.
     private var visiblePacks: [CosmeticPack] {
-        CosmeticCatalog.shippedProducts
+        storeVisibleProducts
             .filter { $0.productKind != .supporterPack }
             .reduce(into: [CosmeticPack]()) { partial, product in
                 guard let packID = product.packID else { return }
-                if let idx = partial.firstIndex(where: { $0.id == packID }) {
+                if partial.contains(where: { $0.id == packID }) {
                     return  // already added
                 }
-                partial.append(CosmeticPack(id: packID, displayName: packID.capitalized))
+                partial.append(
+                    CosmeticPack(
+                        id: packID,
+                        displayName: product.resolvedPackDisplayName
+                    )
+                )
             }
     }
 
@@ -236,7 +253,8 @@ struct CosmeticsStoreView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let supporterPack = CosmeticCatalog.product(
                 id: CosmeticCatalog.supporterPackID
-            ) {
+            ),
+               storeManager.isVisibleInStore(supporterPack) {
                 SupporterPackCard(
                     product: supporterPack,
                     isOwned: storeManager.owns(supporterPack),
@@ -296,7 +314,7 @@ struct CosmeticsStoreView: View {
         isRestoring = true
         defer { isRestoring = false }
         await storeManager.restorePurchases()
-        let ownedCount = CosmeticCatalog.shippedProducts
+        let ownedCount = storeVisibleProducts
             .filter { storeManager.owns($0) }
             .count
         restoreBanner = RestoreBanner(

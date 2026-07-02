@@ -22,6 +22,7 @@ struct LocationWeatherPreviewSheet: View {
     @StateObject private var previewWeatherService = WeatherService()
     @EnvironmentObject private var storeManager: StoreManager
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
+    @EnvironmentObject private var previewManager: PreviewProfileManager
 
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @AppStorage("displayMode") private var displayMode: String = "Summary"
@@ -261,7 +262,9 @@ struct LocationWeatherPreviewSheet: View {
             sunset: previewWeatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
         return BackgroundView(strategy: strategy)
             .environmentObject(storeManager)

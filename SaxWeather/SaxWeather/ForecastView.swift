@@ -22,6 +22,7 @@ struct ForecastView: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject private var registry = CustomisationRegistry.shared
     @EnvironmentObject private var storeManager: StoreManager
+    @EnvironmentObject private var previewManager: PreviewProfileManager
 
     /// Resolved background strategy for the current condition +
     /// active profile + sun position.
@@ -33,7 +34,9 @@ struct ForecastView: View {
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
     }
 

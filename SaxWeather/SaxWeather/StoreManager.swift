@@ -212,6 +212,47 @@ class StoreManager: ObservableObject {
         cosmeticProductsByID[id]
     }
 
+    /// Product IDs StoreKit returned from the last
+    /// `loadCosmeticProducts()` call — the authoritative
+    /// signal that a product is approved in App Store Connect.
+    var availableCosmeticProductIDs: Set<String> {
+        Set(cosmeticProductsByID.keys)
+    }
+
+    func isStoreKitAvailable(productID: String) -> Bool {
+        cosmeticProductsByID[productID] != nil
+    }
+
+    func isPurchasableInStore(
+        _ product: CosmeticProduct,
+        at date: Date = .now
+    ) -> Bool {
+        CosmeticCatalog.isPurchasableInStore(
+            product,
+            storeKitAvailableIDs: availableCosmeticProductIDs,
+            at: date
+        )
+    }
+
+    /// Whether a cosmetic should appear in the store UI.
+    /// Owned products remain visible when ASC temporarily
+    /// withholds them (e.g. after a refund edge case).
+    func isVisibleInStore(
+        _ product: CosmeticProduct,
+        at date: Date = .now
+    ) -> Bool {
+        CosmeticCatalog.isVisibleInStore(
+            product,
+            storeKitAvailableIDs: availableCosmeticProductIDs,
+            isOwned: { owns($0) },
+            at: date
+        )
+    }
+
+    func storeVisibleProducts(at date: Date = .now) -> [CosmeticProduct] {
+        CosmeticCatalog.allProducts.filter { isVisibleInStore($0, at: date) }
+    }
+
     @discardableResult
     func purchaseCosmetic(_ product: Product) async throws -> PurchaseResult {
         purchaseInProgressID = product.id

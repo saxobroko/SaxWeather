@@ -129,37 +129,6 @@ struct CosmeticDetailView: View {
             tileImage
                 .resizable()
                 .scaledToFill()
-        } else if product.id == "com.saxweather.cosmetic.aurora.backgrounds" {
-            // Legacy hero: the real Aurora background JPEG,
-            // with the existing gradient fallback for when
-            // the JPEG isn't on disk. Phase 4 — uses the
-            // condition-based asset name (defaults to the
-            // "default" Aurora image).
-            #if os(iOS)
-            if let uiImage = UIImage(
-                named: BackgroundResolver.auroraAssetName(
-                    forCondition: "default"
-                )
-            ) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                heroAuroraFallbackGradient
-            }
-            #elseif os(macOS)
-            if let nsImage = NSImage(
-                named: BackgroundResolver.auroraAssetName(
-                    forCondition: "default"
-                )
-            ) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                heroAuroraFallbackGradient
-            }
-            #endif
         } else if product.id == "com.saxweather.cosmetic.aurora.palette" {
             HStack(spacing: 0) {
                 ForEach([
@@ -308,7 +277,6 @@ struct CosmeticDetailView: View {
         }
         .buttonStyle(.bordered)
         .tint(isPreviewing ? .red : .blue)
-        .disabled(storeManager.owns(product) == false && !isPreviewing)
     }
 
     // MARK: - Purchase button
@@ -488,14 +456,12 @@ struct CosmeticDetailView: View {
             let result = try await storeManager.purchaseCosmetic(storeKitProduct)
             switch result {
             case .success:
-                // A successful purchase on this sheet
-                // flips the "Use this" label to "Use now"
-                // for the lifetime of the sheet. The user
-                // can still pick a different cosmetic or
-                // close the sheet without tapping the
-                // button — that's fine, the label is just
-                // a copy hint.
                 justPurchased = true
+                if CosmeticAssetStore.unlocksAuroraBackgrounds(productID: product.id) {
+                    Task {
+                        await CosmeticAssetStore.shared.downloadAll(previewOnly: false)
+                    }
+                }
             case .cancelled, .pending:
                 break
             case .failed(let message):
@@ -511,6 +477,13 @@ struct CosmeticDetailView: View {
         var workingProfile = originalProfile
         _ = previewManager.startPreview(of: product, applyingTo: &workingProfile)
         registry.apply(workingProfile)
+        if product.id == BackgroundResolver.auroraBackgroundsProductID {
+            Task {
+                await CosmeticAssetStore.shared.downloadForPreview(
+                    conditions: ["default"]
+                )
+            }
+        }
         previewCoordinator.startPreview(
             of: product,
             originalProfile: originalProfile

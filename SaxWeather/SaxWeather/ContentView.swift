@@ -847,7 +847,9 @@ struct ContentView: View {
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
         return BackgroundViewWrapper(strategy: strategy)
     }
