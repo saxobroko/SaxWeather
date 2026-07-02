@@ -87,10 +87,6 @@ struct CardSettingsView: View {
 
     // MARK: - Sticky preview
 
-    /// The preview pinned to the top of the screen. Wrapped in
-    /// a section background that matches the rest of the
-    /// settings UI, so the preview reads as "the top section"
-    /// rather than a floating card.
     private var previewHeader: some View {
         LivePreviewCard(visual: workingVisual)
             .padding(.horizontal, 16)
@@ -561,10 +557,6 @@ struct CardSettingsView: View {
         )
     }
 
-    /// Free-form colour picker. Converts the picked `Color`
-    /// into a named `ColourToken` and stores it. We pick the
-    /// closest preset name when possible so the picker round-
-    /// trips cleanly, otherwise we fall back to a `hex` token.
     private var customFillColorBinding: Binding<Color> {
         Binding(
             get: {
@@ -578,10 +570,6 @@ struct CardSettingsView: View {
         )
     }
 
-    /// Approximate a `Color` to the closest preset fill token
-    /// (by simple Euclidean distance in RGB). Falls back to a
-    /// hex-encoded token so the picker always saves *something*
-    /// the user can re-edit.
     private func nearestFillToken(for color: Color) -> ColourToken {
         let components = rgbComponents(of: color)
         let r = components.r
@@ -614,11 +602,6 @@ struct CardSettingsView: View {
         return .hex(String(format: "#%02X%02X%02X", rInt, gInt, bInt))
     }
 
-    /// Extract approximate sRGB (0…1) components from a
-    /// SwiftUI `Color`. The deployment target is iOS 16 so we
-    /// can't use `Color.resolve(in:)` (iOS 17+); we round-trip
-    /// through `UIColor` instead, which has been there since
-    /// iOS 2.
     private func rgbComponents(of color: Color) -> (r: Double, g: Double, b: Double) {
         #if canImport(UIKit)
         let ui = UIColor(color)
@@ -689,11 +672,6 @@ struct CardSettingsView: View {
 
     // MARK: - Preset
 
-    /// One-tap "Match Original Glass Look" preset. Sets the
-    /// visual knobs to the values that reproduce the original
-    /// iOS 26+ glass aesthetic previously hard-coded in
-    /// `WeatherDetailsView`. The user can then tweak any of the
-    /// controls below to make the look their own.
     private func applyOriginalGlassPreset() {
         var preset = workingVisual
         preset.cardStyle = .glass
@@ -718,10 +696,6 @@ struct CardSettingsView: View {
         applyVisual(preset)
     }
 
-    /// Push every field of the supplied `VisualSpec` to the
-    /// registry. Used by `applyOriginalGlassPreset` so the
-    /// preview updates immediately and the rest of the app
-    /// (and the home screen) follows suit.
     private func applyVisual(_ v: VisualSpec) {
         // Push every value from `v` to the registry so the live
         // preview, the home screen, the forecast, the alerts
@@ -776,12 +750,6 @@ struct CardSettingsView: View {
 
 // MARK: - Live preview card
 
-/// The example card rendered at the top of `CardSettingsView`.
-/// Uses the user's working `VisualSpec` so it re-renders on
-/// every edit. Modelled on the real `ForecastDayCard` so the
-/// preview looks like an actual card from the app, with the
-/// date label, weather glyph, and high/low temps the user
-/// sees in the daily forecast.
 private struct LivePreviewCard: View {
     let visual: VisualSpec
 
@@ -819,10 +787,6 @@ private struct LivePreviewCard: View {
         .themedCard(visual)
     }
 
-    /// Small column with an emoji icon, label, and value.
-    /// Mirrors the `WeatherDataColumn` in `ForecastView` so the
-    /// preview reads as "this is what the daily forecast card
-    /// looks like with your current theme".
     private func weatherDataColumn(icon: String, label: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(icon).font(.system(size: 18))

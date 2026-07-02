@@ -1,26 +1,3 @@
-//
-//  CosmeticTilePlaceholder.swift
-//  SaxWeather
-//
-//  Phase 3 — Per-IAP tile image system helper.
-//
-//  Every cosmetic in the catalog now carries an optional
-//  `tileImageName` referencing an imageset in
-//  `Assets.xcassets/cosmetic_tile_<short_id>.imageset/`. If
-//  the image is dropped in by the user, the store card and
-//  detail-view hero show it. If the image is missing (the
-//  user hasn't dropped one in yet, or the JPEG is the wrong
-//  filename), this placeholder renders a kind-appropriate
-//  SF Symbol on a SwiftUI gradient so the user can still
-//  tell at a glance which kind they're looking at.
-//
-//  The placeholder is intentionally simple — no asset
-//  references, no image I/O beyond `UIImage(named:)` — so it
-//  compiles even if no imageset exists in the bundle. That
-//  matches the existing Aurora Backgrounds hero, which
-//  already falls back to a gradient via the same pattern.
-//
-//
 
 import SwiftUI
 
@@ -28,14 +5,6 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Resolves the tile image for a cosmetic. Returns `nil`
-/// when the product has no `tileImageName`, or when
-/// `UIImage(named:)` returns `nil` (the JPEG hasn't been
-/// dropped into the asset catalog yet — defensive so the
-/// placeholder always renders *something* readable).
-///
-/// The caller is responsible for branching on `nil` to
-/// render the placeholder.
 enum CosmeticTileImage {
     /// `true` when a custom tile image exists for the
     /// product. Cached via the bundle, so the lookup is
@@ -72,13 +41,6 @@ enum CosmeticTileImage {
     }
 }
 
-/// The fallback view rendered when no custom tile image is
-/// available. Visually distinct per cosmetic kind so the
-/// user can identify the kind at a glance.
-///
-/// Sized to fill whatever container the caller puts it in —
-/// it always uses `frame(maxWidth: .infinity, maxHeight:
-/// .infinity)`.
 struct CosmeticTilePlaceholder: View {
     let product: CosmeticProduct
 
@@ -125,14 +87,6 @@ struct CosmeticTilePlaceholder: View {
         }
     }
 
-    /// Gradient stops per kind — varies the placeholder
-    /// palette so the user can tell the kinds apart even
-    /// before reading the label.
-    ///
-    /// The Supporter Pack uses a distinctive gold/amber
-    /// gradient so it reads as "premium" without being
-    /// manipulative — different from every other kind's
-    /// palette.
     private var gradientColors: [Color] {
         switch product.productKind {
         case .backgrounds:

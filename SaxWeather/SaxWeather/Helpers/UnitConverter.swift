@@ -49,6 +49,12 @@ enum UnitSystem: String, CaseIterable {
     /// Display label for pressure.
     var pressureLabel: String { usesHPa ? "hPa" : "inHg" }
 
+    /// Whether precipitation is displayed in millimetres. Imperial uses inches.
+    var usesMillimeters: Bool { self != .imperial }
+
+    /// Display label for precipitation amount.
+    var precipitationLabel: String { usesMillimeters ? "mm" : "in" }
+
     /// Convert a raw "Metric"-style string (e.g. "Metric", "Imperial",
     /// "UK") into the enum. Falls back to `.metric` for unknown values.
     static func from(rawValue: String) -> UnitSystem {
@@ -70,6 +76,7 @@ enum UnitConverter {
     // MARK: Pressure
     static let inHgPerHPa: Double = 0.02953   // 1 hPa = 0.02953 inHg
     static let hPaPerInHg: Double = 33.8639   // 1 inHg = 33.8639 hPa
+    static let mmPerInch: Double = 25.4
 
     // MARK: Wind conversions
 
@@ -196,10 +203,6 @@ enum UnitConverter {
         return raw.map { max(0, min($0, 2)) } ?? 0
     }
 
-    /// Format a temperature with the user-configured precision.
-    /// `25.0` with `1 dp` → `"25.0"`, with `0 dp` → `"25"`,
-    /// with `2 dp` → `"25.00"`. Always signed-positive, no
-    /// unit suffix (callers append their own `°C` / `°F`).
     static func formatTemperature(_ value: Double) -> String {
         let digits = temperaturePrecision
         return String(format: "%.\(digits)f", value)
@@ -217,5 +220,17 @@ enum UnitConverter {
     static func formatPressure(_ value: Double) -> String {
         let digits = pressurePrecision
         return String(format: "%.\(digits)f", value)
+    }
+
+    static func mmToInches(_ value: Double) -> Double { value / mmPerInch }
+
+    /// Format a precipitation amount stored in millimetres for display.
+    static func formatPrecipitation(_ mm: Double, unit: UnitSystem, precision: Int = 1) -> String {
+        switch unit {
+        case .metric, .uk:
+            return String(format: "%.\(precision)f %@", mm, unit.precipitationLabel)
+        case .imperial:
+            return String(format: "%.\(precision)f %@", mmToInches(mm), unit.precipitationLabel)
+        }
     }
 }

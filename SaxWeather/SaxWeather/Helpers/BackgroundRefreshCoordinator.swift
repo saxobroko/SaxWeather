@@ -39,19 +39,7 @@ import BackgroundTasks
 import UIKit
 #endif
 
-/// Centralised scheduler for the app's background refresh task.
-///
-/// The host app should treat the static `scheduleAppRefresh(...)`
-/// and `scheduleNextRefresh(...)` methods as the only entry points
-/// for talking to `BGTaskScheduler` from the refresh code paths
-/// in [`AppDelegate`](SaxWeatherApp.swift). All persistence
-/// (failure counter, last success / failure timestamps) is
-/// handled internally.
 final class BackgroundRefreshCoordinator {
-    /// Shared instance. The class is process-safe for the use
-    /// patterns we need (read / write from the main thread or
-    /// any background task executor) because `UserDefaults` is
-    /// thread-safe and we do not hold mutable in-memory state.
     static let shared = BackgroundRefreshCoordinator()
 
     private init() {}
@@ -63,16 +51,8 @@ final class BackgroundRefreshCoordinator {
     /// `BGAppRefreshTaskRequest` minimum the system honours.
     var baseIntervalSeconds: TimeInterval = 5 * 60
 
-    /// Hard upper bound for the backoff interval, in seconds.
-    /// We do not want the next refresh to drift more than an
-    /// hour away, otherwise the widget can stay stale for a
-    /// long stretch if the user is briefly offline.
     var maxIntervalSeconds: TimeInterval = 60 * 60
 
-    /// Cap on the exponent used in the backoff calculation. With
-    /// `baseIntervalSeconds = 300` and `maxIntervalSeconds =
-    /// 3600`, an exponent cap of 6 (i.e. 64×) keeps the interval
-    /// well under the cap and prevents accidental overflow.
     var maxExponent: Int = 6
 
     // MARK: - Persistence Keys
@@ -140,17 +120,6 @@ final class BackgroundRefreshCoordinator {
 
     // MARK: - Scheduling
 
-    /// Schedule the next background refresh using the base
-    /// interval, **without** touching the failure counter. This
-    /// is the right entry point for app-lifecycle hooks (app
-    /// launch, app entering the foreground, app entering the
-    /// background) where the user is presumably present and we
-    /// want to give the system a chance to refresh promptly.
-    ///
-    /// If the device is in Low Power Mode we still double the
-    /// interval, but we do not gate scheduling entirely – the
-    /// user may want the widget to keep working, just less
-    /// aggressively.
     func scheduleAppRefresh(taskIdentifier: String) {
         let interval = adjustedInterval(forLPM: isLowPowerModeEnabled,
                                         base: baseIntervalSeconds)
@@ -158,18 +127,6 @@ final class BackgroundRefreshCoordinator {
                reason: "user-initiated schedule")
     }
 
-    /// Schedule the next background refresh based on the outcome
-    /// of the **previous** attempt. Call this at the start of
-    /// `handleAppRefresh` (iOS best practice: the next request
-    /// must be in the queue before we do the work, in case the
-    /// app is killed mid-task).
-    ///
-    /// - Parameters:
-    ///   - taskIdentifier: The BG task identifier registered in
-    ///     `Info.plist`'s `BGTaskSchedulerPermittedIdentifiers`.
-    ///   - previousSucceeded: Whether the *previous* background
-    ///     refresh attempt succeeded. We use this to decide
-    ///     whether to lengthen the interval.
     func scheduleNextRefresh(taskIdentifier: String,
                              previousSucceeded: Bool) {
         let interval = nextIntervalSeconds(after: previousSucceeded)
@@ -179,14 +136,6 @@ final class BackgroundRefreshCoordinator {
                     : "previous run failed (backoff)")
     }
 
-    /// Record the outcome of a *completed* refresh attempt. The
-    /// next call to `scheduleNextRefresh(...)` will use the
-    /// updated counter.
-    ///
-    /// - Parameter success: `true` if the refresh fetched
-    ///   fresh station data and reloaded the widget timeline;
-    ///   `false` for any other outcome (offline, network error,
-    ///   missing API key, expired task, etc).
     func recordOutcome(success: Bool) {
         if success {
             if consecutiveFailures > 0 {

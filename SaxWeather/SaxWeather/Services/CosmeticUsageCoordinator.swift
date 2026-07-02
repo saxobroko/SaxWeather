@@ -1,50 +1,7 @@
-//
-//  CosmeticUsageCoordinator.swift
-//  SaxWeather
-//
-//  Phase 4 — Purchase → use flow simplification.
-//  Phase 5 — wire "Use now" / "Use this" to the new
-//            palette + chart-skin pickers, and to apply
-//            the cosmetic to the live profile before
-//            navigating so the user lands on the picker
-//            with the new selection already active.
-//
-//  The "Use now" / "Use this" affordance. After a successful
-//  purchase (or when the user taps "Use this" on an owned
-//  cosmetic), this coordinator:
-//    1. Applies the cosmetic to the live profile
-//       (e.g. `VisualSpec.palette = .cosmeticAurora`).
-//    2. Publishes a `pendingUsage` value that `ContentView`
-//       observes to navigate to the relevant settings page.
-//
-//  Previously the user had to:
-//    1. Open cosmetics store
-//    2. Tap a cosmetic
-//    3. Tap Buy
-//    4. Tap Preview (optional)
-//    5. Manually navigate to Settings → Background to
-//       actually use it
-//
-//  Now the user can:
-//    1. Open cosmetics store
-//    2. Tap a cosmetic
-//    3. Tap Buy
-//    4. Tap "Use now" on the success sheet
-//    5. Land on the relevant settings page with the
-//       cosmetic already applied
-//
-//  Threading: `@MainActor` — every state mutation and
-//  observation happens on the main actor, matching the
-//  existing `CosmeticPreviewCoordinator` isolation.
-//
 
 import SwiftUI
 import Combine
 
-/// Where the user should be navigated to after tapping
-/// "Use now" / "Use this" on a cosmetic. `ContentView`
-/// reads `pendingUsage` to decide which settings page to
-/// push.
 enum UsageDestination: Equatable {
     /// The Background settings page. Used for `.backgrounds`
     /// cosmetics.
@@ -56,10 +13,6 @@ enum UsageDestination: Equatable {
     case chartSettings
 }
 
-/// A pending "use this cosmetic" request. Published by
-/// `CosmeticUsageCoordinator` when the user taps "Use now"
-/// or "Use this". `ContentView` observes this and navigates
-/// to the relevant settings page.
 struct PendingUsage: Equatable, Identifiable {
     /// The cosmetic to apply.
     let cosmetic: CosmeticProduct
@@ -85,31 +38,6 @@ final class CosmeticUsageCoordinator: ObservableObject {
     /// is inert until `useNow(_:)` is called.
     init() {}
 
-    /// Request that `product` be applied and the user be
-    /// navigated to the relevant settings page. Sets
-    /// `pendingUsage` based on the product's kind.
-    ///
-    /// Kinds without a settings page (`.badge`,
-    /// `.supporterPack`, `.bundle`, `.icons`, `.font`,
-    /// `.haptic`, `.sound`, `.widgetTheme`, `.appIcon`) do
-    /// NOT set `pendingUsage` — the "Use this" button is
-    /// hidden for these kinds.
-    ///
-    /// For kinds with a settings page, this method ALSO
-    /// applies the cosmetic to the live profile (e.g.
-    /// `VisualSpec.palette = .cosmeticAurora` for the
-    /// Aurora Palette) so the user lands on the picker
-    /// with the new selection already active.
-    ///
-    /// - Parameter isOwned: Optional ownership check. When
-    ///   provided, the coordinator refuses to apply the
-    ///   cosmetic if it returns `false` for `product.id` —
-    ///   the `useNow` call becomes a no-op. This guards
-    ///   against accidentally letting a locked row become
-    ///   the active selection. The default closure
-    ///   (`{ _ in true }`) preserves the previous "always
-    ///   allow" behaviour for callers that don't have an
-    ///   ownership check handy.
     func useNow(
         _ product: CosmeticProduct,
         isOwned: (String) -> Bool = { _ in true }
@@ -142,11 +70,6 @@ final class CosmeticUsageCoordinator: ObservableObject {
         )
     }
 
-    /// Apply a cosmetic to the live customisation profile.
-    /// Used by `useNow(_:)` to commit the selection before
-    /// navigating to the picker. Falls through silently for
-    /// cosmetic kinds this coordinator doesn't know how to
-    /// apply (the picker is the only way to reach those).
     private func applyToProfile(_ product: CosmeticProduct) {
         let registry = CustomisationRegistry.shared
         switch product.productKind {

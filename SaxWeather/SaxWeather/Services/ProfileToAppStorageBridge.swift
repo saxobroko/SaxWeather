@@ -1,32 +1,3 @@
-//
-//  ProfileToAppStorageBridge.swift
-//  SaxWeather
-//
-//  Phase 2 — bidirectional bridge between `KnobStorage` (the
-//  customisation engine's source of truth) and the existing
-//  `@AppStorage` keys that the app has shipped with.
-//
-//  Why: the registry should be the single mutation path, but
-//  dozens of views still read settings via `@AppStorage` (which
-//  reads from `UserDefaults`). Rather than rewrite every view in
-//  Phase 2, the bridge writes every knob to its corresponding
-//  UserDefaults key on every mutation — so existing `@AppStorage`
-//  reads keep working unchanged.
-//
-//  Two directions:
-//    * `bridge(_:to:)` — registry → UserDefaults. Called after
-//      every `set` / `apply`. Idempotent and cheap.
-//    * `readFromAppStorage(from:)` — UserDefaults → KnobStorage.
-//      Used once at first launch (post-Phase-2 deploy) to seed
-//      the registry from any user customisations that already
-//      lived in UserDefaults.
-//
-//  Credentials (`wuApiKey`, `stationID`, `owmApiKey`) and
-//  coordinates (`latitude`, `longitude`) are intentionally NOT
-//  bridged — they are not knobs.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §4.2.
-//
 
 import Foundation
 
@@ -35,15 +6,6 @@ enum ProfileToAppStorageBridge {
 
     // MARK: - Registry → UserDefaults
 
-    /// Write every bridged knob to its corresponding `@AppStorage`
-    /// key. Called by the registry after every `apply(_:)` and
-    /// `set(_:_:)` so existing `@AppStorage` views continue to
-    /// reflect the active profile without code changes.
-    ///
-    /// - Parameters:
-    ///   - knobs: the current `KnobStorage` snapshot.
-    ///   - defaults: target UserDefaults. Defaults to `.standard`.
-    ///     Tests inject an isolated suite.
     static func bridge(_ knobs: KnobStorage, to defaults: UserDefaults = .standard) {
         dispatchPrecondition(condition: .onQueue(.main))
 
@@ -89,10 +51,6 @@ enum ProfileToAppStorageBridge {
         // Iconography
         defaults.set(knobs.iconography.disableWeatherAnimations,
                      forKey: "disableWeatherAnimations")
-        // Phase 6 — playback speed is read by `LottieView` via
-        // `@AppStorage("lottiePlaybackSpeed")` so the
-        // `LottieAnimationView.animationSpeed` honours the
-        // registry knob.
         defaults.set(knobs.iconography.lottiePlaybackSpeed,
                      forKey: "lottiePlaybackSpeed")
         defaults.set(knobs.iconography.lottieLoopMode.rawValue,
@@ -112,6 +70,8 @@ enum ProfileToAppStorageBridge {
         defaults.set(knobs.layout.cardDensity.rawValue, forKey: "cardDensity")
         defaults.set(knobs.layout.swipeBetweenLocations, forKey: "swipeBetweenLocations")
         defaults.set(knobs.layout.showLocationHeader, forKey: "showLocationHeader")
+        defaults.set(knobs.layout.previewBeforeChangingLocation, forKey: "previewBeforeChangingLocation")
+        defaults.set(knobs.layout.showHeroLastUpdated, forKey: "showHeroLastUpdated")
         defaults.set(knobs.layout.compactCardsInLandscape, forKey: "compactCardsInLandscape")
 
         // Data
@@ -152,6 +112,9 @@ enum ProfileToAppStorageBridge {
                      forKey: "longPressToCustomise")
         defaults.set(knobs.behaviour.confirmDestructive, forKey: "confirmDestructive")
         defaults.set(knobs.behaviour.weatherAlertSounds, forKey: "weatherAlertSounds")
+        defaults.set(knobs.behaviour.rainAlertsEnabled, forKey: "rainAlertsEnabled")
+        defaults.set(knobs.behaviour.severeWeatherAlertsEnabled, forKey: "severeWeatherAlertsEnabled")
+        defaults.set(knobs.behaviour.aiAlertSummariesEnabled, forKey: "aiAlertSummariesEnabled")
         if let s = knobs.behaviour.quietHoursStart {
             defaults.set(s, forKey: "quietHoursStart")
         } else {
@@ -189,17 +152,6 @@ enum ProfileToAppStorageBridge {
 
     // MARK: - UserDefaults → KnobStorage (first-launch seeding)
 
-    /// Build a `KnobStorage` from existing UserDefaults values.
-    /// Used only at first launch after Phase 2 ships, to seed the
-    /// registry from any settings the user has already customised
-    /// via the existing UI. After this runs once, the registry is
-    /// the source of truth and overrides UserDefaults on
-    /// subsequent writes.
-    ///
-    /// Crucially, every read uses `defaults.object(forKey:) != nil`
-    /// (not `defaults.bool(forKey:)`) so we don't accidentally
-    /// overwrite a knob with `false` just because the user has
-    /// never set that key.
     static func readFromAppStorage(from defaults: UserDefaults = .standard) -> KnobStorage {
         var knobs = KnobStorage()
 
@@ -369,6 +321,14 @@ enum ProfileToAppStorageBridge {
             knobs.layout.showLocationHeader =
                 defaults.bool(forKey: "showLocationHeader")
         }
+        if defaults.object(forKey: "previewBeforeChangingLocation") != nil {
+            knobs.layout.previewBeforeChangingLocation =
+                defaults.bool(forKey: "previewBeforeChangingLocation")
+        }
+        if defaults.object(forKey: "showHeroLastUpdated") != nil {
+            knobs.layout.showHeroLastUpdated =
+                defaults.bool(forKey: "showHeroLastUpdated")
+        }
         if defaults.object(forKey: "compactCardsInLandscape") != nil {
             knobs.layout.compactCardsInLandscape =
                 defaults.bool(forKey: "compactCardsInLandscape")
@@ -483,6 +443,18 @@ enum ProfileToAppStorageBridge {
             knobs.behaviour.weatherAlertSounds =
                 defaults.bool(forKey: "weatherAlertSounds")
         }
+        if defaults.object(forKey: "rainAlertsEnabled") != nil {
+            knobs.behaviour.rainAlertsEnabled =
+                defaults.bool(forKey: "rainAlertsEnabled")
+        }
+        if defaults.object(forKey: "severeWeatherAlertsEnabled") != nil {
+            knobs.behaviour.severeWeatherAlertsEnabled =
+                defaults.bool(forKey: "severeWeatherAlertsEnabled")
+        }
+        if defaults.object(forKey: "aiAlertSummariesEnabled") != nil {
+            knobs.behaviour.aiAlertSummariesEnabled =
+                defaults.bool(forKey: "aiAlertSummariesEnabled")
+        }
         if defaults.object(forKey: "quietHoursStart") != nil {
             knobs.behaviour.quietHoursStart =
                 defaults.integer(forKey: "quietHoursStart")
@@ -581,7 +553,8 @@ enum ProfileToAppStorageBridge {
         // Layout
         "forecastDays", "displayMode", "showHamburgerMenu",
         "hourlyHours", "cardDensity", "swipeBetweenLocations",
-        "showLocationHeader", "compactCardsInLandscape",
+        "showLocationHeader", "previewBeforeChangingLocation",
+        "showHeroLastUpdated", "compactCardsInLandscape",
         // Data
         "unitSystem", "useOpenMeteoAsDefault", "disableAPIKeys",
         "preferredDataSource", "refreshCadence",
@@ -595,7 +568,9 @@ enum ProfileToAppStorageBridge {
         "enableHapticFeedback", "speakWeatherAlerts",
         "hapticIntensity", "pullToRefresh", "tapDayToExpand",
         "longPressToCustomise", "confirmDestructive",
-        "weatherAlertSounds", "quietHoursStart", "quietHoursEnd",
+        "weatherAlertSounds", "rainAlertsEnabled", "severeWeatherAlertsEnabled",
+        "aiAlertSummariesEnabled",
+        "quietHoursStart", "quietHoursEnd",
         "refreshSound", "vibrateOnPullToRefresh", "confirmQuit",
         // Accessibility
         "reduceMotion", "enhancedVoiceOverLabels",

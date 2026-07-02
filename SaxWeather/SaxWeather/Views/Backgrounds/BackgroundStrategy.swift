@@ -1,22 +1,3 @@
-//
-//  BackgroundStrategy.swift
-//  SaxWeather
-//
-//  Phase 5 — Background engine.
-//
-//  A `BackgroundStrategy` is the *resolved* background to render at
-//  the current moment. It's the output of `BackgroundResolver` and
-//  the input of `BackgroundView`. Splitting "what to draw" from
-//  "how to draw it" keeps the view dumb (a switch on the strategy)
-//  and the resolver pure (a function from inputs to a strategy).
-//
-//  The strategy is intentionally a value type so SwiftUI can diff
-//  it cheaply, the registry can include it in its profile hash
-//  (Phase 8), and the widget can serialise a subset of it across
-//  the App Group boundary.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §2.5 and §4.5.
-//
 
 import SwiftUI
 
@@ -38,11 +19,6 @@ enum BackgroundStrategy: Equatable, Hashable, Codable {
     /// `.colorMultiply(_:)`. Used to give the same photo a fresh
     /// mood without shipping new art.
     case dynamicAccent(tint: ColourToken, condition: String)
-    /// Phase 3 — one of the eight Aurora-themed background images
-    /// (`weather_background_aurora_<condition>`). The view looks
-    /// up `name` and falls back to the palette gradient if the
-    /// image can't be loaded (defensive — should only happen if
-    /// the asset was renamed and the build is stale).
     case auroraImage(name: String)
 
     // MARK: - Codable (for the widget subset in Phase 8)

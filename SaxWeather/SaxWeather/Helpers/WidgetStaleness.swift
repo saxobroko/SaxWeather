@@ -14,15 +14,7 @@
 
 import Foundation
 
-/// Centralised "how old is too old" rules for cached weather
-/// data. Kept in the main app target so the host app, the
-/// widget extension, and the test target all see the same
-/// threshold.
 enum WidgetStaleness {
-    /// Cached data older than this is rendered with the "stale"
-    /// presentation (e.g. "Updated 32m ago" badge). 30 minutes
-    /// matches the typical weather update cadence and the
-    /// timeline refresh interval the host uses.
     static let threshold: TimeInterval = 30 * 60
 
     /// Returns true when `date` is missing or older than the
@@ -30,5 +22,16 @@ enum WidgetStaleness {
     static func isStale(_ date: Date?, now: Date = Date()) -> Bool {
         guard let date else { return true }
         return now.timeIntervalSince(date) > threshold
+    }
+
+    /// Short relative time for hero labels and widgets —
+    /// "just now", "12m ago", "2h ago", or "yesterday".
+    /// `now` is injectable for tests and `TimelineView`.
+    static func relativeUpdateString(from date: Date, now: Date = Date()) -> String {
+        let seconds = Int(now.timeIntervalSince(date))
+        if seconds < 60 { return "just now" }
+        if seconds < 3600 { return "\(seconds / 60)m ago" }
+        if seconds < 86400 { return "\(seconds / 3600)h ago" }
+        return "yesterday"
     }
 }

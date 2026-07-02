@@ -1,43 +1,6 @@
-//
-//  ChartSkinPickerView.swift
-//  SaxWeather
-//
-//  Phase 5 — Aurora chart skin picker UI.
-//
-//  In-app picker for `ForecastSpec.chartSkin`. Lists every
-//  `ChartSkin` case (the free `Default` and the cosmetic
-//  `Aurora`) using the same per-row lock-and-buy pattern
-//  as `BackgroundModeRow` in `BackgroundSettingsView`:
-//
-//    • Free rows commit the selection to the profile
-//      immediately.
-//    • Owned paid rows commit the selection immediately.
-//    • Locked paid rows (the Aurora Chart Skin for users
-//      who don't own it) present the in-app cosmetics
-//      store at the required product's detail sheet —
-//      they do NOT commit the selection, so a locked
-//      row can never become the active skin by accident.
-//
-//  The picker reads the current skin from
-//  `CustomisationRegistry` and writes selections back
-//  via `registry.set(\.forecast.chartSkin, …)`. The
-//  `ChartPaletteStore` (Part B reactivity fix) observes
-//  the registry and re-renders the hourly forecast pill
-//  strip when the change lands — so the picker
-//  re-renders the checkmark the moment the user taps a
-//  row, and the chart visual updates at the same time.
-//
-//  Reached via Settings → Appearance → Chart Style, and
-//  via the "Use now" / "Use this" buttons on the Aurora
-//  Chart Skin cosmetic detail sheet.
-//
 
 import SwiftUI
 
-/// Root view for the chart-skin picker. Presented as a
-/// sheet from the Appearance settings row, and from
-/// `ContentView` when the user taps "Use now" / "Use
-/// this" on the Aurora Chart Skin cosmetic detail sheet.
 struct ChartSkinPickerView: View {
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager
@@ -129,12 +92,6 @@ struct ChartSkinPickerView: View {
 
 // MARK: - ChartSkinRow
 
-/// A single row in the chart-skin picker. Mirrors
-/// `BackgroundModeRow`'s shape: small colour-swatch
-/// preview, display name, optional lock badge, checkmark
-/// when selected. Tapping a free or owned row commits
-/// the selection; tapping a locked row fires
-/// `onTapLocked`.
 struct ChartSkinRow: View {
     let skin: ChartSkin
     let isSelected: Bool
@@ -206,10 +163,6 @@ struct ChartSkinRow: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    /// Compact left-to-right gradient preview matching
-    /// what the hourly pill strip renders. Five stripes
-    /// so the user can see the warm-to-cold (or default
-    /// blue-to-orange) shape at a glance.
     private var preview: some View {
         HStack(spacing: 0) {
             ForEach(0..<skin.colors.count, id: \.self) { idx in

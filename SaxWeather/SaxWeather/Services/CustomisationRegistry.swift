@@ -1,28 +1,3 @@
-//
-//  CustomisationRegistry.swift
-//  SaxWeather
-//
-//  Single source of truth for every customisation knob in
-//  SaxWeather. Loads the active profile from the shared App Group
-//  on launch, persists on every mutation, and (in DEBUG builds)
-//  watches `current.saxtheme` on disk and hot-reloads when the
-//  file changes — so editing the JSON in any text editor live
-//  updates the running app.
-//
-//  Public API contract (see `plans/INFINITE_CUSTOMISATION_PLAN.md`
-//  §2.3):
-//
-//      let registry = CustomisationRegistry.shared
-//      registry.apply(BuiltInProfile.powerUser.profile)
-//      registry.set(\.data.unitSystem, "Imperial")
-//      let unit: String = registry.get(\.data.unitSystem)
-//      registry.resetTo(.minimalist)
-//      let url = try registry.exportProfile()
-//      try registry.importProfile(from: url)
-//
-//  All mutation goes through the registry; existing `@AppStorage`
-//  reads keep working unchanged until Phase 2 wires the bridge.
-//
 
 import Foundation
 import SwiftUI
@@ -42,21 +17,8 @@ final class CustomisationRegistry: ObservableObject {
     /// registry can persist + bump `versionToken`.
     @Published private(set) var profile: CustomisationProfile
 
-    /// User-saved profiles (named, mutable, deletable). The five
-    /// [`BuiltInProfile`](SaxWeather/SaxWeather/Models/CustomisationProfile.swift:73)s
-    /// are not stored here — they're factory-built on demand. This
-    /// list only contains profiles the user has explicitly saved
-    /// via `saveCurrentAs(name:)` or imported via `importProfile(from:)`.
-    /// Phase 7 — previously surfaced via the Settings UI's
-    /// `ProfileSwitcherView` (now removed).
     @Published private(set) var savedProfiles: [CustomisationProfile] = []
 
-    /// Bumped whenever the *shape* of the profile changes (a
-    /// section added, a section removed, a profile swap). Cheap
-    /// value tweaks (toggles, sliders) propagate via
-    /// `objectWillChange` only and leave `versionToken` alone, so
-    /// views that depend on layout structure don't re-render on
-    /// every knob tweak.
     @Published private(set) var versionToken: Int = 0
 
     /// Stable hash of the current knob values. The widget reads
@@ -82,19 +44,6 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - Init
 
-    /// Production init.
-    ///
-    /// Boot order:
-    ///   1. Try the App Group profile file (`current.saxtheme`).
-    ///      If it exists, load + migrate and use it directly.
-    ///   2. Otherwise, seed a fresh `KnobStorage` from any values
-    ///      the user already customised via the legacy `@AppStorage`
-    ///      UI (first launch post-Phase-2 deploy).
-    ///   3. Write the resulting knobs through to `UserDefaults`
-    ///      so any `@AppStorage` reads see consistent values from
-    ///      the very first frame.
-    ///   4. Persist the seeded profile so subsequent launches
-    ///      skip step 2.
     private init() {
         if let loaded = Self.loadFromDisk() {
             self.profile = loaded
@@ -172,10 +121,6 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - Set / Get
 
-    /// Mutate a single knob via a writable key path. No-op if the
-    /// value is unchanged. Cheap — does NOT bump `versionToken`.
-    ///
-    /// Example: `registry.set(\.data.unitSystem, "Imperial")`.
     func set<Value: Equatable>(
         _ keyPath: WritableKeyPath<KnobStorage, Value>,
         _ value: Value
@@ -203,17 +148,6 @@ final class CustomisationRegistry: ObservableObject {
         profile.knobs[keyPath: keyPath]
     }
 
-    /// A two-way `Binding` to the active `KnobStorage`. Use
-    /// `$registry.knobsBinding.background.mode` in SwiftUI views
-    /// to bind pickers, sliders, and toggles to a single knob —
-    /// `setKnobs(_:)` runs on every write so the change
-    /// persists, bumps the hash, and reloads widgets.
-    ///
-    /// Why a custom binding instead of binding to `profile`
-    /// directly? `profile` is `@Published private(set)` so the
-    /// setter is private (all writes must funnel through the
-    /// registry to keep the persistence + widget-reload
-    /// invariants).
     var knobsBinding: Binding<KnobStorage> {
         Binding(
             get: { self.profile.knobs },
@@ -221,11 +155,6 @@ final class CustomisationRegistry: ObservableObject {
         )
     }
 
-    /// Replace the whole `KnobStorage`. Bumps the profile
-    /// timestamp, persists, bridges to `UserDefaults`, and
-    /// reloads widgets. The sibling of `set(_:_:)` for callers
-    /// that already hold a complete `KnobStorage` (e.g. SwiftUI
-    /// bindings).
     func setKnobs(_ newKnobs: KnobStorage) {
         var newProfile = profile
         guard newProfile.knobs != newKnobs else { return }
@@ -242,10 +171,6 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - iCloud sync
 
-    /// Push the active profile to iCloud if sync is enabled. No-op
-    /// when sync is off or iCloud is unavailable. Called after every
-    /// mutation so the remote copy stays in lockstep with the local
-    /// one.
     private func pushToiCloudIfEnabled() {
         guard iCloudSyncService.shared.isEnabled else { return }
         iCloudSyncService.shared.push(profile: profile)
@@ -308,11 +233,6 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - Saved profiles (Phase 7)
 
-    /// Save the active profile under a new name. The saved profile
-    /// appears in `savedProfiles` and is persisted to the App
-    /// Group so it survives relaunches. If a saved profile with
-    /// the same name already exists, it's overwritten (same UUID
-    /// is preserved so the user doesn't see a duplicate row).
     func saveCurrentAs(name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -429,10 +349,6 @@ final class CustomisationRegistry: ObservableObject {
 
     // MARK: - Private
 
-    /// Returns the parsed profile from disk, or `nil` if the file
-    /// doesn't exist or can't be migrated. Failures here are silent
-    /// by design — first-launch should silently fall back to the
-    /// default profile.
     private static func loadFromDisk() -> CustomisationProfile? {
         guard let url = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?

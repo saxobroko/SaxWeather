@@ -26,11 +26,6 @@ struct CoordinateValidator {
         }
     }
     
-    /// Validates a pair of coordinates with comprehensive checks
-    /// - Parameters:
-    ///   - latitude: Latitude value to validate
-    ///   - longitude: Longitude value to validate
-    /// - Returns: ValidationResult with validation status and details
     static func validate(latitude: Double, longitude: Double) -> ValidationResult {
         // Check for NaN values
         guard !latitude.isNaN && !longitude.isNaN else {
@@ -75,11 +70,6 @@ struct CoordinateValidator {
         )
     }
     
-    /// Validates coordinates from string representations
-    /// - Parameters:
-    ///   - latString: Latitude string to validate
-    ///   - lonString: Longitude string to validate
-    /// - Returns: ValidationResult with validation status and details
     static func validate(latString: String, lonString: String) -> ValidationResult {
         // Trim whitespace
         let trimmedLat = latString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -98,11 +88,6 @@ struct CoordinateValidator {
         return validate(latitude: latitude, longitude: longitude)
     }
     
-    /// Checks if coordinates represent special problematic locations
-    /// - Parameters:
-    ///   - latitude: Latitude to check
-    ///   - longitude: Longitude to check
-    /// - Returns: True if coordinates represent a problematic location
     private static func isSpecialProblematicCoordinate(latitude: Double, longitude: Double) -> Bool {
         // Check for extreme values that might cause issues (but allow 0,0)
         if latitude == 0.0 && longitude == 0.0 {

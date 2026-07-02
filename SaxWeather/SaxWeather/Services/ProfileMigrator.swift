@@ -1,64 +1,9 @@
-//
-//  ProfileMigrator.swift
-//  SaxWeather
-//
-//  Loads `.saxtheme` JSON data of any supported `schemaVersion`
-//  and migrates it forward to `currentSchemaVersion`. Adding a new
-//  knob follows a two-step recipe:
-//
-//    1. Bump `ProfileMigrator.currentSchemaVersion`.
-//    2. Add a `case` to `applyMigration(version:to:)` that
-//       back-fills the new field with its default in the
-//       generic-JSON layer.
-//
-//  Note: purely additive changes (a new optional knob with a
-//  default) don't need a migration — Swift's `Codable` fills the
-//  default automatically. Only renames and removals do.
-//
-//  Phase 4 — Aurora Backgrounds single-preset refactor.
-//  The 8 specific `BackgroundMode` cases (`.auroraSunny`,
-//  `.auroraCloudy`, etc.) were removed and replaced with a
-//  single `.aurora` case. The resolver now picks the right
-//  Aurora image based on the current weather condition.
-//  Profiles saved with the old `.aurora*` modes are migrated
-//  to `.aurora`.
-//
 
 import Foundation
 
 enum ProfileMigrator {
-    /// The schema version this binary understands. Bump this every
-    /// time a knob is renamed, removed, or its *meaning* changes
-    /// in a way older files can't represent.
-    ///
-    /// ## Version history
-    ///
-    /// - **1** — initial schema. Eleven spec structs, ~50 knobs.
-    /// - **2** — "Infinitely customisable" expansion.
-    ///   * Surfaced ~25 existing-but-undocumented knobs as
-    ///     `KnobDescriptor`s so they show up in the Settings
-    ///     search.
-    ///   * Added new knobs for swipe-to-switch-location, hero
-    ///     layout density, hourly card size, daily card density,
-    ///     and two experimental flags.
-    ///   * Purely additive — every old `.saxtheme` still decodes
-    ///     via Swift's `Codable` defaults. This migration case is
-    ///     here for documentation and so future renames have a
-    ///     place to grow.
-    /// - **3** — Aurora Backgrounds single-preset refactor.
-    ///   * Removed the 8 specific `BackgroundMode` cases
-    ///     (`.auroraSunny`, `.auroraCloudy`, etc.) and replaced
-    ///     them with a single `.aurora` case.
-    ///   * The resolver now picks the right Aurora image based
-    ///     on the current weather condition.
-    ///   * Profiles saved with the old `.aurora*` modes are
-    ///     migrated to `.aurora`.
     static let currentSchemaVersion: Int = 3
 
-    /// Decode + migrate + return the up-to-date profile.
-    /// Throws `ProfileMigratorError.invalidFormat` if the data
-    /// isn't a JSON object, or `.unsupportedVersion(_)` if the
-    /// on-disk version is newer than this binary supports.
     static func migrate(_ data: Data) throws -> CustomisationProfile {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -112,11 +57,6 @@ enum ProfileMigrator {
             // field.
             break
         case 3:
-            // Phase 4 — Aurora Backgrounds single-preset refactor.
-            // The 8 specific `BackgroundMode` cases (`.auroraSunny`,
-            // `.auroraCloudy`, etc.) were removed and replaced with
-            // a single `.aurora` case. Profiles saved with the old
-            // `.aurora*` modes are migrated to `.aurora`.
             migrateAuroraModesToSinglePreset(in: &dict)
         default:
             // Future versions: add `case 4: …` etc. above this.
@@ -124,10 +64,6 @@ enum ProfileMigrator {
         }
     }
 
-    /// Phase 4 migration — map any `.aurora*` `BackgroundMode`
-    /// to the single `.aurora` case. The resolver picks the
-    /// right Aurora image based on the current weather
-    /// condition, so the user-visible behaviour is identical.
     private static func migrateAuroraModesToSinglePreset(in dict: inout [String: Any]) {
         guard var knobs = dict["knobs"] as? [String: Any] else { return }
         guard var background = knobs["background"] as? [String: Any] else { return }

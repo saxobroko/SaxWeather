@@ -20,10 +20,9 @@ struct ForecastView: View {
     @State private var conditionSummary: String = ""
     @State private var isLoadingHourly = true
     @Environment(\.colorScheme) var colorScheme
-    // Phase 5 — observe the registry so the background updates
-    // when the user tweaks a knob in Settings.
     @ObservedObject private var registry = CustomisationRegistry.shared
     @EnvironmentObject private var storeManager: StoreManager
+    @EnvironmentObject private var previewManager: PreviewProfileManager
 
     /// Resolved background strategy for the current condition +
     /// active profile + sun position.
@@ -35,7 +34,9 @@ struct ForecastView: View {
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
     }
 
@@ -83,13 +84,9 @@ struct ForecastView: View {
     
     var body: some View {
         ZStack {
-            // Phase 5 — resolve the active profile into a strategy
-            // and render that, instead of a raw condition string.
             BackgroundView(strategy: forecastBackgroundStrategy)
                 .ignoresSafeArea()
             // Add a dark overlay for better contrast.
-            // Phase 5: strength comes from `BackgroundSpec.overlayOpacity`
-            // (bridged through to `@AppStorage("overlayOpacity")`).
             Color.black.opacity(forecastOverlayOpacity)
                 .blur(radius: 8)
                 .ignoresSafeArea()
@@ -151,14 +148,7 @@ struct ForecastView: View {
                                         )
                                 }
                             }
-                            .animation(
-                                .easeInOut(duration: 0.35),
-                                value: isLoadingHourly
-                            )
-                            .animation(
-                                .easeInOut(duration: 0.35),
-                                value: conditionSummary
-                            )
+                            .cardAppearanceAnimation(value: isLoadingHourly)
                         }
                         .padding(16)
                         .styledCard()
@@ -185,27 +175,14 @@ struct ForecastView: View {
                             } else {
                                 ForEach(hourlyData) { hour in
                                     hourlyForecastItem(hour)
-                                        .transition(
-                                            .asymmetric(
-                                                insertion: .opacity
-                                                    .combined(with: .scale(scale: 0.92)),
-                                                removal: .opacity
-                                            )
-                                        )
+                                        .cardAppearanceTransition()
                                 }
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 4)
                     }
-                    .animation(
-                        .easeInOut(duration: 0.4),
-                        value: isLoadingHourly
-                    )
-                    .animation(
-                        .easeInOut(duration: 0.4),
-                        value: hourlyData.count
-                    )
+                    .cardAppearanceAnimation(value: isLoadingHourly)
                     
                     // YOUR ORIGINAL DAILY FORECAST SECTION
                     // Daily forecast cards in a vertical stack
@@ -298,6 +275,7 @@ struct ForecastView: View {
         .navigationBarHidden(true)
         #endif
         .onAppear {
+            guard hourlyData.isEmpty else { return }
             fetchHourlyForecast()
         }
     }
@@ -328,9 +306,6 @@ struct ForecastView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.secondary)
 
-            // Phase 6 — migrated to `ConditionIcon` so the
-            // iconography knobs in `IconographySpec` are honoured
-            // automatically.
             ConditionIcon(
                 weatherCode: forecast.weatherCode,
                 isNight: isNight,
@@ -402,6 +377,7 @@ struct ForecastView: View {
     }
     
     private func fetchHourlyForecast() {
+        guard hourlyData.isEmpty else { return }
         isLoadingHourly = true
         
         Task {
@@ -639,7 +615,7 @@ struct ForecastView: View {
         let weatherDescription = weatherCodeToDescription(dominantCondition)
         
         // Format the wind gust info
-        let windUnit = weatherService.unitSystem == "Metric" ? "km/h" : "mph"
+        let windUnit = UnitSystem.from(rawValue: weatherService.unitSystem).speedLabel
         
         var adjustedMaxWindGust = maxWindGust
         if weatherService.unitSystem == "Imperial" {
@@ -752,7 +728,7 @@ struct ForecastView: View {
         let weatherDescription = weatherKitConditionToDescription(dominantCondition)
         
         let adjustedMaxWindGust = maxWindGust * 3.6 // m/s to km/h
-        let windUnit = weatherService.unitSystem == "Metric" ? "km/h" : "mph"
+        let windUnit = UnitSystem.from(rawValue: weatherService.unitSystem).speedLabel
         
         let windInfo = adjustedMaxWindGust >= 10 ? "Wind gusts up to \(Int(adjustedMaxWindGust)) \(windUnit)." : ""
         
@@ -813,14 +789,8 @@ struct ForecastView: View {
 struct ForecastDayCard: View {
     let day: WeatherForecast.DailyForecast
     let unitSystem: String
-    /// Day-of-week / date label rendered as the first row of
-    /// the card so it lives inside the styled card and follows
-    /// the user's Card Settings (corner radius, padding, fill,
-    /// shadow, border, tint).
     let dateText: String
     @Environment(\.colorScheme) var colorScheme
-    // Phase 6 — `loadingFailed` removed; `ConditionIcon` handles
-    // the Lottie → SF Symbol fallback internally.
 
     private var cardFillColor6: Color {
         #if os(iOS)
@@ -849,11 +819,6 @@ struct ForecastDayCard: View {
             HStack(spacing: 20) {
                 // Left: Weather Lottie animation and temperatures
                 HStack(spacing: 12) {
-                    // Phase 6 — migrated to `ConditionIcon` so the
-                    // iconography knobs in `IconographySpec` are
-                    // honoured automatically. The SF Symbol fallback
-                    // replaces the previous text-emoji fallback for
-                    // consistency with the rest of the app.
                     ConditionIcon(
                         weatherCode: day.weatherCode,
                         isNight: false,
@@ -894,7 +859,7 @@ struct ForecastDayCard: View {
                     WeatherDataColumn(
                         icon: "💨",
                         label: "Wind",
-                        value: "\(Int(round(day.windSpeed)))"
+                        value: "\(Int(round(day.windSpeed))) \(UnitSystem.from(rawValue: unitSystem).speedLabel)"
                     )
                 }
             }
@@ -925,11 +890,6 @@ struct DayCustomiseSheet: View {
     @AppStorage("pinnedDayKeys") private var pinnedDayKeysData: String = ""
     @AppStorage("dayNicknames") private var dayNicknamesData: String = ""
 
-    /// Stable per-day key used for persistence. `DailyForecast.id`
-    /// is auto-generated UUID that changes every time the
-    /// forecast reloads, so the `date` is the only thing we can
-    /// trust between fetches. Round to the day so the timezone
-    /// drift between fetches doesn't break pinning.
     private var dayKey: String {
         let comps = Calendar.current.dateComponents([.year, .month, .day], from: day.date)
         return String(format: "%04d-%02d-%02d",

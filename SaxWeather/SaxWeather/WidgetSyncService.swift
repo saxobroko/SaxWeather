@@ -64,23 +64,8 @@ final class WidgetSyncService {
         /// current values to detect location drift.
         static let cachedLatitude    = "cachedLatitude"
         static let cachedLongitude   = "cachedLongitude"
-        /// Last value of `widgetDataVersion` baked into the
-        /// cache. The widget compares this against the live
-        /// version to detect host-app state changes even when
-        /// the timestamp hasn't aged out yet.
         static let cachedWidgetDataVersion = "cachedWidgetDataVersion"
-        /// Timestamp the host wrote to explicitly mark the
-        /// cached `latestWeather` payload as invalid (e.g.
-        /// when a background refresh failed). The widget
-        /// treats any value greater than the cache's
-        /// `lastUpdateDate` as "must refresh".
         static let dataInvalidatedAt = "dataInvalidatedAt"
-        /// Boolean set by the host the first time it writes
-        /// a successful `latestWeather` payload. The widget
-        /// reads this to distinguish between "host has never
-        /// been launched" and "cache happens to be empty
-        /// right now" so it can pick the right "no data"
-        /// presentation.
         static let hasEverFetched = "hasEverFetched"
     }
 
@@ -103,10 +88,6 @@ final class WidgetSyncService {
 
     // MARK: - Snapshot sync
 
-    /// Push the entire widget-visible state atomically and ask
-    /// WidgetKit to reload timelines. Always prefer this over the
-    /// individual setters when more than one piece of state is
-    /// known to have changed.
     func syncAll(
         unitSystem: String,
         useGPS: Bool,
@@ -216,10 +197,6 @@ final class WidgetSyncService {
         )
     }
 
-    /// Sync the GPS coordinates and flip the widget to GPS mode.
-    /// `lastKnownLatitude` / `lastKnownLongitude` are written as a
-    /// side effect so the widget can fall back to a usable position
-    /// even before the next background refresh completes.
     func syncGPSCoordinates(latitude: String, longitude: String) {
         let snapshot = currentSnapshot()
         syncAll(
@@ -244,17 +221,6 @@ final class WidgetSyncService {
 
     // MARK: - Cache-version stamping
 
-    /// Called whenever the host app writes a fresh `latestWeather`
-    /// payload. Stamps the payload with the unit system and
-    /// coordinates it was generated in so the widget can later
-    /// detect that the cache is out of date (mismatch on either
-    /// dimension ⇒ trigger a fresh fetch).
-    ///
-    /// Also stamps the current `widgetDataVersion` so the
-    /// widget can detect that the host's settings have changed
-    /// since the cache was baked – even if the timestamp
-    /// hasn't aged out yet. This is the "Unit System Mismatch"
-    /// and "Coordinate Sync" safety net.
     func stampCachedPayload(
         latitude: Double?,
         longitude: Double?,
@@ -278,17 +244,6 @@ final class WidgetSyncService {
         sharedDefaults.set(currentVersion, forKey: Keys.cachedWidgetDataVersion)
     }
 
-    /// Explicitly mark the cached `latestWeather` payload as
-    /// stale. The widget will treat the cache as invalid on
-    /// its next timeline reload and trigger a fresh fetch of
-    /// its own (the host's own background refresh may have
-    /// failed, in which case the widget can still try to
-    /// recover instead of showing a blank placeholder).
-    ///
-    /// Writes a `dataInvalidatedAt` timestamp to the shared
-    /// defaults. The widget compares it against the cache's
-    /// `lastUpdateDate` to decide whether the cache is still
-    /// authoritative.
     func invalidateWidgetData() {
         guard let sharedDefaults else { return }
         sharedDefaults.set(
@@ -301,10 +256,6 @@ final class WidgetSyncService {
         reloadAllTimelines()
     }
 
-    /// Clear any explicit "data invalidated" marker. The
-    /// host calls this when it has successfully written a
-    /// fresh `latestWeather` payload so the widget doesn't
-    /// keep treating the (now-fresh) cache as stale.
     func clearInvalidation() {
         guard let sharedDefaults else { return }
         sharedDefaults.removeObject(forKey: Keys.dataInvalidatedAt)
@@ -312,19 +263,6 @@ final class WidgetSyncService {
 
     // MARK: - First-sync tracking
 
-    /// Mark the App Group as "host has at least once written
-    /// a successful weather payload". The widget reads this
-    /// flag to distinguish between "user has never opened the
-    /// host app" (show the "Awaiting first sync" empty state)
-    /// and "host has run but the cache happens to be empty
-    /// right now" (show the generic "No data" state with a
-    /// hint to open the app).
-    ///
-    /// Idempotent: safe to call on every successful save.
-    /// We deliberately don't bump the `widgetDataVersion` here
-    /// – this flag is set-once-on-first-save and never changes
-    /// afterwards, so a version bump would just force the
-    /// widget to re-read the cache for no reason.
     func markHasEverFetched() {
         guard let sharedDefaults else { return }
         let current = sharedDefaults.bool(forKey: Keys.hasEverFetched)

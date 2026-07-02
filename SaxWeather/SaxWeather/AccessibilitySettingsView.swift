@@ -8,18 +8,8 @@
 import SwiftUI
 
 struct AccessibilitySettingsView: View {
-    // Phase 2 bridge — customisation registry injected at the app
-    // root via `.environmentObject`. Every setting write below
-    // routes through `.onChange` to the registry.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
 
-    /// Whether the view body wraps itself in a `NavigationStack`.
-    /// Defaults to `true` so existing `NavigationLink` call sites
-    /// keep their nav chrome. Set to `false` when the view is
-    /// pushed onto an existing `NavigationStack` via
-    /// `.navigationDestination(for:)` — wrapping a second
-    /// `NavigationStack` inside the pushed view causes SwiftUI to
-    /// flash black during the push transition.
     var wrappedInNavigationStack: Bool = true
     // MARK: - Dynamic Type
     @AppStorage("useSystemTextSize") private var useSystemTextSize = true
@@ -88,28 +78,56 @@ struct AccessibilitySettingsView: View {
         #endif
     }
 
-    /// The iOS `Form` (and its `.onChange` modifiers) lifted out
-    /// of `body` so the wrapping `NavigationStack` is optional.
-    /// Returning a single view from a helper keeps the modifier
-    /// chain readable and avoids the nested-stack flash that
-    /// happens when SwiftUI pushes an inner `NavigationStack`
-    /// onto an outer one.
     @ViewBuilder
     private var accessibilityForm: some View {
         #if os(iOS)
         Form {
-            textSizeSection
-            motionSection
-            visualSection
-            voiceOverSection
-            hapticSection
-            extraSection
-            resetSection
+            Section {
+                textSizeSection
+            } header: {
+                Label("Text Size", systemImage: "textformat.size")
+            } footer: {
+                Text("Turn off “Use System Text Size” to set a custom scale just for this app.")
+            }
+
+            Section {
+                motionSection
+            } header: {
+                Label("Motion & Animations", systemImage: "gyroscope")
+            } footer: {
+                Text("Reduce or disable motion and animated weather icons to cut down on movement.")
+            }
+
+            Section {
+                visualSection
+            } header: {
+                Label("Visual", systemImage: "circle.lefthalf.filled")
+            } footer: {
+                Text("Boost contrast, add text outlines, and use bold text for easier reading.")
+            }
+
+            Section {
+                voiceOverSection
+            } header: {
+                Label("VoiceOver", systemImage: "speaker.wave.3")
+            } footer: {
+                Text("Extra descriptions for screen readers and spoken severe-weather alerts.")
+            }
+
+            Section {
+                hapticSection
+            } header: {
+                Label("Haptics", systemImage: "iphone.radiowaves.left.and.right")
+            } footer: {
+                Text("Pull-to-refresh haptics cannot be fully disabled (iOS limitation).")
+            }
+
+            Section {
+                resetSection
+            }
         }
         .navigationTitle("Accessibility")
         .navigationBarTitleDisplayMode(.inline)
-        // Phase 2 bridge — forward every accessibility setting
-        // write to the registry.
         .onChange(of: useSystemTextSize) { newValue in
             customisationRegistry.set(\.visual.useSystemTextSize, newValue)
         }
@@ -212,9 +230,17 @@ struct AccessibilitySettingsView: View {
             }
             .accessibilityLabel("Reduce Motion")
             .accessibilityHint("Reduces animations throughout the app")
-            
-            Divider()
-            
+
+            Toggle(isOn: $reduceMotionForce) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Force Reduce Motion", systemImage: "tortoise.circle.fill")
+                    Text("Always reduce motion, even when the system setting is off.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .accessibilityLabel("Force Reduce Motion")
+
             Toggle(isOn: $disableWeatherAnimations) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Disable Weather Icons", systemImage: "cloud.sun")
@@ -240,9 +266,17 @@ struct AccessibilitySettingsView: View {
             }
             .accessibilityLabel("Increase Contrast")
             .accessibilityHint("Makes text and UI elements more distinct")
-            
-            Divider()
-            
+
+            Toggle(isOn: $highContrastOutline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("High-Contrast Outline", systemImage: "square.dashed")
+                    Text("Add an outline around text for low-vision users.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .accessibilityLabel("High-Contrast Outline")
+
             Toggle(isOn: $boldText) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Bold Text", systemImage: "bold")
@@ -268,9 +302,7 @@ struct AccessibilitySettingsView: View {
             }
             .accessibilityLabel("Enhanced VoiceOver Labels")
             .accessibilityHint("Provides more detailed descriptions when using VoiceOver")
-            
-            Divider()
-            
+
             Toggle(isOn: $speakWeatherAlerts) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Announce Weather Alerts", systemImage: "megaphone")
@@ -293,48 +325,11 @@ struct AccessibilitySettingsView: View {
                     Text("Feel touch feedback for actions")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("Note: Pull-to-refresh haptic cannot be disabled (iOS limitation)")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
                 }
             }
             .accessibilityLabel("Haptic Feedback")
             .accessibilityHint("Enables vibration feedback for interactions")
-            #else
-            Text("Haptic feedback is only available on iOS devices")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            #endif
-        }
-    }
-    
-    private var autoRefreshSection: some View {
-        EmptyView()
-    }
-    
-    /// v2 — extra toggles added in the schema-v2 expansion.
-    /// Kept in their own section so the original six sections
-    /// stay byte-identical to the pre-v2 file (no merge risk).
-    private var extraSection: some View {
-        Group {
-            Toggle(isOn: $reduceMotionForce) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Force Reduce Motion", systemImage: "tortoise.circle.fill")
-                    Text("Always reduce motion, even when the system setting is off.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            Divider()
-            Toggle(isOn: $highContrastOutline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("High-Contrast Outline", systemImage: "square.dashed")
-                    Text("Add an outline around text for low-vision users.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            Divider()
+
             Toggle(isOn: $hapticOnSelection) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Haptic on Selection", systemImage: "hand.point.up.left.fill")
@@ -343,7 +338,8 @@ struct AccessibilitySettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            Divider()
+            .accessibilityLabel("Haptic on Selection")
+
             Toggle(isOn: $tapticOnRefresh) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Taptic on Refresh", systemImage: "arrow.triangle.2.circlepath")
@@ -352,6 +348,12 @@ struct AccessibilitySettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            .accessibilityLabel("Taptic on Refresh")
+            #else
+            Text("Haptic feedback is only available on iOS devices")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            #endif
         }
     }
 
@@ -376,12 +378,16 @@ struct AccessibilitySettingsView: View {
         useSystemTextSize = true
         customTextSizeMultiplier = 1.0
         reduceMotion = false
+        reduceMotionForce = false
         disableWeatherAnimations = false
         increaseContrast = false
+        highContrastOutline = false
         boldText = false
         enhancedVoiceOverLabels = true
         speakWeatherAlerts = false
         enableHapticFeedback = true
+        hapticOnSelection = true
+        tapticOnRefresh = true
     }
 }
 

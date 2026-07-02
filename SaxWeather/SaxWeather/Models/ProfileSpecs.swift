@@ -1,30 +1,9 @@
-//
-//  ProfileSpecs.swift
-//  SaxWeather
-//
-//  The eleven typed spec structs that hang off `KnobStorage`.
-//  Every property default MUST match the corresponding `@AppStorage`
-//  default in `SettingsView.swift` / `AccessibilitySettingsView.swift`
-//  so the engine is a drop-in for the existing views.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §1 for the catalogue
-//  and §4.1 for Phase 1 acceptance criteria.
-//
-//  Phase 3 — removed `IconographySpec.lottieSkin` (the paid
-//  Aurora Lottie cosmetic was removed entirely; see Part B of
-//  the cleanup pass). The free bundled Lottie animations are
-//  unaffected.
-//
 
 import Foundation
 
 // MARK: - 1.1 Visual — Colours & Typography
 
 struct VisualSpec: Codable, Hashable {
-    /// Phase 3 — typed colour token. The bridge writes the
-    /// `rawString` representation to `UserDefaults` so existing
-    /// `@AppStorage("accentColor")` views continue to see a
-    /// plain `String`.
     var accentColor: ColourToken = .named("blue")
     var palette: Palette = .init()
     /// `.glass` is gated by `#available(iOS 26.2, *)` at the call
@@ -60,10 +39,6 @@ struct VisualSpec: Codable, Hashable {
     /// Width of the outline drawn for `.outline` cards and
     /// around every card. `0` = no border at all.
     var cardBorderWidth: Double = 1
-    /// Tint applied to the card fill in addition to the
-    /// `palette.surface`. Useful for warm/cool accent washes
-    /// without changing the global palette. Empty string
-    /// ("") disables the tint.
     var cardTint: ColourToken = .named("")
     /// Strength of the drop shadow cast by each card. `0` = no
     /// shadow. Default `0.10` keeps the existing soft shadow
@@ -80,20 +55,10 @@ struct VisualSpec: Codable, Hashable {
     /// `.ultraThinMaterial` on older OSes and the official
     /// `Color.glass` API on iOS 26.2+. Higher = more frosted.
     var cardBlurIntensity: Double = 0.6
-    /// Glass material opacity, `0.0`...`1.0`. Default `0.6`
-    /// matches the original `WeatherDetailsView` treatment
-    /// (`.ultraThinMaterial.opacity(0.6)`). Lower = more see-
-    /// through, higher = more opaque. Only affects the `.glass`
-    /// style; solid / outline / neumorphic ignore it.
     var cardGlassOpacity: Double = 0.6
     /// Stroke drawn on the inside of `.glass` cards to give
     /// them a glassy edge highlight. Default `0.20` (subtle).
     var cardHighlightIntensity: Double = 0.20
-    /// Tint applied on top of the card to either cool it down
-    /// (blue) or warm it up (orange). Empty string disables.
-    /// Rendered as a `LinearGradient` (top-leading to
-    /// bottom-trailing) so the user can recreate the original
-    /// dark-mode tint with ease.
     var cardTintOverlay: ColourToken = .named("")
     /// Strength of the `cardTintOverlay` linear gradient. The
     /// default 0.10 matches the shipped dark-mode tint.
@@ -127,15 +92,6 @@ enum TypographyFamily: String, Codable, CaseIterable, Hashable {
     case system, rounded, serif, mono
 }
 
-/// Five-colour palette. Phase 3 — values are now typed
-/// `ColourToken`s (named / rgb / hex) instead of raw `String`s.
-///
-/// Phase 1 — added `cosmeticAurora` static palette. The
-/// Aurora Palette cosmetic installs this as
-/// `VisualSpec.palette` so the user can preview the look on
-/// their real forecast. The colours come from
-/// `plans/COSMETIC_MONETIZATION_PLAN.md` §3.1 (item 3):
-/// deep navy, ocean blue, teal, mint, coral.
 struct Palette: Codable, Hashable {
     var background: ColourToken = .named("system")
     var surface: ColourToken = .named("system")
@@ -145,12 +101,6 @@ struct Palette: Codable, Hashable {
 }
 
 extension Palette {
-    /// The Aurora palette — installed when the user owns
-    /// `com.saxweather.cosmetic.aurora.palette`. The 5
-    /// colours are deep navy, ocean blue, teal, mint, and
-    /// coral — see `CosmeticCatalog.aurora[1]` for the
-    /// product metadata and §3.1 of the plan for the
-    /// design rationale.
     static let cosmeticAurora = Palette(
         background: .hex("#0B1B3A"),
         surface:    .hex("#1F4E79"),
@@ -159,24 +109,8 @@ extension Palette {
         danger:     .hex("#F2B5A0")
     )
 
-    /// The "default" Palette — the same one SwiftUI produces
-    /// when `Palette()` is constructed. Pinned to a static
-    /// so the palette picker can offer it as the first,
-    /// always-available option.
     static let defaultPalette = Palette()
 
-    /// Every palette the user can pick from in the in-app
-    /// palette picker. The first entry is always the free
-    /// `defaultPalette`; themed palettes follow in the order
-    /// the catalog defines them. The picker reads this list to
-    /// render rows and reads `requiredProductID` to decide
-    /// whether to lock a row.
-    ///
-    /// Because `Palette` is a value type (not an enum), we
-    /// wrap each pickable instance in a `SelectablePalette`
-    /// that carries the metadata the picker needs (stable
-    /// `id`, user-facing `displayName`, the IAP gating
-    /// product ID).
     static let selectablePalettes: [SelectablePalette] = [
         .init(
             id: "default",
@@ -193,18 +127,6 @@ extension Palette {
     ]
 }
 
-/// A single pickable palette entry for the in-app palette
-/// picker. `Palette` is a value type (struct of `ColourToken`s),
-/// not an enum, so we wrap each pickable instance in this
-/// lightweight record alongside the picker-facing metadata
-/// (stable `id`, `displayName`, optional `requiredProductID`).
-///
-/// The `id` is stable across app launches so the picker can
-/// use it as the row identifier; the `displayName` is the
-/// user-facing string the row label uses; and
-/// `requiredProductID` mirrors the `requiredProductID` pattern
-/// used by `BackgroundMode` and `ChartSkin` so the picker can
-/// check ownership in one place.
 struct SelectablePalette: Identifiable, Hashable {
     let id: String
     let displayName: String
@@ -240,22 +162,10 @@ struct BackgroundSpec: Codable, Hashable {
 
 enum BackgroundMode: String, Codable, CaseIterable, Hashable {
     case preset, customImage, gradient, dynamicAccent
-    /// Phase 4 — single Aurora Backgrounds preset. The resolver
-    /// picks the right Aurora image based on the current
-    /// weather condition (not the mode). Previously there were
-    /// 8 separate cases (`.auroraSunny`, `.auroraCloudy`, etc.)
-    /// that required the user to pick the right one for their
-    /// current weather — confusing. Now the user picks
-    /// `.aurora` once and the resolver does the rest.
     case aurora
 }
 
 extension BackgroundMode {
-    /// The StoreKit product ID the user must own to actually
-    /// render this mode. `nil` for the free modes (preset,
-    /// custom image, gradient, dynamic accent). The
-    /// `BackgroundResolver` reads this to decide whether to
-    /// honour the spec or fall back to the free default.
     var requiredProductID: String? {
         switch self {
         case .aurora:
@@ -305,10 +215,6 @@ struct IconographySpec: Codable, Hashable {
     var disableWeatherAnimations: Bool = false
     var weatherIconStyle: WeatherIconStyle = .multicolor
     var symbolSet: SymbolVariant = .filled
-    /// v2 — global multiplier on weather-condition icon point size.
-    /// `1.0` is the default. `1.2` = 20% larger; `0.8` = 20%
-    /// smaller. Useful in tandem with the `fontScale` text knob
-    /// when users want bigger tap targets without larger text.
     var iconSizeMultiplier: Double = 1.0
 }
 
@@ -353,6 +259,12 @@ struct LayoutSpec: Codable, Hashable {
     /// v2 — show the "Weather for X" location header above the
     /// hero card. Off hides it for a cleaner minimal look.
     var showLocationHeader: Bool = true
+    /// v2 — show a full-screen weather preview before adopting
+    /// a new location from the menu, swipe gesture, or settings.
+    var previewBeforeChangingLocation: Bool = true
+    /// v2 — show the "Last updated" button below the location
+    /// header on the hero card. Off hides it for a cleaner look.
+    var showHeroLastUpdated: Bool = false
     /// v2 — shrink card padding when the device is in landscape so
     /// more sections fit on screen at once.
     var compactCardsInLandscape: Bool = true
@@ -415,6 +327,13 @@ struct BehaviourSpec: Codable, Hashable {
     var longPressToCustomise: Bool = true
     var confirmDestructive: Bool = true
     var weatherAlertSounds: Bool = true
+    /// Matches `@AppStorage("rainAlertsEnabled")` default `true`.
+    var rainAlertsEnabled: Bool = true
+    /// Matches `@AppStorage("severeWeatherAlertsEnabled")` default `true`.
+    var severeWeatherAlertsEnabled: Bool = true
+    /// Matches `@AppStorage("aiAlertSummariesEnabled")` default `true`.
+    /// Enables on-device Apple Intelligence plain-language alert summaries.
+    var aiAlertSummariesEnabled: Bool = true
     /// Matches `@AppStorage("speakWeatherAlerts")` default `true`.
     var speakWeatherAlerts: Bool = true
     /// Hour-of-day in 24h clock. Nil = no quiet hours.
@@ -540,11 +459,6 @@ struct ForecastSpec: Codable, Hashable {
     /// v2 — number of metric cards shown side-by-side in the
     /// "Details" grid. Range 1…3; `2` is the shipped default.
     var detailedColumnCount: Int = 2
-    /// Phase 2 — which chart skin to apply to chart-styled
-    /// surfaces (currently the hourly pill strip). Free default
-    /// is `.none`; the Aurora Chart Skin IAP installs `.aurora`.
-    /// Gating happens at the call site via `ChartPalette.resolveActiveSkin(_:isOwned:)`
-    /// so unowned selections silently fall back to the default.
     var chartSkin: ChartSkin = .none
 }
 

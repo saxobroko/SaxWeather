@@ -15,6 +15,12 @@
 # Helper Scripts
 /test_widget_refresh.sh
 /add_widget_files.sh
+/add_to_widget.rb
+/fix_sync_group.rb
+/fix_targets.rb
+/fix_targets2.rb
+/update_targets.rb
+/vendor/
 
 # Build artifacts
 build/
@@ -47,3 +53,9 @@ fastlane/test_output
 # Console output examples
 *.txt
 !SaxWeather/SaxWeather/**/*.txt
+
+# Local tooling / side projects (not part of SaxWeather app)
+.roo/
+plans/
+SaxTrack/
+saxtrack/

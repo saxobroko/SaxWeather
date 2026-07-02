@@ -19,12 +19,6 @@ class SavedLocationsManager: ObservableObject {
         saveLocations()
     }
     
-    /// Adds a new location with validation
-    /// - Parameters:
-    ///   - name: Location name
-    ///   - latitude: Latitude coordinate
-    ///   - longitude: Longitude coordinate
-    /// - Returns: True if location was added successfully, false otherwise
     @discardableResult
     func addLocation(name: String, latitude: Double, longitude: Double) -> Bool {
         do {
@@ -98,13 +92,15 @@ class SavedLocationsManager: ObservableObject {
     private func saveLocations() {
         if let data = try? JSONEncoder().encode(locations) {
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
+            UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")?.set(data, forKey: userDefaultsKey)
         }
     }
-    
+
     private func loadLocations() {
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([SavedLocation].self, from: data) {
             locations = decoded
+            UserDefaults(suiteName: "group.com.saxobroko.SaxWeather")?.set(data, forKey: userDefaultsKey)
         } else {
             locations = []
         }

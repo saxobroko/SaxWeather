@@ -8,30 +8,39 @@
 
     },
     " %@" : {
-
+      "comment" : "Format string that prefixes a value with a leading space. Keep %@.",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
     },
     "'%@' will replace your current theme." : {
-
+      "comment" : "Confirmation message before importing a theme. %@ is the theme name."
     },
     "\"%@\" will be removed from your saved locations. This cannot be undone." : {
-
+      "comment" : "Delete-location confirmation message. %@ is the location name."
     },
     "[Hourly Temperature Graph]" : {
-
+      "comment" : "Accessibility label for the hourly temperature chart."
     },
     "#RRGGBB" : {
-
+      "comment" : "Placeholder text in the hex colour input field. Keep as-is."
     },
     "%.1f pt" : {
-
+      "comment" : "Font size in points (e.g. 12.0 pt)."
     },
     "%@" : {
-
+      "comment" : "Generic passthrough format; keep as %@."
     },
     "%@ – re-enter a valid key to restore this source." : {
-
+      "comment" : "Status message when an API key is invalid. %@ is the source name."
     },
     "%@ · %lld pt" : {
+      "comment" : "Font label: %1$@ font name, %2$lld point size.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -41,13 +50,39 @@
         }
       }
     },
+    "%@ (%@)" : {
+      "comment" : "Formats a name with a parenthetical detail. Keep both placeholders.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "%@ and %@ in %@" : {
+      "comment" : "Weather phrase: two conditions in a location. Keep placeholders.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@ in %3$@"
+          }
+        }
+      }
+    },
     "%@ animation preview" : {
-
+      "comment" : "Accessibility label for an animation preview. %@ is the set name."
+    },
+    "%@ was added to your saved locations." : {
+      "comment" : "Confirmation after adding a location. %@ is the name."
     },
     "%@ widget preview" : {
-
+      "comment" : "Accessibility label for a widget preview. %@ is the widget name."
     },
     "%@, %@" : {
+      "comment" : "Joins two values with a comma. Keep placeholders.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -58,6 +93,7 @@
       }
     },
     "%@. %@. %@" : {
+      "comment" : "Joins three phrases with periods. Keep placeholders.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -68,27 +104,25 @@
       }
     },
     "%@°" : {
-
+      "comment" : "Temperature value with degree sign."
     },
     "%lld" : {
-
+      "comment" : "Integer value passthrough."
     },
     "%lld Days" : {
-
+      "comment" : "Forecast length in days. %lld is the number."
     },
     "%lld dp" : {
-
-    },
-    "%lld knobs" : {
-
+      "comment" : "Decimal-places count. 'dp' = decimal places."
     },
     "%lld percent" : {
-
+      "comment" : "Percentage value spoken for accessibility."
     },
     "%lld pt" : {
-
+      "comment" : "Size in points. %lld is the number."
     },
     "%lld%@" : {
+      "comment" : "Number followed by a unit suffix. Keep placeholders.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -99,33 +133,25 @@
       }
     },
     "%lld%%" : {
-
+      "comment" : "Percentage value. %% renders a literal percent sign."
     },
     "%lld°" : {
-
+      "comment" : "Integer temperature with degree sign."
     },
     "+15m" : {
-
+      "comment" : "Time offset option: plus 15 minutes."
     },
     "+30m" : {
-
+      "comment" : "Time offset option: plus 30 minutes."
     },
     "+60m" : {
-
+      "comment" : "Time offset option: plus 60 minutes."
     },
     "+120m" : {
-
-    },
-    "⚠️ First launch" : {
-
-    },
-    "✅ Completed" : {
-
-    },
-    "🐞 Developer Debug" : {
-
+      "comment" : "Time offset option: plus 120 minutes."
     },
     "📸 Golden Hour: %@ - %@" : {
+      "comment" : "Photography golden-hour range. %1$@ start, %2$@ end.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -136,25 +162,25 @@
       }
     },
     "7-Day Forecast" : {
-
+      "comment" : "Section title for the seven-day forecast."
     },
     "12 hours" : {
-
+      "comment" : "Hourly-forecast window option."
     },
     "14°" : {
-
+      "comment" : "Sample temperature shown in a preview mock."
     },
     "22°" : {
-
+      "comment" : "Sample temperature shown in a preview mock."
     },
     "24 hours" : {
-
+      "comment" : "Hourly-forecast window option."
     },
     "24-Hour Summary" : {
-
+      "comment" : "Section title for the 24-hour summary."
     },
     "48 hours" : {
-
+      "comment" : "Hourly-forecast window option."
     },
     "A casual handwritten font family for a friendlier feel." : {
       "comment" : "Subtitle for the Handwritten Font Set cosmetic tile."
@@ -177,74 +203,89 @@
     "A serif headline font paired with a clean sans-serif for body text." : {
       "comment" : "Subtitle for the Editorial Font Set cosmetic tile."
     },
-    "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically. No subscriptions, no Family Sharing, no auto-renew. The most cost-effective way to support development and own the entire cosmetic library." : {
+    "A single one-time purchase that unlocks every current cosmetic and every future cosmetic we ever ship, automatically." : {
       "comment" : "Long description for Supporter Pack."
     },
-    "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison." : {
+    "A small private acknowledgement in Settings → About." : {
       "comment" : "Subtitle for the Supporter Badge cosmetic tile."
     },
     "About" : {
-
+      "comment" : "Settings section title / navigation title."
+    },
+    "Accent" : {
+      "comment" : "Short label for the accent colour."
     },
     "Accent Color" : {
-
+      "comment" : "Settings row title for the accent colour picker."
     },
     "Accessibility" : {
-
+      "comment" : "Settings section title / navigation title."
     },
     "Actions" : {
-
+      "comment" : "Section header grouping action buttons."
     },
     "Active" : {
-
+      "comment" : "Status label meaning currently active."
     },
     "Active Location" : {
-
+      "comment" : "Label for the currently selected location."
     },
     "Active Source" : {
-
+      "comment" : "Label for the currently selected weather data source."
     },
     "Active source: %@" : {
-
+      "comment" : "Accessibility label. %@ is the data source name."
     },
     "Add an outline around text for low-vision users." : {
-
+      "comment" : "Toggle description for the text-outline accessibility option."
+    },
+    "Add and use location" : {
+      "comment" : "Button to add a location and switch to it."
     },
     "Add API Keys in Settings" : {
-
+      "comment" : "Button/prompt directing the user to add API keys in Settings."
     },
     "Add as many as you like in Settings, then Locations." : {
-
+      "comment" : "Onboarding hint about adding locations."
+    },
+    "Add location" : {
+      "comment" : "Button to add a location."
     },
     "Add Location" : {
-
+      "comment" : "Button / navigation title to add a location."
     },
     "Add New Location" : {
-
-    },
-    "Add or Update Key" : {
-
+      "comment" : "Navigation title for the add-location screen."
     },
     "Add widgets from the iOS widget gallery after setup." : {
-
+      "comment" : "Onboarding hint about adding home-screen widgets."
     },
-    "Adds a small private acknowledgement in Settings → About. No public visibility, no social comparison, no leaderboard. The free equivalent: no badge, but every other cosmetic is still available." : {
+    "Adds a small private acknowledgement in Settings → About." : {
       "comment" : "Long description for Supporter Badge."
     },
+    "Advanced" : {
+      "comment" : "Settings section title."
+    },
     "Aggressive refresh uses more battery; Battery Saver throttles network calls." : {
-
+      "comment" : "Footer explaining refresh-cadence options."
+    },
+    "AI Alert Summaries" : {
+      "comment" : "Toggle title for on-device AI weather-alert summaries."
     },
     "Air Quality" : {
-
+      "comment" : "Section title for the air-quality card."
+    },
+    "Alert details" : {
+      "comment" : "Navigation title for a weather-alert detail sheet."
     },
     "Alerts" : {
-
+      "comment" : "Tab / section title for weather alerts."
     },
     "Alerts & Sounds" : {
-
+      "comment" : "Settings section title for alerts and notification sounds."
     },
     "Alerts Enabled" : {
-
+      "comment" : "Status label indicating alerts are on."
     },
     "All cosmetics are optional. SaxWeather is fully functional without any purchase." : {
       "comment" : "Footer reassurance copy in the cosmetics store."
@@ -259,48 +300,40 @@
       "comment" : "Subtitle for the Mega Pack: Neon bundle tile."
     },
     "All tweakable in Settings, then Appearance." : {
-
+      "comment" : "Onboarding hint pointing to Appearance settings."
     },
     "Allow pull-to-refresh anywhere on the home screen, not just inside the scroll view." : {
-
+      "comment" : "Toggle description for swipe-refresh."
     },
     "Always reduce motion, even when the system setting is off." : {
-
+      "comment" : "Toggle description for forcing reduced motion."
     },
     "Always Show Location Label" : {
-
+      "comment" : "Toggle title to keep the location name visible."
     },
     "An aurora-themed gradient for the hourly temperature chart." : {
       "comment" : "Subtitle for the Aurora Hourly Chart Skin cosmetic tile."
     },
-    "Animation" : {
-
-    },
     "Animation Set" : {
-
-    },
-    "Animation Testing" : {
-
+      "comment" : "Settings row title for the animated icon set."
     },
     "Animations" : {
-
+      "comment" : "Settings row / section title for animations."
     },
     "Animations adapt to the current weather and time of day." : {
-
+      "comment" : "Description of the dynamic animation behaviour."
     },
     "Announce Weather Alerts" : {
-
+      "comment" : "Toggle title to speak weather alerts aloud."
     },
     "API Key" : {
-
-    },
-    "API Key Management" : {
-
+      "comment" : "Field label for an API key."
     },
     "API key needs attention" : {
-
+      "comment" : "Status message when an API key has a problem."
     },
     "API key status: %@. %@" : {
+      "comment" : "Accessibility label. %1$@ is the status, %2$@ is a detail.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -311,136 +344,145 @@
       }
     },
     "API Keys" : {
-
+      "comment" : "Settings section title for API keys."
     },
     "API Keys Active" : {
-
+      "comment" : "Status label: API keys are enabled."
     },
     "API keys are enabled. Configure them in Weather Data settings." : {
-
-    },
-    "API keys are encrypted and synchronized via iCloud Keychain across your devices." : {
-
+      "comment" : "Status footer about API keys."
     },
     "API Keys Disabled" : {
-
+      "comment" : "Status label: API keys are turned off."
     },
     "API keys for Weather Underground and OpenWeatherMap are currently disabled. Weather data will use Apple Weather, Open-Meteo, or saved locations only." : {
-
+      "comment" : "Status footer explaining disabled API keys."
     },
-    "App and device diagnostics" : {
-
+    "App version" : {
+      "comment" : "Diagnostic label for app version."
     },
     "Appearance" : {
-
+      "comment" : "Settings section title / navigation title."
     },
     "Apple Weather" : {
-
+      "comment" : "Weather data source name (Apple Weather / WeatherKit). Keep untranslated."
     },
     "Apple Weather limits forecasts to 10 days" : {
-
+      "comment" : "Note explaining the 10-day forecast limit."
     },
     "Apply" : {
-
+      "comment" : "Button label to apply a change."
     },
     "AQI" : {
-
+      "comment" : "Abbreviation for Air Quality Index. Keep as-is unless localised."
     },
     "AQI Scale Reference" : {
-
+      "comment" : "Title for the air-quality index reference."
+    },
+    "Attached automatically when you send. No API keys or personal data are included." : {
+      "comment" : "Diagnostics privacy footer."
     },
     "Attribution" : {
-
+      "comment" : "Section title crediting data providers."
     },
     "ATTRIBUTIONS" : {
-
+      "comment" : "Uppercase section header crediting data providers."
     },
     "Aurora Backgrounds" : {
-
+      "comment" : "Cosmetic pack name: Aurora Backgrounds."
     },
     "Aurora Backgrounds + Aurora Palette + Aurora Chart Skin + Mono Code Font." : {
       "comment" : "Subtitle for the Starter Pack bundle tile."
     },
-    "Auto-scroll Console" : {
-
-    },
     "Automatically announce severe weather warnings" : {
-
+      "comment" : "Toggle description for spoken severe-weather alerts."
     },
     "Available" : {
       "comment" : "Accessibility value: row is available to pick."
     },
     "Back" : {
-
+      "comment" : "Back navigation button."
     },
     "Back Up & Share Settings…" : {
-
+      "comment" : "Button opening backup/share settings."
     },
     "Back up your settings to a .saxtheme file, restore from one, or sync across your devices with iCloud." : {
-
+      "comment" : "Description of backup/restore options. Keep '.saxtheme'."
     },
     "Background" : {
-
+      "comment" : "Settings row / section title for the app background."
     },
     "Background Behaviour" : {
-
+      "comment" : "Settings row title for background behaviour."
     },
     "Background Mode" : {
-
+      "comment" : "Settings row title for the background display mode."
     },
     "Background Refresh" : {
-
+      "comment" : "Settings row title for background data refresh."
     },
     "Background refresh allows widgets to update without opening the app. If disabled, check Settings → General → Background App Refresh." : {
-
+      "comment" : "Footer explaining background refresh."
     },
     "Background Refresh Status" : {
-
+      "comment" : "Row title showing background-refresh status."
     },
     "Background Settings" : {
-
+      "comment" : "Navigation title for background settings."
     },
     "Backup" : {
-
+      "comment" : "Short label / section title for backup."
     },
     "Backup & Restore" : {
-
+      "comment" : "Settings section title."
     },
     "Behaviour" : {
-
+      "comment" : "Settings section title / navigation title."
     },
     "Blur" : {
-
+      "comment" : "Label for the blur style option."
     },
     "Blur Intensity" : {
-
+      "comment" : "Slider label for blur intensity."
     },
     "Blur picks between ultra-thin, thin, and regular materials. Material Opacity controls how much the background shows through (60% matches the original look). Edge highlight draws a soft light sweep across the card." : {
-
+      "comment" : "Footer explaining card blur options."
     },
     "Bold Text" : {
-
+      "comment" : "Toggle title for bold text."
+    },
+    "Boost contrast, add text outlines, and use bold text for easier reading." : {
+      "comment" : "Description of readability accessibility options."
     },
     "Border" : {
-
+      "comment" : "Label / section title for card border."
     },
     "Border Gradient" : {
-
+      "comment" : "Label for the border gradient option."
     },
     "Bottom Opacity: %.2f" : {
-
+      "comment" : "Slider value for background bottom opacity. %.2f is 0–1."
     },
     "Browse and purchase cosmetic items for the app" : {
-
+      "comment" : "Subtitle for the cosmetics store entry."
+    },
+    "Browse and search every customisation option the app offers in one place." : {
+      "comment" : "Subtitle for the settings search entry."
+    },
+    "Bug Report" : {
+      "comment" : "Feedback category for reporting bugs."
+    },
+    "Build" : {
+      "comment" : "Diagnostic label for build number."
     },
     "Built-in (Default)" : {
-
+      "comment" : "Option label for the built-in weather service."
     },
     "Built-in weather service" : {
-
+      "comment" : "Subtitle for the built-in weather service option."
     },
     "Bundle" : {
-
+      "comment" : "Label for a cosmetic bundle."
     },
     "Buy $%.2f" : {
       "comment" : "Buy button label with the cosmetic's price. %@ is replaced with the formatted price."
@@ -449,97 +491,106 @@
       "comment" : "Subtitle for the Supporter Pack cosmetic tile."
     },
     "by Saxon" : {
-
+      "comment" : "Byline crediting the developer. Keep the name 'Saxon'."
     },
     "Cancel" : {
-
+      "comment" : "Cancel button."
     },
     "Card Density" : {
-
+      "comment" : "Settings row title for card density."
     },
     "Card Opacity" : {
-
+      "comment" : "Slider label for card opacity."
     },
     "Card Style" : {
-
+      "comment" : "Settings row / section title for card style."
     },
     "Card Style…" : {
-
+      "comment" : "Settings row opening the card style editor."
     },
     "Cards" : {
-
+      "comment" : "Section title for cards."
+    },
+    "Category" : {
+      "comment" : "Feedback category picker label.\nFeedback category section header."
     },
     "Change Custom Background" : {
-
+      "comment" : "Button to change the custom background image."
     },
     "Change the background image, set a gradient, tint the preset, swap images by condition, switch by time of day, and tune the dark overlay." : {
-
+      "comment" : "Subtitle for background customisation."
     },
     "Chart Style" : {
       "comment" : "Header on the chart skin picker section.\nTitle of the chart skin picker row in Settings.\nTitle of the chart skin picker view."
     },
-    "Check Authorization Status" : {
-
-    },
-    "Check console for details" : {
-
-    },
     "Check Status" : {
-
+      "comment" : "Button to check a status (e.g. API key)."
+    },
+    "Checks whether rain is expected in the next hour." : {
+      "comment" : "App Intent description for the rain-next-hour action."
     },
     "Choose .saxtheme File…" : {
-
+      "comment" : "Button to pick a .saxtheme file. Keep '.saxtheme'."
     },
     "Choose a preset for a quick look, or pick a custom colour. Empty (\"Default\") means the card uses your palette surface colour." : {
-
+      "comment" : "Footer explaining card colour choices."
     },
-    "Clear Console" : {
-
+    "Choose how to share the current weather" : {
+      "comment" : "Subtitle on the share sheet."
+    },
+    "Choose whether the app follows your system appearance or stays permanently light or dark." : {
+      "comment" : "Footer explaining the theme (light/dark) option."
     },
     "Close" : {
       "comment" : "Accessibility label for the close button."
     },
     "Collapse" : {
-
+      "comment" : "Button/accessibility label to collapse a section."
     },
     "Colour" : {
-
+      "comment" : "Label for a colour option."
     },
     "Compact Cards in Landscape" : {
-
+      "comment" : "Toggle title to shrink cards in landscape."
     },
     "Condition" : {
-
+      "comment" : "Label for the weather condition."
     },
     "Configuration" : {
-
+      "comment" : "Section title for configuration options."
     },
     "Confirm Before Quitting" : {
-
+      "comment" : "Toggle title (macOS): confirm before quitting."
     },
     "Confirm Destructive Actions" : {
-
+      "comment" : "Toggle title: confirm destructive actions."
     },
-    "Console" : {
-
+    "Contact Developer" : {
+      "comment" : "Navigation title for general feedback form."
+    },
+    "Content" : {
+      "comment" : "Section title for content options."
+    },
+    "Control the look of weather icons — colour style, filled vs outline symbols, and their size." : {
+      "comment" : "Subtitle for icon appearance settings."
     },
     "Coordinates are valid" : {
-
+      "comment" : "Validation message: entered coordinates are valid."
     },
     "Coordinates:" : {
-
+      "comment" : "Field label preceding coordinate values."
     },
-    "Copy Message" : {
-
+    "Copied to Clipboard" : {
+      "comment" : "Alert title when mail is unavailable."
     },
     "Corner Radius" : {
-
+      "comment" : "Slider label for card corner radius."
     },
     "Corner radius and inner padding. Original WeatherDetailsView used 24 pt radius, 16 pt horizontal padding, 20 pt vertical padding." : {
-
+      "comment" : "Developer-facing footer describing card metrics."
     },
     "Cosmetic Colours" : {
-
+      "comment" : "Section title for cosmetic colour palettes."
     },
     "Cosmetic palette — installed when the matching pack is owned." : {
       "comment" : "Subtitle for an owned cosmetic palette row."
@@ -550,143 +601,158 @@
     "Cosmetics" : {
       "comment" : "Title of the cosmetics store view."
     },
+    "Could not find the specified location." : {
+      "comment" : "Error message when a location search fails."
+    },
+    "Could not load the full warning text. Use the link below to read it on the source website." : {
+      "comment" : "Fallback message when alert content can't load."
+    },
     "Current" : {
-
+      "comment" : "Label for the current conditions."
     },
     "Current Location (GPS)" : {
-
+      "comment" : "Option label for the GPS-based current location."
+    },
+    "Current location coordinates are not available. Please open the app to update your location." : {
+      "comment" : "Message when GPS coordinates are missing."
     },
     "Currently using: %@" : {
-
+      "comment" : "Status label. %@ is the item currently in use."
     },
     "Custom Coordinates" : {
-
+      "comment" : "Option / section title for manually entered coordinates."
     },
     "Custom Fill" : {
-
+      "comment" : "Label for a custom fill colour option."
     },
     "Custom gradient" : {
-
+      "comment" : "Label for a custom gradient background option."
     },
     "Custom illustrated weather-condition icons in a neon style." : {
       "comment" : "Subtitle for the Neon Weather Icons cosmetic tile."
     },
     "Custom image" : {
-
+      "comment" : "Label for a custom image option."
     },
     "Custom Image" : {
-
+      "comment" : "Label / section title for a custom image option."
+    },
+    "Custom locations are currently ignored because a Weather Underground station is configured. Disable API keys in Settings → Locations to use saved locations." : {
+      "comment" : "Warning about Weather Underground overriding saved locations."
     },
     "Custom locations are currently overridden by Weather Underground station. To use custom locations, either disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
-
+      "comment" : "Warning about Weather Underground overriding saved locations."
     },
     "Custom locations are ignored when a Weather Underground station is set. Weather data will be fetched from your station's location." : {
-
+      "comment" : "Warning about Weather Underground overriding saved locations."
     },
     "Custom locations below are currently ignored because a Weather Underground station is configured. Disable API keys in Settings → Locations to use saved locations." : {
-
+      "comment" : "Warning about Weather Underground overriding saved locations."
     },
     "Custom locations below won't be used while Weather Underground is configured." : {
-
+      "comment" : "Short warning about Weather Underground overriding saved locations."
     },
     "Custom Text Size" : {
-
+      "comment" : "Settings row title for a custom text size."
     },
     "Customise" : {
-
+      "comment" : "Button / section title to customise."
     },
     "Customise Day" : {
-
+      "comment" : "Navigation title for customising a forecast day."
     },
     "Dark" : {
-
+      "comment" : "Theme option: dark mode."
     },
     "Dark Overlay" : {
-
+      "comment" : "Label for the dark overlay on the background."
     },
     "Data" : {
-
+      "comment" : "Settings section title for data."
     },
     "Data & Refresh" : {
-
+      "comment" : "Settings section title for data and refresh."
     },
     "Data from WU Station: %@" : {
-
+      "comment" : "Attribution. WU = Weather Underground. %@ is the station name."
+    },
+    "Data source" : {
+      "comment" : "Diagnostic label for weather data source."
     },
     "Dawn / Day / Dusk / Night" : {
-
+      "comment" : "Labels for the four times of day used by backgrounds."
     },
     "Day" : {
-
+      "comment" : "Label for daytime."
     },
     "Debug" : {
-
-    },
-    "Debug Console" : {
-
-    },
-    "Debug messages will appear here" : {
-
-    },
-    "Debug Section" : {
-
+      "comment" : "Developer/debug section title."
     },
     "Decimal Places" : {
-
+      "comment" : "Settings row title for number of decimal places."
     },
     "Default" : {
       "comment" : "Fallback name for an unknown custom palette in the picker row."
     },
     "Delete" : {
-
+      "comment" : "Delete button."
     },
     "Delete location?" : {
-
+      "comment" : "Confirmation alert title for deleting a location."
+    },
+    "Describe the feature and how it would help you." : {
+      "comment" : "Footer hint for feature requests."
     },
     "Detailed forecast data" : {
-
+      "comment" : "Subtitle describing detailed forecast data."
     },
     "Details" : {
-
+      "comment" : "Button / label to view details."
     },
     "Developer" : {
-
+      "comment" : "Section title crediting the developer."
+    },
+    "Diagnostics" : {
+      "comment" : "Diagnostics section header."
     },
     "Direction" : {
-
+      "comment" : "Label for wind direction."
     },
     "Disable API Keys" : {
-
+      "comment" : "Button to disable API keys."
     },
     "Disable for a more minimalistic experience. You can still manage locations from Settings → Locations." : {
-
+      "comment" : "Toggle description for hiding the location menu."
     },
     "Disable Weather Icon Animations" : {
-
+      "comment" : "Toggle title to disable animated weather icons."
     },
     "Disable Weather Icons" : {
-
+      "comment" : "Toggle title to hide weather icons entirely."
     },
     "Display “Weather for X” above the hero card." : {
-
+      "comment" : "Toggle description for the location header."
     },
     "Display Mode" : {
-
+      "comment" : "Settings row title for display mode."
+    },
+    "Display the “Last updated” button on the hero card." : {
+      "comment" : "Toggle description for the last-updated button."
     },
     "Display the hamburger menu in the top-right corner of the main weather screen for quick location switching." : {
-
+      "comment" : "Toggle description for the location menu button."
     },
     "Done" : {
       "comment" : "Done button on the chart skin picker.\nDone button on the palette picker."
     },
     "Dynamic Accent" : {
-
+      "comment" : "Toggle title: accent colour follows the weather."
     },
     "E" : {
-
+      "comment" : "Compass direction abbreviation: East."
     },
     "Edge Highlight" : {
-
+      "comment" : "Label for the card edge-highlight option."
     },
     "Eight aurora-themed background images, one for each weather condition." : {
       "comment" : "Subtitle for the Aurora Backgrounds cosmetic tile."
@@ -694,64 +760,68 @@
     "Eight synthwave-themed background images, one for each weather condition." : {
       "comment" : "Subtitle for the Neon Backgrounds cosmetic tile."
     },
+    "Email (optional)" : {
+      "comment" : "Optional reply email field placeholder."
+    },
     "Enable Alerts" : {
-
+      "comment" : "Toggle/button title to enable alerts."
     },
     "Enable API Keys in Locations" : {
-
+      "comment" : "Button directing the user to enable API keys."
     },
     "Enable GPS Location" : {
-
+      "comment" : "Toggle/button title to enable GPS location."
     },
     "Enable Location" : {
-
+      "comment" : "Button title to enable location access."
     },
     "Enable Notifications" : {
-
+      "comment" : "Button title to enable notifications."
     },
-    "Enable notifications to receive alerts when rain is expected to start or stop, and for severe weather events." : {
-
+    "Enable notifications to receive rain start/stop alerts and severe weather warnings for your location." : {
+      "comment" : "Explanation prompting the user to enable notifications."
     },
     "Enable Quiet Hours" : {
-
+      "comment" : "Toggle title to enable quiet hours."
     },
     "Enabled" : {
-
+      "comment" : "Status label: enabled."
     },
     "Enables vibration feedback for interactions" : {
-
+      "comment" : "Toggle description for haptic feedback."
     },
     "End" : {
-
+      "comment" : "Label for an end time."
     },
     "End preview" : {
       "comment" : "Button to end an active preview."
     },
     "End:" : {
-
+      "comment" : "Field label for an end time."
     },
     "Ends in %llds" : {
-
+      "comment" : "Countdown label. %lld is seconds."
     },
     "Enhance contrast for better readability" : {
-
+      "comment" : "Toggle description for increased contrast."
     },
     "Enhanced VoiceOver" : {
-
+      "comment" : "Toggle title for enhanced VoiceOver descriptions."
     },
     "Enhanced VoiceOver Labels" : {
-
+      "comment" : "Toggle title for enhanced VoiceOver labels."
     },
     "Enter Coordinates" : {
-
+      "comment" : "Button / title to enter coordinates."
     },
     "Enter Custom Coordinates" : {
-
+      "comment" : "Navigation title for entering coordinates manually."
     },
     "Error" : {
-
+      "comment" : "Generic error alert title."
     },
     "error.apiKey.message" : {
+      "comment" : "Error alert message: a weather-service API key is invalid or revoked.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -763,6 +833,7 @@
       }
     },
     "error.apiKey.title" : {
+      "comment" : "Error alert title: a weather-service API key is invalid or revoked.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -774,6 +845,7 @@
       }
     },
     "error.apiKeyQuota.message" : {
+      "comment" : "Error alert message: API request quota exceeded.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -785,6 +857,7 @@
       }
     },
     "error.apiKeyQuota.title" : {
+      "comment" : "Error alert title: API request quota exceeded.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -796,6 +869,7 @@
       }
     },
     "error.generic.message" : {
+      "comment" : "Generic error alert message.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -807,6 +881,7 @@
       }
     },
     "error.generic.title" : {
+      "comment" : "Generic error alert title.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -818,6 +893,7 @@
       }
     },
     "error.httpAuth.message" : {
+      "comment" : "Error alert message: the weather service rejected the request (auth).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -829,6 +905,7 @@
       }
     },
     "error.httpAuth.title" : {
+      "comment" : "Error alert title: the weather service rejected the request (auth).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -840,6 +917,7 @@
       }
     },
     "error.httpClient.message" : {
+      "comment" : "Error alert message: the request failed (HTTP client/4xx error).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -851,6 +929,7 @@
       }
     },
     "error.httpClient.title" : {
+      "comment" : "Error alert title: the request failed (HTTP client/4xx error).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -862,6 +941,7 @@
       }
     },
     "error.httpNotFound.message" : {
+      "comment" : "Error alert message: location not found (HTTP 404).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -873,6 +953,7 @@
       }
     },
     "error.httpNotFound.title" : {
+      "comment" : "Error alert title: location not found (HTTP 404).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -884,6 +965,7 @@
       }
     },
     "error.httpRateLimited.message" : {
+      "comment" : "Error alert message: rate limited (HTTP 429).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -895,6 +977,7 @@
       }
     },
     "error.httpRateLimited.title" : {
+      "comment" : "Error alert title: rate limited (HTTP 429).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -906,6 +989,7 @@
       }
     },
     "error.httpServer.message" : {
+      "comment" : "Error alert message: the weather service had a server error (5xx).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -917,6 +1001,7 @@
       }
     },
     "error.httpServer.title" : {
+      "comment" : "Error alert title: the weather service had a server error (5xx).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -928,6 +1013,7 @@
       }
     },
     "error.inline.fallback" : {
+      "comment" : "Generic inline error fallback text.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -939,6 +1025,7 @@
       }
     },
     "error.invalidResponse.message" : {
+      "comment" : "Error alert message: unexpected/invalid server response.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -950,6 +1037,7 @@
       }
     },
     "error.invalidResponse.title" : {
+      "comment" : "Error alert title: unexpected/invalid server response.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -961,6 +1049,7 @@
       }
     },
     "error.locationDenied.message" : {
+      "comment" : "Error alert message: location permission denied.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -972,6 +1061,7 @@
       }
     },
     "error.locationDenied.title" : {
+      "comment" : "Error alert title: location permission denied.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -983,6 +1073,7 @@
       }
     },
     "error.locationRestricted.message" : {
+      "comment" : "Error alert message: location services restricted.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -994,6 +1085,7 @@
       }
     },
     "error.locationRestricted.title" : {
+      "comment" : "Error alert title: location services restricted.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1005,6 +1097,7 @@
       }
     },
     "error.locationUnavailable.message" : {
+      "comment" : "Error alert message: current location could not be determined.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1016,6 +1109,7 @@
       }
     },
     "error.locationUnavailable.title" : {
+      "comment" : "Error alert title: current location could not be determined.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1027,6 +1121,7 @@
       }
     },
     "error.noData.message" : {
+      "comment" : "Error alert message: no weather data available.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1038,6 +1133,7 @@
       }
     },
     "error.noData.title" : {
+      "comment" : "Error alert title: no weather data available.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1049,6 +1145,7 @@
       }
     },
     "error.noNetwork.message" : {
+      "comment" : "Error alert message: offline / no network connection.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1060,6 +1157,7 @@
       }
     },
     "error.noNetwork.title" : {
+      "comment" : "Error alert title: offline / no network connection.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1071,6 +1169,7 @@
       }
     },
     "error.staleData.message" : {
+      "comment" : "Error alert message: weather data may be outdated. %lld is minutes since the last update.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1082,6 +1181,7 @@
       }
     },
     "error.staleData.title" : {
+      "comment" : "Error alert title: weather data may be outdated.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1093,6 +1193,7 @@
       }
     },
     "error.timeout.message" : {
+      "comment" : "Error alert message: the request timed out.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1104,6 +1205,7 @@
       }
     },
     "error.timeout.title" : {
+      "comment" : "Error alert title: the request timed out.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1118,64 +1220,90 @@
       "comment" : "Cosmetics store subtitle emphasising no paywalled features."
     },
     "Expand" : {
-
+      "comment" : "Button/accessibility label to expand a section."
     },
     "Experimental" : {
-
+      "comment" : "Settings section title for experimental features."
+    },
+    "Explain in plain language" : {
+      "comment" : "Button to generate a plain-language AI summary of an alert."
+    },
+    "Explaining…" : {
+      "comment" : "Progress label while generating an AI explanation."
     },
     "Export" : {
-
+      "comment" : "Export button."
     },
     "Export Again" : {
-
+      "comment" : "Button to export again."
     },
     "Export Current Theme" : {
-
-    },
-    "Export Debug Log" : {
-
+      "comment" : "Button to export the current theme."
     },
     "Export Failed" : {
-
+      "comment" : "Alert title when export fails."
     },
     "Export your current settings as a .saxtheme file. You can AirDrop it, save it to Files, or share it any other way." : {
-
+      "comment" : "Description of the export action. Keep '.saxtheme'."
     },
     "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
-
+      "comment" : "Description of theme export. Keep '.saxtheme'."
+    },
+    "Extra descriptions for screen readers and spoken severe-weather alerts." : {
+      "comment" : "Footer describing enhanced VoiceOver options."
+    },
+    "Failed to fetch weather data: %@" : {
+      "comment" : "Error message. %@ is the failure reason."
     },
     "Family Sharing" : {
-
+      "comment" : "Label for the Family Sharing status."
+    },
+    "Feature Idea" : {
+      "comment" : "Feedback category for feature requests."
     },
     "Featured" : {
       "comment" : "Section header for the featured carousel."
     },
+    "Feedback" : {
+      "comment" : "Settings section / navigation title for feedback."
+    },
     "Feel touch feedback for actions" : {
-
+      "comment" : "Toggle description for haptic feedback."
     },
     "Fill" : {
-
+      "comment" : "Label for a fill option."
     },
     "Fill Opacity" : {
-
+      "comment" : "Slider label for fill opacity."
     },
     "Follow system Dynamic Type settings" : {
-
+      "comment" : "Toggle description for system text size."
     },
     "Force Reduce Motion" : {
-
+      "comment" : "Toggle title to force reduced motion."
     },
     "Forecast" : {
-
+      "comment" : "Section / navigation title for the forecast."
     },
     "Forecast Days" : {
-
+      "comment" : "Settings row title for number of forecast days."
     },
     "Forecast Detail" : {
-
+      "comment" : "Settings row title for forecast detail level."
+    },
+    "Forecast for %@: %@." : {
+      "comment" : "Forecast phrase. %1$@ is the location, %2$@ is the description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Forecast for %1$@: %2$@."
+          }
+        }
+      }
     },
     "Forecast Length" : {
-
+      "comment" : "Settings row title for forecast length."
     },
     "Four cohesive widget themes: Classic, Glass, Newspaper, Terminal." : {
       "comment" : "Subtitle for the Widget Theme Skins cosmetic tile."
@@ -1193,138 +1321,183 @@
       "comment" : "Subtitle for the free Default palette row."
     },
     "Free alternative" : {
-
+      "comment" : "Label marking a free alternative data source."
     },
     "Free weather API (CC BY 4.0)" : {
-
+      "comment" : "Subtitle for a free weather API. Keep 'CC BY 4.0'."
     },
     "Gestures" : {
-
+      "comment" : "Settings section title for gestures."
+    },
+    "Get Forecast" : {
+      "comment" : "Button to get the forecast."
     },
     "Get notified about weather changes" : {
-
+      "comment" : "Subtitle describing notifications."
     },
     "Get Started" : {
-
+      "comment" : "Onboarding button to begin."
+    },
+    "Get the forecast for ${location}" : {
+      "comment" : "Siri/App Intent phrase. Keep the ${location} token."
+    },
+    "Get the UV index for ${location}" : {
+      "comment" : "Siri/App Intent phrase. Keep the ${location} token."
+    },
+    "Get the weather for ${location}" : {
+      "comment" : "Siri/App Intent phrase. Keep the ${location} token."
+    },
+    "Get UV Index" : {
+      "comment" : "Button to get the UV index."
+    },
+    "Get Weather" : {
+      "comment" : "Button to get the weather."
+    },
+    "Gets a summary of the forecast for the next few days." : {
+      "comment" : "App Intent description."
+    },
+    "Gets the current UV index for a location." : {
+      "comment" : "App Intent description."
+    },
+    "Gets the current weather for a location." : {
+      "comment" : "App Intent description."
     },
     "Glass" : {
-
+      "comment" : "Card style option: Glass (translucent material)."
     },
     "Glass uses Apple’s translucent material. Solid is opaque. Outline is transparent with a border. Neumorphic adds a soft inner shadow." : {
-
+      "comment" : "Footer explaining card style options."
     },
     "Global weather data provider" : {
-
+      "comment" : "Subtitle describing a global data provider."
     },
     "Gradient" : {
-
+      "comment" : "Label for a gradient option."
     },
     "Gusts" : {
-
+      "comment" : "Label for wind gusts."
+    },
+    "H: %@° L: %@°" : {
+      "comment" : "High/low temperature. %1$@ is the high, %2$@ is the low.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "H: %1$@° L: %2$@°"
+          }
+        }
+      }
     },
     "Haptic Feedback" : {
-
+      "comment" : "Settings row title for haptic feedback."
     },
     "Haptic on Selection" : {
-
+      "comment" : "Toggle title: vibrate on selection."
     },
     "Haptics" : {
-
+      "comment" : "Settings section title for haptics."
     },
     "Health Recommendations" : {
-
+      "comment" : "Section title for air-quality health recommendations."
     },
     "Hex" : {
-
+      "comment" : "Label for a hex colour value."
     },
     "High" : {
-
+      "comment" : "Level label: high."
     },
     "High-Contrast Outline" : {
-
+      "comment" : "Toggle title for a high-contrast text outline."
     },
     "Highlight" : {
-
+      "comment" : "Label for a highlight option."
+    },
+    "Home Layout" : {
+      "comment" : "Settings row / navigation title for the home screen layout."
     },
     "Hour Range" : {
-
+      "comment" : "Settings row title for the hourly range."
     },
     "Hourly Breakdown" : {
-
+      "comment" : "Section title for the hourly breakdown."
     },
     "Hourly Forecast" : {
-
+      "comment" : "Section title for the hourly forecast."
     },
     "Hourly Window" : {
-
+      "comment" : "Settings row title for the hourly window length."
     },
     "How many digits to show after the decimal point for each kind of value." : {
-
+      "comment" : "Footer explaining decimal-places settings."
     },
     "iCloud" : {
-
+      "comment" : "Label for iCloud sync. Keep 'iCloud'."
     },
     "Icon Size" : {
-
+      "comment" : "Settings row title for weather-icon size."
     },
     "Icon Style" : {
-
+      "comment" : "Settings row title for weather-icon style."
     },
     "Icons" : {
-
+      "comment" : "Section title for icons."
     },
     "Import" : {
-
+      "comment" : "Import button."
     },
     "Import a .saxtheme file from Files, AirDrop, or another app. Your current settings will be replaced." : {
-
+      "comment" : "Description of import. Keep '.saxtheme'."
     },
     "Import Failed" : {
-
+      "comment" : "Alert title when import fails."
     },
     "Import Theme?" : {
-
+      "comment" : "Confirmation alert title before importing a theme."
     },
     "Imports a .saxtheme file from Files, AirDrop, or another app. Your current theme is replaced." : {
-
+      "comment" : "Description of theme import. Keep '.saxtheme'."
     },
     "in %@" : {
-
+      "comment" : "Fragment: 'in <location>'. %@ is the location."
     },
     "Increase Contrast" : {
-
+      "comment" : "Toggle title to increase contrast."
     },
     "Inner shadow" : {
-
+      "comment" : "Label for the neumorphic inner-shadow option."
     },
     "Intensity" : {
-
+      "comment" : "Slider label for intensity."
     },
     "Interface" : {
-
+      "comment" : "Section title for interface options."
+    },
+    "Is Current Location" : {
+      "comment" : "Accessibility/label indicating this is the current location."
     },
     "It is currently raining. No stop time in the next 2 hours." : {
-
+      "comment" : "Rain status message."
     },
     "It is currently raining. Rain expected to stop in %@." : {
-
+      "comment" : "Rain status. %@ is the time until rain stops."
     },
     "Key health" : {
-
+      "comment" : "Short label for API key health/status."
     },
     "Larger" : {
-
+      "comment" : "Text-size option: larger."
     },
     "Last checked %@ ago" : {
-
+      "comment" : "Status. %@ is a duration (e.g. '5 min')."
     },
     "Last Refresh" : {
-
+      "comment" : "Label for the last refresh time."
     },
     "Last Synced" : {
-
+      "comment" : "Label for the last iCloud sync time."
     },
     "Lat: %.4f, Lon: %.4f" : {
+      "comment" : "Coordinate display. %1$.4f is latitude, %2$.4f is longitude.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1335,6 +1508,7 @@
       }
     },
     "Lat: %@, Lon: %@" : {
+      "comment" : "Coordinate display. %1$@ is latitude, %2$@ is longitude.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1344,205 +1518,227 @@
         }
       }
     },
+    "Latitude" : {
+      "comment" : "Field label for latitude."
+    },
     "Latitude: -90 to 90, Longitude: -180 to 180" : {
-
+      "comment" : "Hint describing valid coordinate ranges."
     },
     "Leave a tip to support the app" : {
-
+      "comment" : "Subtitle prompting a tip/donation."
+    },
+    "Leave your email if you'd like a reply. It is only included in the message you send." : {
+      "comment" : "Privacy note for optional email."
     },
     "Light" : {
-
+      "comment" : "Theme option: light mode."
     },
     "Live JSON view of the active customisation profile." : {
-
-    },
-    "Live Preview" : {
-
+      "comment" : "Developer footer describing the profile JSON view."
     },
     "Loading forecast data..." : {
-
+      "comment" : "Loading message for forecast data."
+    },
+    "Loading full warning…" : {
+      "comment" : "Loading message while fetching alert text."
     },
     "Loading weather data..." : {
-
+      "comment" : "Loading message for weather data."
+    },
+    "Loading weather…" : {
+      "comment" : "Loading message for weather data."
     },
     "Location" : {
-
+      "comment" : "Field / section title for location."
     },
     "Location Access Required" : {
-
+      "comment" : "Alert title when location permission is needed."
+    },
+    "Location already saved" : {
+      "comment" : "Message when a location is already saved."
     },
     "Location Enabled" : {
-
+      "comment" : "Status label: location is enabled."
     },
     "Location Menu" : {
-
+      "comment" : "Accessibility label for the location menu."
     },
     "Location Name" : {
-
+      "comment" : "Field label for a location name."
     },
     "Location Required" : {
-
+      "comment" : "Alert title when a location is required."
+    },
+    "Location Saved" : {
+      "comment" : "Confirmation that a location was saved."
     },
     "Location:" : {
-
+      "comment" : "Field label preceding a location value."
     },
     "Locations" : {
-
+      "comment" : "Settings section / navigation title for locations."
     },
     "Locked" : {
       "comment" : "Accessibility value: row is locked behind a purchase."
     },
     "Long-Press to Customise" : {
-
+      "comment" : "Toggle title for long-press customisation."
+    },
+    "Longitude" : {
+      "comment" : "Field label for longitude."
     },
     "Loop forever" : {
-
+      "comment" : "Option: loop the animation forever."
     },
     "Loop Mode" : {
-
+      "comment" : "Settings row title for animation loop mode."
     },
     "Love SaxWeather?" : {
-
+      "comment" : "Heading prompting the user to support the app. Keep 'SaxWeather'."
     },
     "Low" : {
-
+      "comment" : "Level label: low."
     },
     "Made by Saxon" : {
-
+      "comment" : "Credit line. Keep the name 'Saxon'."
     },
     "Made with" : {
-
+      "comment" : "Credit fragment, e.g. 'Made with ♥'."
     },
     "Make all text heavier for improved legibility" : {
-
+      "comment" : "Toggle description for bold text."
     },
     "Make SaxWeather yours." : {
       "comment" : "Cosmetics store headline."
     },
     "Makes all text appear bolder" : {
-
+      "comment" : "Toggle description for bold text."
     },
     "Makes text and UI elements more distinct" : {
-
+      "comment" : "Toggle description for increased contrast."
     },
-    "Manage API keys stored in Keychain" : {
-
-    },
-    "Mark Onboarding Complete" : {
-
+    "Manage your saved places, choose data providers, and set the units and forecast options used across the app." : {
+      "comment" : "Subtitle for the Weather Data settings entry."
     },
     "Match Original Glass Look" : {
-
+      "comment" : "Toggle title to match the original glass appearance."
     },
     "Material Opacity" : {
-
+      "comment" : "Slider label for material opacity."
+    },
+    "Medium" : {
+      "comment" : "Level/size option: medium."
     },
     "Melbourne" : {
-
+      "comment" : "Example city name used as a placeholder. Keep or localise the city name."
+    },
+    "Message" : {
+      "comment" : "Feedback message section header."
+    },
+    "Message Required" : {
+      "comment" : "Alert title when feedback message is empty."
     },
     "Micro" : {
-
+      "comment" : "Size option: micro (smallest)."
     },
     "Minimize UI animations and transitions" : {
-
+      "comment" : "Toggle description for reduce motion."
     },
     "Moon Information" : {
-
+      "comment" : "Section title for moon information."
     },
     "More rain expected again in %@." : {
-
+      "comment" : "Rain forecast. %@ is a duration."
+    },
+    "Motion & Animations" : {
+      "comment" : "Settings section title for motion and animations."
     },
     "N" : {
-
+      "comment" : "Compass direction abbreviation: North."
+    },
+    "Name" : {
+      "comment" : "Field label for a name."
     },
     "Neumorphic" : {
-
+      "comment" : "Card style option: Neumorphic."
     },
     "New Hero Layout" : {
-
+      "comment" : "Toggle title for the experimental hero layout."
     },
     "Next" : {
-
+      "comment" : "Next button (navigation/onboarding)."
     },
     "Next %lld days" : {
-
+      "comment" : "Label. %lld is the number of days."
     },
     "Next 24h" : {
-
+      "comment" : "Label for the next 24 hours."
     },
     "Next Scheduled" : {
-
+      "comment" : "Label for the next scheduled refresh."
     },
     "Nickname (optional)" : {
-
+      "comment" : "Optional field label for a day nickname."
     },
     "No Active Alerts" : {
-
+      "comment" : "Empty-state title: no active weather alerts."
     },
     "No forecast data available" : {
-
+      "comment" : "Empty-state message for forecast data."
     },
     "No hourly data available" : {
-
+      "comment" : "Empty-state message for hourly data."
+    },
+    "No mail account is configured. Your message was copied to the clipboard — paste it into an email to %@." : {
+      "comment" : "Explains clipboard fallback when Mail is unavailable."
     },
     "No matches for '%@'" : {
-
-    },
-    "No messages yet" : {
-
+      "comment" : "Empty search results. %@ is the search term."
     },
     "No rain expected for at least 2 hours after rain stops." : {
-
+      "comment" : "Rain status message."
     },
     "No rain expected in the next 2 hours" : {
-
+      "comment" : "Rain status message."
     },
     "No saved locations yet" : {
-
+      "comment" : "Empty-state message for saved locations."
     },
     "No saved locations yet." : {
-
+      "comment" : "Empty-state message for saved locations."
     },
     "No weather alerts for your location" : {
-
+      "comment" : "Empty-state message for weather alerts."
+    },
+    "No, rain is not expected in the next hour in %@." : {
+      "comment" : "Rain answer. %@ is the location."
     },
     "None" : {
-
-    },
-    "Not configured" : {
-
+      "comment" : "Option label: none."
     },
     "Not Now" : {
-
-    },
-    "Note: Pull-to-refresh haptic cannot be disabled (iOS limitation)" : {
-
-    },
-    "Notifications" : {
-
+      "comment" : "Dismiss button (defer an action)."
     },
     "Notifications are off. You can enable them any time in Settings, then Notifications, then SaxWeather." : {
-
+      "comment" : "Status message about disabled notifications. Keep 'SaxWeather'."
     },
     "Now" : {
-
+      "comment" : "Label for the current moment (e.g. on a chart)."
     },
     "Off" : {
       "comment" : "Family Sharing off indicator."
     },
     "Offset X" : {
-
+      "comment" : "Slider label for horizontal offset."
     },
     "Offset Y" : {
-
+      "comment" : "Slider label for vertical offset."
     },
     "OK" : {
-
-    },
-    "Onboarding" : {
-
+      "comment" : "Dismiss button."
     },
     "Onboarding step %lld of %lld" : {
+      "comment" : "Onboarding progress. %1$lld is current step, %2$lld is total.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1553,37 +1749,49 @@
       }
     },
     "One or more API keys are no longer accepted by the provider." : {
-
+      "comment" : "Warning about rejected API keys."
     },
     "Opacity" : {
-
+      "comment" : "Slider label for opacity."
     },
     "Open Settings" : {
-
+      "comment" : "Button to open the system/app Settings."
     },
     "Open-Meteo" : {
-
+      "comment" : "Weather data source name. Keep untranslated."
+    },
+    "Opens Mail with your message prefilled." : {
+      "comment" : "Send via in-app mail hint."
+    },
+    "Opens the app to show the forecast for a location." : {
+      "comment" : "App Intent description."
+    },
+    "Opens your mail app, or copies the message if no mail account is set up." : {
+      "comment" : "Send via mailto or clipboard hint."
     },
     "OpenWeatherMap" : {
-
+      "comment" : "Weather data source name. Keep untranslated."
+    },
+    "Other" : {
+      "comment" : "Feedback category for general feedback."
     },
     "Overlay" : {
-
+      "comment" : "Label for an overlay option."
     },
     "Overlay Opacity" : {
-
+      "comment" : "Slider label for overlay opacity."
     },
     "Overlay Strength" : {
-
+      "comment" : "Slider label for overlay strength."
     },
     "Overlay Strength: %.2f" : {
-
+      "comment" : "Slider value for overlay strength. %.2f is 0–1."
     },
     "Override the mode for individual conditions. Empty entries fall through to the global mode." : {
-
+      "comment" : "Footer explaining per-condition overrides."
     },
     "Overrides the solid border with a top-leading → bottom-trailing gradient. Leave both colours on “System” to fall back to the solid border." : {
-
+      "comment" : "Footer explaining the border gradient option."
     },
     "Owned" : {
       "comment" : "Owned badge on a cosmetic tile.\nOwned indicator label on a cosmetic detail sheet.\nOwned indicator label on a cosmetic row."
@@ -1592,9 +1800,10 @@
       "comment" : "Owned indicator label on a cosmetic tile.\nOwned indicator label on the Supporter Pack card."
     },
     "Owned cosmetic palettes and chart skins. Locked rows open the cosmetics store when tapped." : {
-
+      "comment" : "Footer for the owned-cosmetics list."
     },
     "Pack: %@, %lld items" : {
+      "comment" : "Cosmetic pack label. %1$@ is the name, %2$lld is the item count.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1608,91 +1817,106 @@
       "comment" : "Section header for the pack list."
     },
     "Padding (Horizontal)" : {
-
+      "comment" : "Slider label for horizontal padding."
     },
     "Padding (Vertical)" : {
-
+      "comment" : "Slider label for vertical padding."
     },
     "Padding H" : {
-
+      "comment" : "Short slider label: horizontal padding."
     },
     "Padding V" : {
-
+      "comment" : "Short slider label: vertical padding."
     },
     "Palette" : {
       "comment" : "Header on the palette picker section.\nTitle of the palette picker row in Settings.\nTitle of the palette picker view."
     },
     "Partly Cloudy" : {
-
+      "comment" : "Weather condition name."
     },
     "Per-Condition Overrides" : {
-
+      "comment" : "Section title for per-condition overrides."
     },
     "Personal weather station" : {
-
+      "comment" : "Subtitle describing a personal weather station source."
     },
     "Personal weather station data" : {
-
+      "comment" : "Subtitle describing personal weather station data."
+    },
+    "Personalisation" : {
+      "comment" : "Settings section title for personalisation."
     },
     "Photography Times" : {
-
+      "comment" : "Section title for photography (golden/blue hour) times."
     },
     "Pick the font family that suits the look you’re going for. System is the iOS default." : {
-
+      "comment" : "Footer explaining font choices."
+    },
+    "Pick which animated icon set to use and how fast it plays." : {
+      "comment" : "Subtitle for animation settings."
     },
     "Pin day" : {
-
+      "comment" : "Button to pin a forecast day."
     },
     "Pinned days stay expanded in the forecast. Nicknames show in the daily header instead of the date." : {
-
+      "comment" : "Footer explaining pinned days and nicknames."
     },
     "Play once" : {
-
+      "comment" : "Option: play the animation once."
     },
     "Playback Speed" : {
-
+      "comment" : "Slider label for animation playback speed."
     },
     "Please check your location settings or try again later" : {
-
+      "comment" : "Error guidance for location issues."
+    },
+    "Please describe your feedback before sending." : {
+      "comment" : "Validation message for empty feedback."
     },
     "Please enable GPS or enter valid coordinates in Settings" : {
-
+      "comment" : "Error guidance for missing location."
     },
     "Please enable location access in Settings" : {
-
+      "comment" : "Error guidance for location permission."
     },
     "Pollen Forecast" : {
-
+      "comment" : "Section title for the pollen forecast."
     },
     "Pollutant Levels" : {
-
+      "comment" : "Section title for air-quality pollutant levels."
+    },
+    "Power User" : {
+      "comment" : "Settings section title for power-user options."
     },
     "Precipitation" : {
-
+      "comment" : "Label / section title for precipitation."
     },
     "PRECIPITATION" : {
-
+      "comment" : "Uppercase section header for precipitation."
     },
     "Precipitation Forecast" : {
-
+      "comment" : "Section title for the precipitation forecast."
     },
     "Preferences" : {
-
+      "comment" : "Settings section / navigation title for preferences."
     },
     "Preferred Source" : {
-
+      "comment" : "Settings row title for the preferred weather source."
     },
     "Premium" : {
-
+      "comment" : "Label marking a premium item."
+    },
+    "Preparing share" : {
+      "comment" : "Progress label while preparing a share."
     },
     "Preset" : {
-
+      "comment" : "Label for a preset option."
     },
     "Pressure" : {
-
+      "comment" : "Label for atmospheric pressure."
     },
-    "Preview Failed" : {
-
+    "Preview Before Changing Location" : {
+      "comment" : "Toggle title to preview before switching location."
     },
     "Preview on your forecast for %llds" : {
       "comment" : "Button to start a preview that applies the cosmetic temporarily."
@@ -1704,130 +1928,154 @@
       "comment" : "Banner shown while a preview is active."
     },
     "Price" : {
-
+      "comment" : "Label for a price."
     },
     "PRO" : {
-
+      "comment" : "Badge label marking a pro/paid item. Keep short."
     },
     "Processing…" : {
-
+      "comment" : "Progress label while processing."
     },
     "Protection Recommendations" : {
-
+      "comment" : "Section title for UV protection recommendations."
     },
     "Provide detailed descriptions for screen readers" : {
-
+      "comment" : "Toggle description for enhanced VoiceOver."
     },
     "Provides more detailed descriptions when using VoiceOver" : {
-
+      "comment" : "Toggle description for enhanced VoiceOver."
     },
     "Pull to Refresh" : {
-
+      "comment" : "Settings row title for pull-to-refresh."
     },
     "Pull-to-refresh haptics cannot be fully disabled (iOS limitation)." : {
-
+      "comment" : "Note about a pull-to-refresh haptics limitation."
     },
     "Pulse the taptic engine when weather data refreshes." : {
-
+      "comment" : "Toggle description for refresh haptics."
     },
     "Purchase Error" : {
-
+      "comment" : "Alert title for a purchase error."
     },
     "Purchase Failed" : {
-
+      "comment" : "Alert title when a purchase fails."
     },
     "Purchase Required" : {
-
+      "comment" : "Alert title when a purchase is required."
     },
-    "Quiet Hours mutes alert sounds during a daily time range. Times wrap past midnight (e.g. 22:00 → 07:00)." : {
-
+    "Questions, praise, or anything else about SaxWeather." : {
+      "comment" : "Footer hint for general feedback."
     },
     "Radius" : {
-
+      "comment" : "Slider label for a radius."
+    },
+    "Rain Alerts" : {
+      "comment" : "Settings row title for rain alerts."
+    },
+    "Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. AI Alert Summaries use Apple Intelligence on-device to explain warnings in plain language. Quiet Hours mutes notification sounds during a daily time range." : {
+      "comment" : "Footer explaining alert sources. Keep product/source names."
     },
     "Rain expected to start in %@" : {
-
+      "comment" : "Rain forecast. %@ is a duration."
+    },
+    "Rain in the Next Hour" : {
+      "comment" : "Section title for next-hour rain."
+    },
+    "Rain Next Hour" : {
+      "comment" : "Short label for next-hour rain."
     },
     "Rain Probability" : {
-
+      "comment" : "Label for rain probability."
     },
     "Rainbow-themed backgrounds, animations, icons, and palette." : {
       "comment" : "Subtitle for the Pride Pack cosmetic tile."
     },
-    "Re-run Onboarding" : {
-
-    },
     "Re-test" : {
-
-    },
-    "Re-trigger or reset the new-user onboarding tour for testing." : {
-
-    },
-    "Real-time logging and debug output" : {
-
+      "comment" : "Button to run a test again."
     },
     "Reduce Motion" : {
-
+      "comment" : "Toggle title to reduce motion."
+    },
+    "Reduce or disable motion and animated weather icons to cut down on movement." : {
+      "comment" : "Footer explaining reduce-motion options."
     },
     "Reduces animations throughout the app" : {
-
+      "comment" : "Toggle description for reduce motion."
     },
     "Refresh" : {
-
+      "comment" : "Refresh button."
     },
     "Refresh Cadence" : {
-
+      "comment" : "Settings row title for refresh frequency."
     },
     "Refresh Sound" : {
-
+      "comment" : "Settings row title for the refresh sound."
+    },
+    "Refreshes weather data" : {
+      "comment" : "Accessibility hint for the refresh action."
     },
     "Remove iCloud Backup" : {
-
+      "comment" : "Button to remove the iCloud backup."
     },
-    "Replaces the eight shipped weather background images with aurora-themed versions. Purely visual — your forecast, your data, your alerts, all work the same. Free alternatives: any custom image you supply, or any of the other built-in presets." : {
+    "Replaces the eight shipped weather background images with aurora-themed versions." : {
       "comment" : "Long description for Aurora Backgrounds."
     },
+    "Reply Email" : {
+      "comment" : "Optional reply email section header."
+    },
+    "Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included." : {
+      "comment" : "Subtitle for the feedback entry."
+    },
+    "Reported" : {
+      "comment" : "Status label: reported."
+    },
+    "Request a Feature" : {
+      "comment" : "Navigation title for feature request form."
+    },
+    "Requires a device with Apple Intelligence enabled." : {
+      "comment" : "Note that AI summaries require Apple Intelligence."
+    },
     "Requires iOS 16+" : {
-
+      "comment" : "Availability note. Keep 'iOS 16+'."
     },
     "Reset Accessibility Settings to Defaults" : {
-
+      "comment" : "Button to reset accessibility settings."
     },
     "Reset Backoff Counter" : {
-
+      "comment" : "Button to reset the refresh backoff counter."
     },
     "Reset Behaviour to Defaults" : {
-
+      "comment" : "Button to reset behaviour settings."
     },
     "Reset Card to Defaults" : {
-
+      "comment" : "Button to reset card settings."
     },
     "Reset to Default" : {
-
+      "comment" : "Button to reset one setting to its default."
     },
     "Reset to Defaults" : {
-
+      "comment" : "Button to reset settings to defaults."
     },
     "Resets all accessibility preferences to their default values" : {
-
+      "comment" : "Accessibility hint for the reset button."
     },
     "Resets the consecutive-failure counter. The next background refresh will use the base 5-minute interval." : {
-
+      "comment" : "Footer explaining the backoff reset."
     },
     "Restore" : {
-
+      "comment" : "Restore button."
     },
     "Restore from .saxtheme File…" : {
-
+      "comment" : "Button to restore from a .saxtheme file. Keep '.saxtheme'."
     },
     "Restore from iCloud Now" : {
-
+      "comment" : "Button to restore from iCloud immediately."
     },
     "Restore now" : {
-
+      "comment" : "Button to restore now."
     },
     "Restore Purchase" : {
-
+      "comment" : "Button to restore a purchase."
     },
     "Restore Purchases" : {
       "comment" : "Button to restore previously purchased cosmetics."
@@ -1844,277 +2092,328 @@
       }
     },
     "Restores in %llds" : {
-
+      "comment" : "Countdown until a preview restores. %lld is seconds."
     },
     "Retry" : {
-
+      "comment" : "Retry button."
     },
     "Retrying, please wait" : {
-
+      "comment" : "Progress message while retrying."
     },
     "Rise: %@" : {
-
+      "comment" : "Sunrise time label. %@ is the time."
     },
     "Rule" : {
-
+      "comment" : "Label for a rule (e.g. time-of-day rule)."
     },
     "S" : {
-
+      "comment" : "Compass direction abbreviation: South."
     },
     "Save" : {
-
+      "comment" : "Save button."
     },
     "Save API Keys" : {
-
+      "comment" : "Button to save API keys."
+    },
+    "Save to Photos" : {
+      "comment" : "Button to save an image to Photos."
     },
     "Saved Locations" : {
-
+      "comment" : "Section title for saved locations."
+    },
+    "SaxWeather" : {
+      "comment" : "App name. Keep untranslated."
     },
     "SaxWeather needs location access to show weather for where you are. You can add a location manually later in Settings." : {
-
+      "comment" : "Location permission explanation. Keep 'SaxWeather'."
     },
     "SaxWeather needs location access to show weather for where you are. You can also add a location manually in Settings." : {
-
+      "comment" : "Location permission explanation. Keep 'SaxWeather'."
     },
     "SaxWeather uses multiple weather data providers to give you the most accurate weather information." : {
-
-    },
-    "Schedule Test Notification" : {
-
+      "comment" : "Onboarding explanation. Keep 'SaxWeather'."
     },
     "Schema v%lld" : {
-
+      "comment" : "Developer label for the profile schema version. %lld is the number."
     },
     "Search All Settings" : {
-
+      "comment" : "Navigation title for settings search."
     },
     "Search City/Town" : {
-
+      "comment" : "Placeholder for the city/town search field."
     },
     "Search every customisation knob the registry knows about" : {
-
+      "comment" : "Subtitle for settings search."
     },
     "Search every setting…" : {
-
+      "comment" : "Search field placeholder."
     },
     "Search for a city or town" : {
-
+      "comment" : "Search field placeholder / hint."
     },
     "Search settings" : {
-
+      "comment" : "Search field placeholder."
     },
     "Search Settings" : {
-
-    },
-    "Secure Storage" : {
-
+      "comment" : "Navigation title / button for settings search."
     },
     "Select" : {
-
-    },
-    "Select Animation" : {
-
+      "comment" : "Select button."
     },
     "Select Custom Background" : {
-
+      "comment" : "Button to select a custom background image."
     },
     "Select Location" : {
-
+      "comment" : "Navigation title / button to select a location."
     },
     "Select on Map" : {
-
+      "comment" : "Button to select a location on a map."
     },
     "Selected" : {
       "comment" : "Accessibility value: row is the active chart skin.\nAccessibility value: row is the active palette."
     },
-    "Service" : {
-
+    "Send Feedback" : {
+      "comment" : "Navigation title for bug feedback form.\nPrimary send feedback button."
+    },
+    "Set a solid colour, gradient, or your own photo as the app background." : {
+      "comment" : "Subtitle for background options."
     },
     "Set: %@" : {
-
+      "comment" : "Label. %@ is the set name."
     },
-    "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral. Purely visual — every existing customisation knob still works. The free equivalent: pick any other palette, or set each colour manually via the hex picker." : {
+    "Sets the app's five accent colours to deep navy, ocean blue, teal, mint, and coral." : {
       "comment" : "Long description for Aurora Palette."
     },
     "Settings" : {
-
+      "comment" : "App settings title."
+    },
+    "Severe Weather Alerts" : {
+      "comment" : "Settings row title for severe weather alerts."
     },
     "Shadow" : {
-
+      "comment" : "Label / section title for card shadow."
     },
     "Shape" : {
-
+      "comment" : "Label for a shape option."
+    },
+    "Share" : {
+      "comment" : "Share button."
     },
     "Share %@" : {
-
+      "comment" : "Share button. %@ is the item being shared."
+    },
+    "Share Location Link" : {
+      "comment" : "Button to share a location link."
+    },
+    "Share Text Summary" : {
+      "comment" : "Button to share a text weather summary."
     },
     "Share Theme" : {
-
+      "comment" : "Button to share the theme."
+    },
+    "Share Weather" : {
+      "comment" : "Button to share the weather."
+    },
+    "Shared via SaxWeather" : {
+      "comment" : "Attribution appended to shared content. Keep 'SaxWeather'."
+    },
+    "Show a full-screen weather preview before switching or adding a location." : {
+      "comment" : "Toggle description for the location preview."
+    },
+    "Show Forecast" : {
+      "comment" : "Button/toggle to show the forecast."
+    },
+    "Show Hero Last Updated" : {
+      "comment" : "Toggle title for the hero last-updated button."
     },
     "Show Location Header" : {
-
+      "comment" : "Toggle title for the location header."
     },
     "Show Location Menu" : {
-
+      "comment" : "Toggle title for the location menu."
+    },
+    "Show the forecast for ${location}" : {
+      "comment" : "Siri/App Intent phrase. Keep the ${location} token."
     },
     "Show the location name on the hero card even after scrolling." : {
-
+      "comment" : "Toggle description for the persistent location label."
+    },
+    "Shows an explanation of this measurement" : {
+      "comment" : "Accessibility hint for an info button."
+    },
+    "Shows how this value was calculated" : {
+      "comment" : "Accessibility hint for an info button."
     },
     "Shows static weather icons instead of animated ones" : {
-
+      "comment" : "Toggle description for static icons."
     },
     "Shrink card padding when the device is rotated sideways." : {
-
+      "comment" : "Toggle description for compact landscape cards."
     },
     "Six curated background images for the home-screen widget." : {
       "comment" : "Subtitle for the Widget Background Images cosmetic tile."
     },
     "Skip" : {
-
+      "comment" : "Skip button (onboarding)."
+    },
+    "Small" : {
+      "comment" : "Size option: small."
     },
     "Smaller" : {
-
+      "comment" : "Text-size option: smaller."
     },
     "Snowy cabin backgrounds, snowflake animations, and a red/green palette." : {
       "comment" : "Subtitle for the Christmas Pack cosmetic tile."
     },
-    "Some settings are experimental and may have unintended consequences." : {
-
+    "Some behaviour settings are experimental and may have unintended consequences." : {
+      "comment" : "Warning footer for experimental settings."
     },
     "Source Code" : {
-
+      "comment" : "Link label to the project source code."
+    },
+    "Source: %@" : {
+      "comment" : "Attribution. %@ is the data source name."
     },
     "Speaks severe weather alerts when they occur" : {
-
+      "comment" : "Toggle description for spoken alerts."
     },
     "Speed" : {
-
+      "comment" : "Slider label for speed."
     },
     "Spooky backgrounds, animations, icons, and palette for Halloween." : {
       "comment" : "Subtitle for the Halloween Pack cosmetic tile."
     },
     "Standard" : {
-
+      "comment" : "Option label: standard."
     },
     "Start" : {
-
+      "comment" : "Label for a start time / button."
     },
     "Start:" : {
-
+      "comment" : "Field label for a start time."
     },
     "Stay Updated" : {
-
+      "comment" : "Heading prompting the user to enable notifications."
     },
     "Stop Preview" : {
       "comment" : "Button on the countdown overlay that ends the preview immediately."
     },
-    "Stored API Keys" : {
-
-    },
     "Stored securely in your iOS Keychain." : {
-
+      "comment" : "Note that credentials are stored in the iOS Keychain."
     },
     "Strength" : {
-
+      "comment" : "Slider label for strength."
     },
     "Strength of the dark scrim on top of the background. Improves contrast for the text below." : {
-
+      "comment" : "Footer explaining the dark overlay strength."
     },
     "Strip credentials before sharing" : {
-
+      "comment" : "Toggle title to remove API keys before sharing."
     },
     "Style" : {
-
+      "comment" : "Label for a style option."
+    },
+    "Summarise all alerts" : {
+      "comment" : "Button to summarise all weather alerts with AI."
+    },
+    "Summarised on-device by Apple Intelligence" : {
+      "comment" : "Attribution note for AI summaries. Keep 'Apple Intelligence'."
+    },
+    "Summarising…" : {
+      "comment" : "Progress label while generating an AI summary."
+    },
+    "Summary" : {
+      "comment" : "Section title for a summary."
     },
     "Sun & Moon" : {
-
+      "comment" : "Section title for sun and moon information."
     },
     "Sun Times" : {
-
+      "comment" : "Section title for sunrise/sunset times."
     },
     "Sunny" : {
-
+      "comment" : "Weather condition name."
     },
     "Sunny, H:25 L:14" : {
-
+      "comment" : "Sample forecast text in a preview mock. H = high, L = low."
     },
     "Sunrise" : {
-
+      "comment" : "Label for sunrise."
     },
     "SUNRISE" : {
-
+      "comment" : "Uppercase label for sunrise."
     },
     "Sunset" : {
-
+      "comment" : "Label for sunset."
+    },
+    "Support" : {
+      "comment" : "Settings section title for support."
     },
     "Support Development" : {
-
+      "comment" : "Heading / button to support development."
     },
     "Support development with a tip! Every contribution helps keep the app free and ad-free." : {
-
+      "comment" : "Subtitle prompting a tip/donation."
     },
     "Support SaxWeather" : {
-
+      "comment" : "Heading to support the app. Keep 'SaxWeather'."
     },
     "Supporter" : {
-
+      "comment" : "Label for a supporter tier."
     },
     "Supporter Pack" : {
-
+      "comment" : "Cosmetic product name: Supporter Pack."
     },
     "Swipe Between Locations" : {
-
+      "comment" : "Toggle title for swiping between locations."
     },
     "Swipe horizontally on the home screen to switch saved locations." : {
-
+      "comment" : "Toggle description for swipe-between-locations."
     },
     "Swipe Refresh Anywhere" : {
-
+      "comment" : "Toggle title for swipe-refresh anywhere."
     },
     "Switch between saved locations" : {
-
+      "comment" : "Accessibility hint for the location switcher."
     },
     "Switch Location" : {
-
+      "comment" : "Button to switch location."
     },
     "Symbol Variant" : {
-
+      "comment" : "Settings row title for the SF Symbol variant."
     },
     "Sync Settings via iCloud" : {
-
+      "comment" : "Toggle title for iCloud settings sync."
     },
     "System" : {
-
-    },
-    "System Information" : {
-
+      "comment" : "Option label: follow system setting."
     },
     "Tap a location to use it. Swipe left to delete." : {
-
+      "comment" : "Hint for the locations list."
     },
     "Tap a location to use it. Weather will refresh automatically." : {
-
+      "comment" : "Hint for the locations list."
     },
     "Tap Day to Expand" : {
-
+      "comment" : "Hint to tap a forecast day to expand it."
     },
     "Tap for burn times by skin type" : {
-
+      "comment" : "Hint on the UV card."
     },
     "Tap for detailed health recommendations" : {
-
+      "comment" : "Hint on the air-quality card."
     },
     "Tap for details" : {
-
+      "comment" : "Hint prompting the user to tap for details."
     },
     "Tap for hourly breakdown" : {
-
+      "comment" : "Hint prompting the user to tap for the hourly breakdown."
     },
     "Tap for photography times & moon details" : {
-
+      "comment" : "Hint on the sun & moon card."
     },
     "Tap the row to customise every card in the app: style, colour, glass, border, shadow, and tint, with a live preview." : {
-
+      "comment" : "Subtitle for the card style entry."
     },
     "Tap to buy %@ — $%.2f" : {
       "comment" : "Locked-row subtitle on the chart skin picker. %1$@ is the product name, %2$.2f is the price.\nLocked-row subtitle on the palette picker. %1$@ is the product name, %2$.2f is the price.",
@@ -2128,22 +2427,22 @@
       }
     },
     "Taptic on Refresh" : {
-
+      "comment" : "Toggle title for taptic feedback on refresh."
     },
     "Temperature" : {
-
+      "comment" : "Label / section title for temperature."
     },
     "Temperature Unit" : {
-
-    },
-    "Test and debug Lottie animations" : {
-
+      "comment" : "Settings row title for the temperature unit."
     },
     "Test Refresh" : {
-
+      "comment" : "Button to test a background refresh."
+    },
+    "Text Size" : {
+      "comment" : "Settings row / section title for text size."
     },
     "Thank You! 🎉" : {
-
+      "comment" : "Confirmation heading after a purchase/tip."
     },
     "The free Default palette uses the shipped theme tokens. Themed palettes are cosmetic add-ons — buy the matching pack to unlock them." : {
       "comment" : "Footer on the palette picker section."
@@ -2152,238 +2451,318 @@
       "comment" : "Footer on the chart skin picker section."
     },
     "The free experience — the shipped preset image with the default dark overlay — is available to every user. Customisation is unlocked by a single in-app purchase." : {
-
+      "comment" : "Footer explaining the free vs paid background experience."
     },
     "The gradient stretches from top to bottom of the screen on every condition." : {
-
+      "comment" : "Footer explaining the gradient background."
+    },
+    "The highlight colour used for buttons, links, and selected controls throughout the app." : {
+      "comment" : "Footer explaining the accent colour."
     },
     "The shipped preset image is multiplied with this tint. Try warm tones at dusk." : {
-
+      "comment" : "Footer explaining the preset tint."
+    },
+    "The UV index in %@ is %lld, which is %@. %@." : {
+      "comment" : "UV report. %1$@ location, %2$lld index, %3$@ category, %4$@ advice.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The UV index in %1$@ is %2$lld, which is %3$@. %4$@."
+          }
+        }
+      }
+    },
+    "The weather in %@ is currently %@ with a temperature of %@." : {
+      "comment" : "Weather report. %1$@ location, %2$@ condition, %3$@ temperature.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The weather in %1$@ is currently %2$@ with a temperature of %3$@."
+          }
+        }
+      }
     },
     "Theme" : {
-
+      "comment" : "Settings row / section title for the app theme."
     },
     "Theme Editor" : {
-
+      "comment" : "Navigation title for the theme editor."
     },
     "These features are works-in-progress. Enable them to try them out, then file feedback so we know what to polish." : {
-
+      "comment" : "Footer for experimental features."
     },
     "Three short synth tones for the pull-to-refresh sound." : {
       "comment" : "Subtitle for the Synth Refresh Sound Pack cosmetic tile."
     },
     "Time of Day" : {
-
+      "comment" : "Settings row title for time-of-day behaviour."
     },
     "Time to burn" : {
-
+      "comment" : "Label for UV time-to-burn."
     },
     "Time to Burn by Skin Type" : {
-
+      "comment" : "Section title for UV burn times by skin type."
     },
     "Time to burn: %@" : {
-
+      "comment" : "UV burn time. %@ is a duration."
     },
     "Time-of-Day Rule" : {
-
+      "comment" : "Settings row title for the time-of-day rule."
     },
     "Time-of-Day Rule swaps the background image to match the current lighting; Overlay Opacity dims the photo so text stays readable." : {
-
+      "comment" : "Footer explaining time-of-day background options."
     },
     "Tint" : {
-
+      "comment" : "Label for a tint option."
     },
     "Tint lays a soft wash over the card. Overlay layers a warm/cool gradient on top of everything. Original look used a dark wash at 20%." : {
-
+      "comment" : "Footer explaining card tint and overlay."
     },
     "To use custom locations, disable API keys above or remove Weather Underground credentials in Weather Data settings." : {
-
+      "comment" : "Guidance about using saved locations with Weather Underground."
     },
     "Today" : {
-
+      "comment" : "Label for today."
     },
     "Today's Weather" : {
-
+      "comment" : "Section title for today's weather."
     },
     "Top Opacity: %.2f" : {
-
+      "comment" : "Slider value for background top opacity. %.2f is 0–1."
     },
     "Try a different word, or clear the search to browse all settings." : {
-
+      "comment" : "Empty-search guidance."
     },
     "Try again" : {
-
+      "comment" : "Retry button."
     },
     "Try Again" : {
-
+      "comment" : "Retry button."
     },
     "Try the redesigned hero card layout." : {
-
+      "comment" : "Toggle description for the experimental hero layout."
+    },
+    "Turn off “Use System Text Size” to set a custom scale just for this app." : {
+      "comment" : "Footer explaining custom text size."
     },
     "Turn on to overlay a custom image on top of the preset when one is set." : {
-
+      "comment" : "Toggle description for a custom overlay image."
     },
     "Turn these off if a particular gesture is getting in the way. Long-Press to Customise works with the inline “Customise this section” menu on the home screen." : {
-
+      "comment" : "Footer explaining gesture toggles."
     },
     "Type" : {
-
+      "comment" : "Label for a type option."
     },
     "Type %@" : {
-
+      "comment" : "Label. %@ is the type name."
     },
     "Type to search" : {
-
+      "comment" : "Search field placeholder."
     },
     "Typography" : {
-
+      "comment" : "Section title for typography/font options."
+    },
+    "Unit system" : {
+      "comment" : "Diagnostic label for unit system."
     },
     "Units" : {
-
+      "comment" : "Settings row / section title for units."
     },
     "Unlock Background Customisation" : {
-
+      "comment" : "Button to unlock background customisation via purchase."
     },
     "Unlock Custom Backgrounds to access these settings." : {
-
+      "comment" : "Message about unlocking custom backgrounds."
     },
     "Unlocks everything" : {
       "comment" : "Overlay text on the Supporter Pack tile card."
     },
     "Use as default" : {
-
+      "comment" : "Button to set as the default."
     },
     "Use Current Location (GPS)" : {
-
+      "comment" : "Option to use the GPS current location."
     },
     "Use custom background" : {
-
+      "comment" : "Toggle title to use a custom background."
     },
     "Use custom image if picked" : {
-
+      "comment" : "Toggle title to use a custom image when one is selected."
     },
     "Use now" : {
       "comment" : "Button to use the cosmetic just purchased."
     },
     "Use only GPS and saved locations" : {
-
+      "comment" : "Option to use GPS and saved locations only."
     },
     "Use static weather icons instead of animated ones" : {
-
+      "comment" : "Toggle description for static icons."
     },
     "Use System Text Size" : {
-
+      "comment" : "Toggle title to follow the system text size."
     },
     "Use this" : {
       "comment" : "Button to use an already-owned cosmetic."
     },
+    "Use this location" : {
+      "comment" : "Button to use the selected location."
+    },
     "UV Index" : {
-
+      "comment" : "Label / section title for the UV index."
     },
     "UV Index Scale" : {
-
+      "comment" : "Section title for the UV index scale."
     },
     "Value" : {
-
+      "comment" : "Generic label for a value."
     },
     "Version" : {
-
+      "comment" : "Label for the app version."
     },
     "Vibrate on interactions." : {
-
+      "comment" : "Toggle description for interaction haptics."
     },
     "Vibrate on Pull-to-Refresh" : {
-
+      "comment" : "Toggle title for pull-to-refresh haptics."
     },
     "Vibrate when a picker value changes." : {
-
+      "comment" : "Toggle description for selection haptics."
     },
     "View" : {
-
+      "comment" : "Generic View button."
+    },
+    "Visual" : {
+      "comment" : "Settings section title for visual accessibility options."
+    },
+    "VoiceOver" : {
+      "comment" : "Settings section title for VoiceOver options."
     },
     "W" : {
-
+      "comment" : "Compass direction abbreviation: West."
     },
     "Warm-toned forest backgrounds, falling-leaf animations, and a burnt-orange palette." : {
       "comment" : "Subtitle for the Autumn Pack cosmetic tile."
     },
     "Weather" : {
-
+      "comment" : "Settings section / tab title for weather."
     },
     "Weather Alert Sounds" : {
-
+      "comment" : "Settings row title for weather alert sounds."
     },
     "Weather Alerts" : {
-
+      "comment" : "Settings row / section title for weather alerts."
     },
     "Weather Data" : {
-
+      "comment" : "Settings section / navigation title for weather data."
     },
     "Weather data by Open-Meteo.com" : {
-
+      "comment" : "Attribution. Keep 'Open-Meteo.com'."
     },
     "Weather data from Apple Weather" : {
-
+      "comment" : "Attribution. Keep 'Apple Weather'."
     },
     "Weather data from OpenWeatherMap" : {
-
+      "comment" : "Attribution. Keep 'OpenWeatherMap'."
     },
     "Weather for %@" : {
-
+      "comment" : "Header. %@ is the location name."
     },
     "Weather Forecast" : {
-
+      "comment" : "Section title for the weather forecast."
     },
-    "Weather may be outdated — last updated %@" : {
-
+    "Weather may be outdated — tap below to refresh" : {
+      "comment" : "Warning that weather data may be stale."
+    },
+    "Weather Snapshot" : {
+      "comment" : "Title for a shareable weather snapshot."
     },
     "Weather Underground" : {
-
+      "comment" : "Weather data source name. Keep untranslated."
     },
     "Weather Underground and OpenWeatherMap API keys are currently disabled. Only Apple Weather and Open-Meteo are available." : {
-
+      "comment" : "Status footer about disabled API keys. Keep source names."
     },
     "Weather Underground station is active and will override custom locations." : {
-
+      "comment" : "Warning that a Weather Underground station overrides saved locations."
+    },
+    "What happened? What did you expect? Steps to reproduce help a lot." : {
+      "comment" : "Footer hint for bug reports."
+    },
+    "What to Wear" : {
+      "comment" : "Section title for clothing recommendations."
     },
     "When enabled, text will resize according to your system settings" : {
-
+      "comment" : "Toggle description for system text size."
+    },
+    "Widgets" : {
+      "comment" : "Section title for widgets."
     },
     "Width" : {
-
+      "comment" : "Slider label for width."
     },
     "Width 0 removes the border entirely. Outline style uses a 45%-opacity stroke; other styles use 20%." : {
-
+      "comment" : "Footer explaining card border width."
+    },
+    "Will it rain in the next hour in ${location}" : {
+      "comment" : "Siri/App Intent phrase. Keep the ${location} token."
     },
     "Wind" : {
-
+      "comment" : "Label / section title for wind."
     },
     "WIND" : {
-
+      "comment" : "Uppercase section header for wind."
+    },
+    "Wind from %@, %lld degrees" : {
+      "comment" : "Wind description. %1$@ is the direction, %2$lld is the degrees.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Wind from %1$@, %2$lld degrees"
+          }
+        }
+      }
     },
     "X" : {
-
+      "comment" : "Axis label: X (horizontal offset)."
     },
     "Y" : {
-
+      "comment" : "Axis label: Y (vertical offset)."
+    },
+    "Yes, %@ rain is expected in the next hour in %@, with up to a %lld%% chance." : {
+      "comment" : "Rain answer. %1$@ intensity, %2$@ location, %3$lld percent chance.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Yes, %1$@ rain is expected in the next hour in %2$@, with up to a %3$lld%% chance."
+          }
+        }
+      }
     },
     "You can change this any time in Settings." : {
-
+      "comment" : "Reassurance that a choice can be changed later."
     },
     "You can revisit this tour any time from the Debug menu." : {
-
+      "comment" : "Note about replaying the onboarding tour."
     },
     "You're offline — showing cached data" : {
-
+      "comment" : "Status message when offline."
     },
     "You're Welcome!" : {
-
+      "comment" : "Friendly heading (e.g. after a tip)."
+    },
+    "Your message" : {
+      "comment" : "Feedback message field placeholder."
     },
     "Your support helps keep SaxWeather free and ad-free for everyone!" : {
-
+      "comment" : "Thank-you message. Keep 'SaxWeather'."
     },
     "Your tips support:" : {
-
+      "comment" : "Header preceding a list of what tips fund."
     }
   },
   "version" : "1.0"

@@ -40,6 +40,11 @@ struct Weather: Codable {
     var sunData: SunMoonData?
     var pollen: PollenData?
     var hourlyPrecipitation: [HourlyPrecipitation] = []
+    /// IANA timezone for the active weather location (from Open-Meteo
+    /// or the device when using WeatherKit). Used to label hourly
+    /// precipitation times in the location's local clock.
+    var locationTimeZoneIdentifier: String?
+    let currentWeatherCode: Int?
     private let cachedCondition: String
     let lastUpdateTime: Date
     var forecasts: [Forecast] = []
@@ -197,40 +202,38 @@ struct Weather: Codable {
     }
     
     private func ensureMetricAndCalculateFeelsLike(temperature: Double, humidity: Double, windSpeed: Double, currentUnit: String) -> Double {
-        var tempInCelsius = temperature
-        var windInMetersPerSecond = windSpeed
-        
-        // Convert to metric if needed
-        if currentUnit == "Imperial" {
-            tempInCelsius = (temperature - 32) * 5/9
-            windInMetersPerSecond = windSpeed * 0.44704 // mph to m/s
-        }
-        
-        // Calculate feels like temperature in Celsius
-        let feelsLikeCelsius = calculateFeelsLike(temperature: tempInCelsius,
-                                              humidity: humidity,
-                                              windSpeed: windInMetersPerSecond)
-        
-        // Convert back to Fahrenheit if needed
-        if currentUnit == "Imperial" {
-            return feelsLikeCelsius * 9/5 + 32
-        }
-        
-        return feelsLikeCelsius
+        let unit = UnitSystem.from(rawValue: currentUnit)
+        let tempInCelsius = UnitConverter.convertTemperature(temperature, from: unit, to: .metric)
+        let windInMetersPerSecond = UnitConverter.storedWindToMps(windSpeed, currentUnit: unit)
+
+        let feelsLikeCelsius = calculateFeelsLike(
+            temperature: tempInCelsius,
+            humidity: humidity,
+            windSpeed: windInMetersPerSecond
+        )
+
+        return UnitConverter.convertTemperature(feelsLikeCelsius, from: .metric, to: unit)
     }
     
     // MARK: - Initializer
-    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, openMeteoResponse: OpenMeteoResponse? = nil, unitSystem: String = "Metric") {
+    init(wuObservation: WUObservation?, owmCurrent: OWMCurrent?, owmDaily: OWMDaily?, openMeteoResponse: OpenMeteoResponse? = nil, unitSystem: String = "Metric", currentWeatherCode: Int? = nil, conditionLabel: String? = nil) {
         self.lastUpdateTime = Date()
         
         self.temperature = wuObservation?.metric.temp ?? owmCurrent?.temp ?? openMeteoResponse?.current?.temperature_2m
         self.humidity = wuObservation?.humidity ?? owmCurrent?.humidity ?? Double(openMeteoResponse?.current?.relative_humidity_2m ?? 0)
         self.windSpeed = wuObservation?.metric.windSpeed ?? owmCurrent?.wind_speed ?? openMeteoResponse?.current?.wind_speed_10m
-        self.high = owmDaily?.temp.max ?? openMeteoResponse?.daily.temperature_2m_max.first
-        self.low = owmDaily?.temp.min ?? openMeteoResponse?.daily.temperature_2m_min.first
+        self.high = owmDaily?.temp.max ?? openMeteoResponse?.daily?.temperature_2m_max.first
+        self.low = owmDaily?.temp.min ?? openMeteoResponse?.daily?.temperature_2m_min.first
         self.dewPoint = wuObservation?.metric.dewpt ?? owmCurrent?.dew_point
         self.pressure = wuObservation?.metric.pressure ?? owmCurrent?.pressure ?? openMeteoResponse?.current?.pressure_msl
         self.windGust = wuObservation?.metric.windGust ?? owmCurrent?.wind_gust ?? openMeteoResponse?.current?.wind_gusts_10m
+
+        // WU (units=m) returns wind in m/s. Open-Meteo and
+        // WeatherKit store km/h. OWM is normalised at parse time.
+        if wuObservation != nil {
+            if let speed = windSpeed { windSpeed = UnitConverter.mpsToKmh(speed) }
+            if let gust = windGust { windGust = UnitConverter.mpsToKmh(gust) }
+        }
         self.uvIndex = Int(wuObservation?.uv ?? Double(owmCurrent?.uvi ?? 0))
         self.solarRadiation = wuObservation?.solarRadiation ?? owmCurrent?.clouds ?? Double(openMeteoResponse?.current?.cloud_cover ?? 0)
 
@@ -275,23 +278,34 @@ struct Weather: Codable {
             }
         }
         
-        let temp = self.temperature ?? 0
-        let uv = self.uvIndex ?? 0
-        let wind = self.windSpeed ?? 0
-        let hum = self.humidity ?? 0
-        
-        if temp > 30 || uv > 5 {
-            self.cachedCondition = "Sunny"
-        } else if temp < 0 {
-            self.cachedCondition = "Snowy"
-        } else if wind > 20 {
-            self.cachedCondition = "Windy"
-        } else if hum > 80 {
-            self.cachedCondition = "Rainy"
+        let resolvedCode = currentWeatherCode ?? openMeteoResponse?.daily?.weather_code.first
+        self.currentWeatherCode = resolvedCode
+
+        if let label = conditionLabel, !label.isEmpty {
+            self.cachedCondition = label
+        } else if let code = resolvedCode, let description = WeatherCode(rawValue: code)?.description {
+            self.cachedCondition = description
         } else {
-            self.cachedCondition = "Partly Cloudy"
+            let temp = self.temperature ?? 0
+            let uv = self.uvIndex ?? 0
+            let wind = self.windSpeed ?? 0
+            let hum = self.humidity ?? 0
+
+            // Last-resort heuristic when no WMO code is available.
+            // Precipitation signals must win over wind — storms are often windy.
+            if hum > 80 {
+                self.cachedCondition = "Rainy"
+            } else if temp > 30 || uv > 5 {
+                self.cachedCondition = "Sunny"
+            } else if temp < 0 {
+                self.cachedCondition = "Snowy"
+            } else if wind > 20 {
+                self.cachedCondition = "Windy"
+            } else {
+                self.cachedCondition = "Partly Cloudy"
+            }
         }
-        
+
         if let temp = self.temperature,
            let hum = self.humidity,
            let wind = self.windSpeed {
@@ -299,7 +313,7 @@ struct Weather: Codable {
                 temperature: temp,
                 humidity: hum,
                 windSpeed: wind,
-                currentUnit: unitSystem
+                currentUnit: "Metric"
             )
         } else {
             self.feelsLike = wuObservation?.metric.heatIndex ?? owmCurrent?.feels_like ?? openMeteoResponse?.current?.apparent_temperature
@@ -310,60 +324,32 @@ struct Weather: Codable {
 // MARK: - Unit Conversion Extension
 extension Weather {
     mutating func convertUnits(from: String, to: String) {
-        if from == to { return }
-        
+        guard from != to else { return }
+        let fromUnit = UnitSystem.from(rawValue: from)
+        let toUnit = UnitSystem.from(rawValue: to)
+
         #if DEBUG
         print("Converting from \(from) to \(to)")
         #endif
-        
-        if from == "Metric" && to == "Imperial" {
-            if let temp = temperature { temperature = temp * 9/5 + 32 }
-            if let feels = feelsLike { feelsLike = feels * 9/5 + 32 }
-            if let highTemp = high { high = highTemp * 9/5 + 32 }
-            if let lowTemp = low { low = lowTemp * 9/5 + 32 }
-            if let dewPointTemp = dewPoint { dewPoint = dewPointTemp * 9/5 + 32 }
-            if let speed = windSpeed { windSpeed = speed * 0.621371 }
-            if let gust = windGust { windGust = gust * 0.621371 }
-            if let press = pressure { pressure = press * 0.02953 }
-            
-            // Convert forecasts
-            for i in 0..<forecasts.count {
-                var forecast = forecasts[i]
-                forecast.maxTemp = forecast.maxTemp * 9/5 + 32
-                forecast.minTemp = forecast.minTemp * 9/5 + 32
-                forecast.windSpeed = forecast.windSpeed * 0.621371
-                forecast.pressure = forecast.pressure * 0.02953
-                forecasts[i] = forecast
-            }
-            
-            #if DEBUG
-            print("Converted temperature: \(temperature ?? 0)°F")
-            #endif
-        } else if from == "Imperial" && to == "Metric" {
-            if let temp = temperature { temperature = (temp - 32) * 5/9 }
-            if let feels = feelsLike { feelsLike = (feels - 32) * 5/9 }
-            if let highTemp = high { high = (highTemp - 32) * 5/9 }
-            if let lowTemp = low { low = (lowTemp - 32) * 5/9 }
-            if let dewPointTemp = dewPoint { dewPoint = (dewPointTemp - 32) * 5/9 }
-            if let speed = windSpeed { windSpeed = speed * 1.60934 }
-            if let gust = windGust { windGust = gust * 1.60934 }
-            if let press = pressure { pressure = press * 33.8639 }
-            
-            // Convert forecasts
-            for i in 0..<forecasts.count {
-                var forecast = forecasts[i]
-                forecast.maxTemp = (forecast.maxTemp - 32) * 5/9
-                forecast.minTemp = (forecast.minTemp - 32) * 5/9
-                forecast.windSpeed = forecast.windSpeed * 1.60934
-                forecast.pressure = forecast.pressure * 33.8639
-                forecasts[i] = forecast
-            }
-            
-            #if DEBUG
-            print("Converted temperature: \(temperature ?? 0)°C")
-            #endif
+
+        if let temp = temperature { temperature = UnitConverter.convertTemperature(temp, from: fromUnit, to: toUnit) }
+        if let feels = feelsLike { feelsLike = UnitConverter.convertTemperature(feels, from: fromUnit, to: toUnit) }
+        if let highTemp = high { high = UnitConverter.convertTemperature(highTemp, from: fromUnit, to: toUnit) }
+        if let lowTemp = low { low = UnitConverter.convertTemperature(lowTemp, from: fromUnit, to: toUnit) }
+        if let dewPointTemp = dewPoint { dewPoint = UnitConverter.convertTemperature(dewPointTemp, from: fromUnit, to: toUnit) }
+        if let speed = windSpeed { windSpeed = UnitConverter.convertWind(speed, from: fromUnit, to: toUnit) }
+        if let gust = windGust { windGust = UnitConverter.convertWind(gust, from: fromUnit, to: toUnit) }
+        if let press = pressure { pressure = UnitConverter.convertPressure(press, from: fromUnit, to: toUnit) }
+
+        for i in 0..<forecasts.count {
+            var forecast = forecasts[i]
+            forecast.maxTemp = UnitConverter.convertTemperature(forecast.maxTemp, from: fromUnit, to: toUnit)
+            forecast.minTemp = UnitConverter.convertTemperature(forecast.minTemp, from: fromUnit, to: toUnit)
+            forecast.windSpeed = UnitConverter.convertWind(forecast.windSpeed, from: fromUnit, to: toUnit)
+            forecast.pressure = UnitConverter.convertPressure(forecast.pressure, from: fromUnit, to: toUnit)
+            forecasts[i] = forecast
         }
-        
+
         if let temp = temperature,
            let hum = humidity,
            let wind = windSpeed {

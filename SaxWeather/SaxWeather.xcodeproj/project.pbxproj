@@ -8,11 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		781254722D7C0730003ACF0B /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 781254712D7C0730003ACF0B /* Lottie */; };
-		78147F792DB6738200839E00 /* XMLCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 78147F782DB6738200839E00 /* XMLCoder */; };
 		7859BEB32D7C217300FC7230 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7859BEB22D7C217300FC7230 /* KeychainSwift */; };
 		7899C5F52DD9242C00A698C9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7899C5F42DD9242C00A698C9 /* WidgetKit.framework */; };
 		7899C5F72DD9242C00A698C9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7899C5F62DD9242C00A698C9 /* SwiftUI.framework */; };
 		7899C6062DD92D2200A698C9 /* SaxWeatherWidgetExtension.appex in Embed App Extension */ = {isa = PBXBuildFile; fileRef = 7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9816B0FC9E00A2248CF42B4F /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 572E1B931CAC83BB96EDC0CA /* SavedLocation.swift */; };
+		D8079A54AE1A5B086916FC75 /* CoordinateValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF9D4A486A7AECE557CA5428 /* CoordinateValidator.swift */; };
+		D9814043E1F98EFC157D4529 /* LocationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFAFB6424FD74D5C4056E8C5 /* LocationEntity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,12 +42,15 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		572E1B931CAC83BB96EDC0CA /* SavedLocation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SavedLocation.swift; path = SaxWeather/SavedLocation.swift; sourceTree = "<group>"; };
 		7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SaxWeatherWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7899C5F42DD9242C00A698C9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		7899C5F62DD9242C00A698C9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7899C6042DD9251F00A698C9 /* SaxWeatherWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SaxWeatherWidgetExtension.entitlements; sourceTree = "<group>"; };
 		78C666C62D5F732E00A7281A /* SaxWeather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SaxWeather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		78F435E02FE1288B00BE4F71 /* SaxWeatherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SaxWeatherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF9D4A486A7AECE557CA5428 /* CoordinateValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CoordinateValidator.swift; path = SaxWeather/CoordinateValidator.swift; sourceTree = "<group>"; };
+		EFAFB6424FD74D5C4056E8C5 /* LocationEntity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocationEntity.swift; path = SaxWeather/Intents/LocationEntity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -73,6 +78,8 @@
 		78F435F62FE12E8500BE4F71 /* Exceptions for "SaxWeather" folder in "SaxWeatherWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Helpers/UnitConverter.swift,
+				Helpers/WidgetRainLine.swift,
 				Helpers/WidgetStaleness.swift,
 			);
 			target = 7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */;
@@ -119,7 +126,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78147F792DB6738200839E00 /* XMLCoder in Frameworks */,
 				7859BEB32D7C217300FC7230 /* KeychainSwift in Frameworks */,
 				781254722D7C0730003ACF0B /* Lottie in Frameworks */,
 			);
@@ -153,6 +159,9 @@
 				78F435E12FE1288B00BE4F71 /* SaxWeatherTests */,
 				7899C5F32DD9242C00A698C9 /* Frameworks */,
 				78C666C72D5F732E00A7281A /* Products */,
+				EFAFB6424FD74D5C4056E8C5 /* LocationEntity.swift */,
+				572E1B931CAC83BB96EDC0CA /* SavedLocation.swift */,
+				BF9D4A486A7AECE557CA5428 /* CoordinateValidator.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -185,8 +194,6 @@
 				7899C5F82DD9242C00A698C9 /* SaxWeatherWidget */,
 			);
 			name = SaxWeatherWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = SaxWeatherWidgetExtension;
 			productReference = 7899C5F22DD9242C00A698C9 /* SaxWeatherWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -211,7 +218,6 @@
 			packageProductDependencies = (
 				781254712D7C0730003ACF0B /* Lottie */,
 				7859BEB22D7C217300FC7230 /* KeychainSwift */,
-				78147F782DB6738200839E00 /* XMLCoder */,
 			);
 			productName = SaxWeather;
 			productReference = 78C666C62D5F732E00A7281A /* SaxWeather.app */;
@@ -234,8 +240,6 @@
 				78F435E12FE1288B00BE4F71 /* SaxWeatherTests */,
 			);
 			name = SaxWeatherTests;
-			packageProductDependencies = (
-			);
 			productName = SaxWeatherTests;
 			productReference = 78F435E02FE1288B00BE4F71 /* SaxWeatherTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -268,13 +272,13 @@
 			knownRegions = (
 				en,
 				Base,
+				es,
 			);
 			mainGroup = 78C666BD2D5F732E00A7281A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				781254702D7C0730003ACF0B /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				7859BEB12D7C217300FC7230 /* XCRemoteSwiftPackageReference "keychain-swift" */,
-				78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 78C666C72D5F732E00A7281A /* Products */;
@@ -317,6 +321,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9814043E1F98EFC157D4529 /* LocationEntity.swift in Sources */,
+				9816B0FC9E00A2248CF42B4F /* SavedLocation.swift in Sources */,
+				D8079A54AE1A5B086916FC75 /* CoordinateValidator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -366,7 +373,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather.SaxWeatherWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -402,7 +409,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather.SaxWeatherWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -520,6 +527,7 @@
 				DEVELOPMENT_TEAM = F2AHYWP9BX;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -575,7 +583,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -624,7 +632,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saxobroko.SaxWeather;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -633,6 +641,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = TESTING;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Osize";
 				SWIFT_VERSION = 5.0;
@@ -734,14 +743,6 @@
 				version = 4.4.0;
 			};
 		};
-		78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/MaxDesiatov/XMLCoder";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.17.1;
-			};
-		};
 		7859BEB12D7C217300FC7230 /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/evgenyneu/keychain-swift.git";
@@ -757,11 +758,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 781254702D7C0730003ACF0B /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
-		};
-		78147F782DB6738200839E00 /* XMLCoder */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 78147F772DB6738200839E00 /* XCRemoteSwiftPackageReference "XMLCoder" */;
-			productName = XMLCoder;
 		};
 		7859BEB22D7C217300FC7230 /* KeychainSwift */ = {
 			isa = XCSwiftPackageProductDependency;

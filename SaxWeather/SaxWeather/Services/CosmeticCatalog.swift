@@ -1,46 +1,3 @@
-//
-//  CosmeticCatalog.swift
-//  SaxWeather
-//
-//  Phase 1 — Cosmetic-only monetization foundation.
-//  Phase 2 — Aurora Pack complete + Mega Pack: Aurora bundle.
-//            Each product now carries an explicit
-//            `packDisplayName` for localised pack labels.
-//  Phase 3 — Aurora Lottie removed entirely. Mega Pack:
-//            Aurora now grants three items (Backgrounds,
-//            Palette, Chart Skin). Every product carries a
-//            `tileImageName` for the per-IAP tile image slot.
-//
-//  Single source of truth for every paid cosmetic in the app.
-//  The list includes every product the user will ever be able
-//  to buy — even the ones not yet shipped — so the catalog
-//  stays stable as phases land. The `isShipped` flag on each
-//  `CosmeticProduct` is what the UI reads to decide whether
-//  to render a tile.
-//
-//  Phase 3 ships the Mega Pack: Aurora recalibration: the
-//  Aurora Lottie IAP has been removed (it was an experiment
-//  that didn't pan out), so the bundle now contains three
-//  items — Aurora Backgrounds, Aurora Palette, Aurora
-//  Chart Skin — instead of four. The pack stays at $9.99.
-//
-//  Phase 4–7 items (Neon, Seasonal, Typography, Haptics,
-//  Widget themes, App Icons) stay catalogued with
-//  `isShipped: false` so they don't appear in the store yet.
-//
-//  Product IDs
-//  -----------
-//  IDs follow the `com.saxweather.cosmetic.*` convention
-//  from `plans/COSMETIC_MONETIZATION_PLAN.md` §3. Every ID
-//  here is the exact string that will appear in
-//  `configuration.storekit` and App Store Connect.
-//
-//  Family Sharing
-//  --------------
-//  All shipped products have `familyShareable: false`
-//  (set via the default in `CosmeticProduct.init`).
-//  Cosmetic preferences are personal — see plan §1.2 and §4.5.
-//
 
 import Foundation
 
@@ -56,7 +13,9 @@ enum CosmeticCatalog {
 
     /// Every product in the catalog — shipped and not-yet-
     /// shipped alike. Use `product(id:)` / `products(inPack:)`
-    /// for lookups; use `shippedProducts` for the store UI.
+    /// for lookups; use `shippedProducts` for the catalog
+    /// gate and `StoreManager.storeVisibleProducts()` for
+    /// the live store UI.
     static let allProducts: [CosmeticProduct] = aurora
         + neon
         + seasonal
@@ -67,10 +26,6 @@ enum CosmeticCatalog {
         + supporter
         + bundles
 
-    /// The subset of `allProducts` that is currently live in
-    /// the store. The store UI iterates this — never
-    /// `allProducts` directly — so un-shipped items stay
-    /// hidden.
     static let shippedProducts: [CosmeticProduct] = allProducts.filter { $0.isShipped }
 
     // MARK: - Lookups
@@ -81,15 +36,6 @@ enum CosmeticCatalog {
         allProducts.first { $0.id == id }
     }
 
-    /// Every product in the given pack. Pass the pack's ID
-    /// (e.g. `"com.saxweather.cosmetic.bundle.starter"`) to
-    /// get the bundle's *contents*, or the pack's logical ID
-    /// (e.g. `"aurora"`) to get the themed items.
-    ///
-    /// Behaviour:
-    ///   * If a `CosmeticProduct` exists with `id == packID`,
-    ///     it's returned (the bundle / Supporter Pack itself).
-    ///   * Plus every product whose `packID == packID`.
     static func products(inPack packID: String) -> [CosmeticProduct] {
         var result = allProducts.filter { $0.packID == packID }
         if let bundle = allProducts.first(where: { $0.id == packID }) {
@@ -98,18 +44,6 @@ enum CosmeticCatalog {
         return result
     }
 
-    /// `true` if the user can buy this product *right now*.
-    /// Two gates:
-    ///   1. The product must be `isShipped` (it's in the App
-    ///      Store / `configuration.storekit`).
-    ///   2. If the product has a `seasonalWindow`, the date
-    ///      must be inside that window.
-    ///
-    /// This is the **client-side mirror** of App Store
-    /// Connect's "Cleared for Sale" flag. The UI uses it to
-    /// render "Buy" vs "Returns [date]" vs hidden. It does
-    /// **not** enforce anything — StoreKit is the source of
-    /// truth for actual purchase availability.
     static func isCurrentlyPurchasable(
         _ product: CosmeticProduct,
         at date: Date = .now
@@ -122,27 +56,37 @@ enum CosmeticCatalog {
         return true
     }
 
+    /// `true` when the catalog gate passes and StoreKit
+    /// returned the product (i.e. it is approved in App Store
+    /// Connect). Does not consider ownership.
+    static func isPurchasableInStore(
+        _ product: CosmeticProduct,
+        storeKitAvailableIDs: Set<String>,
+        at date: Date = .now
+    ) -> Bool {
+        guard isCurrentlyPurchasable(product, at: date) else { return false }
+        return storeKitAvailableIDs.contains(product.id)
+    }
+
+    /// `true` when a product should appear in the in-app store
+    /// UI: owned items stay visible even if ASC temporarily
+    /// drops them; everything else must pass
+    /// `isPurchasableInStore`.
+    static func isVisibleInStore(
+        _ product: CosmeticProduct,
+        storeKitAvailableIDs: Set<String>,
+        isOwned: (CosmeticProduct) -> Bool,
+        at date: Date = .now
+    ) -> Bool {
+        if isOwned(product) { return true }
+        return isPurchasableInStore(
+            product,
+            storeKitAvailableIDs: storeKitAvailableIDs,
+            at: date
+        )
+    }
+
     // MARK: - Catalog data
-    //
-    // The lists below mirror `plans/COSMETIC_MONETIZATION_PLAN.md`
-    // §3.1–§3.10:
-    //   3 Aurora + 3 Neon + 4 Seasonal + 3 Typography +
-    //   3 Haptics & Sound + 2 Widgets + 2 App Icons + 2 Supporter
-    //   = 20 individual items. Plus 4 bundles (incl. the
-    //   Supporter Pack). = 24 catalogued in v3.
-    //
-    // Phase 2/3 shipped:
-    //   - Aurora Backgrounds  ($3.99, standard)  — Phase 1
-    //   - Aurora Palette       ($1.99, micro)     — Phase 1
-    //   - Aurora Chart Skin    ($1.99, micro)     — NEW Phase 2
-    //   - Supporter Badge      ($0.99, micro)     — Phase 1
-    //   - Supporter Pack       ($24.99, supporter)— Phase 1
-    //   - Mega Pack: Aurora    ($9.99, bundle)    — Phase 2/3
-    //
-    // Phase 3 explicitly removed the Aurora Lottie cosmetic —
-    // see Part B of this cleanup pass for the rationale.
-    //
-    // Everything else stays `isShipped: false` until its phase.
 
     // MARK: Aurora pack
     private static let aurora: [CosmeticProduct] = [
@@ -157,7 +101,16 @@ enum CosmeticCatalog {
             productKind: CosmeticKind.backgrounds,
             packID: "aurora",
             packDisplayName: "Aurora",
-            assetReferences: [],
+            assetReferences: [
+                "assets/aurora/sunny.jpg",
+                "assets/aurora/cloudy.jpg",
+                "assets/aurora/foggy.jpg",
+                "assets/aurora/rainy.jpg",
+                "assets/aurora/snowy.jpg",
+                "assets/aurora/thunder.jpg",
+                "assets/aurora/windy.jpg",
+                "assets/aurora/default.jpg",
+            ],
             tileImageName: "cosmetic_tile_aurora_backgrounds",
             widgetParity: true,
             seasonalWindow: nil,
@@ -598,7 +551,7 @@ enum CosmeticCatalog {
             id: "com.saxweather.cosmetic.supporter.badge",
             displayName: "Supporter Badge",
             subtitle: String(
-                localized: "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison.",
+                localized: "A small private acknowledgement in Settings → About.",
                 comment: "Subtitle for the Supporter Badge cosmetic tile."
             ),
             priceTier: PriceTier.micro,
@@ -639,18 +592,6 @@ enum CosmeticCatalog {
     ]
 
     // MARK: Bundles
-    //
-    // Per plan §3.10 the Starter Pack, Mega Pack: Aurora, and
-    // Mega Pack: Neon all price at $7.99. Mega Pack: Seasonal
-    // is $19.99. The Aurora Mega Pack ships in Phase 2; the
-    // rest stay `isShipped: false` until their respective
-    // phases. Bundles use `packDisplayName` to render as their
-    // own concept (e.g. "Mega Pack: Aurora") in the store list.
-    //
-    // Phase 3 — Mega Pack: Aurora now grants 3 items
-    // (Backgrounds, Palette, Chart Skin) instead of 4. The
-    // Aurora Lottie IAP was removed; see `CHANGELOG.md` and the
-    // Part B entry of the cleanup task. Price stays at $9.99.
     private static let bundles: [CosmeticProduct] = [
         CosmeticProduct(
             id: "com.saxweather.cosmetic.bundle.starter",

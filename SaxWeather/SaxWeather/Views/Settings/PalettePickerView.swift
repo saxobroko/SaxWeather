@@ -1,50 +1,6 @@
-//
-//  PalettePickerView.swift
-//  SaxWeather
-//
-//  Phase 5 — Aurora palette / chart picker UI.
-//
-//  In-app picker for `VisualSpec.palette`. Lists every
-//  pickable palette (the free `Default` and the
-//  cosmetic-themed `Aurora`) using the same per-row
-//  lock-and-buy pattern as `BackgroundModeRow` in
-//  `BackgroundSettingsView`:
-//
-//    • Free rows commit the selection to the profile
-//      immediately.
-//    • Owned paid rows commit the selection immediately.
-//    • Locked paid rows (the Aurora Palette for users
-//      who don't own it) present the in-app cosmetics
-//      store at the required product's detail sheet —
-//      they do NOT commit the selection, so a locked
-//      row can never become the active palette by
-//      accident.
-//
-//  The picker reads the current palette from
-//  `CustomisationRegistry` (the single source of truth
-//  for the active profile) and writes selections back
-//  via `registry.set(\.visual.palette, …)`. The
-//  `ColourTokenStore` (Part B reactivity fix) observes
-//  the registry and re-renders any view that reads
-//  `colourTokenStore.palette` when the change lands —
-//  so the picker re-renders the checkmark the moment
-//  the user taps a row, and every consumer of the
-//  palette (cards, backgrounds, etc.) updates at the
-//  same time.
-//
-//  Reached via Settings → Appearance → Palette, and
-//  via the "Use now" / "Use this" buttons on the
-//  Aurora Palette cosmetic detail sheet (see
-//  `CosmeticUsageCoordinator` for the navigation
-//  plumbing).
-//
 
 import SwiftUI
 
-/// Root view for the palette picker. Presented as a
-/// sheet from the Appearance settings row, and from
-/// `ContentView` when the user taps "Use now" / "Use
-/// this" on the Aurora Palette cosmetic detail sheet.
 struct PalettePickerView: View {
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager
@@ -136,11 +92,6 @@ struct PalettePickerView: View {
 
 // MARK: - SelectablePaletteRow
 
-/// A single row in the palette picker. Mirrors
-/// `BackgroundModeRow`'s shape: swatch thumbnail,
-/// display name, optional lock badge, checkmark when
-/// selected. Tapping a free or owned row commits the
-/// selection; tapping a locked row fires `onTapLocked`.
 struct SelectablePaletteRow: View {
     let entry: SelectablePalette
     let isSelected: Bool
@@ -212,11 +163,6 @@ struct SelectablePaletteRow: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    /// Five-colour swatch showing the palette's tokens
-    /// in the same order the picker stores them
-    /// (background → surface → text → muted → danger).
-    /// Falls back to a neutral swatch if a token can't
-    /// be resolved.
     private var thumbnail: some View {
         let tokens: [ColourToken] = [
             entry.palette.background,

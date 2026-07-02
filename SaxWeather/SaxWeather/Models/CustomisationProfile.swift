@@ -1,27 +1,6 @@
-//
-//  CustomisationProfile.swift
-//  SaxWeather
-//
-//  "Infinitely customisable" foundation — Phase 1.
-//
-//  A `CustomisationProfile` is a named, versioned bundle of every
-//  customisation knob in the app. This file defines the top-level
-//  type, the `BuiltInProfile` enum (the five non-deletable presets),
-//  and `KnobStorage` which groups the eleven typed spec structs.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` for the full design.
-//
 
 import Foundation
 
-/// A versioned, Codable snapshot of every customisation knob in
-/// the app. Profiles are the unit users save, switch between,
-/// export, and share as `.saxtheme` files.
-///
-/// Every property has a sensible default so a freshly-constructed
-/// `KnobStorage()` reproduces the app's shipped behaviour exactly
-/// (matches the existing `@AppStorage` defaults throughout the
-/// codebase).
 struct CustomisationProfile: Codable, Hashable, Identifiable {
     /// Stable identifier. Preserved across edits; new UUIDs only
     /// happen on "Save as new profile…".
@@ -98,14 +77,6 @@ enum BuiltInProfile: String, Codable, CaseIterable, Identifiable, Hashable {
     }
 }
 
-/// Container for every customisation knob, grouped by category.
-/// Each group is a strongly-typed struct so reading or writing a
-/// single knob is type-safe, even though the whole bundle
-/// serialises as one `.saxtheme` JSON document.
-///
-/// New group? Add it here, define the spec struct in
-/// `ProfileSpecs.swift`, and bump `ProfileMigrator.currentSchemaVersion`
-/// if you need a migration for older profiles.
 struct KnobStorage: Codable, Hashable {
     var visual        : VisualSpec         = .init()
     var background    : BackgroundSpec     = .init()

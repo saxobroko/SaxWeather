@@ -1,71 +1,17 @@
-//
-//  CosmeticsStoreView.swift
-//  SaxWeather
-//
-//  Phase 1 — Cosmetic-only monetization foundation.
-//  Phase 2 — added `initialPendingProductID` so the view can
-//            be opened directly on a specific product via the
-//            `saxweather://cosmetic/<productID>` URL scheme
-//            (see `CosmeticDeepLinkHandler`).
-//  Phase 3 — `FeaturedCosmeticCard` and
-//            `CosmeticDetailView` both read the optional
-//            `tileImageName` from each `CosmeticProduct`.
-//            When a custom tile image has been dropped into
-//            `Assets.xcassets/cosmetic_tile_<short_id>.imageset/`,
-//            it's used; otherwise a kind-appropriate SF Symbol
-//            placeholder fills in.
-//  Phase 4 — `SupporterPackCard` now reads the optional
-//            `tileImageName` too (previously it used a
-//            hardcoded pink/purple gradient that ignored the
-//            tile image entirely). The card also gets an
-//            honest "Unlocks everything" overlay with a
-//            `sparkles` icon.
-//
 
 import SwiftUI
 import StoreKit
 
-/// Top-level cosmetics store. Pushed onto Settings' navigation
-/// stack via the "Cosmetics" row added in Phase 1. Holds the
-/// `PreviewProfileManager` as a `@StateObject` so its
-/// lifetime matches the view's.
-///
-/// Phase 2 — the `initialPendingProductID` parameter lets
-/// `ContentView` open this store already pointing at a
-/// specific product (via the deep link handler). The view
-/// looks up the matching `CosmeticProduct` from the catalog
-/// on first appear and auto-presents `CosmeticDetailView` for
-/// it.
-///
-/// Phase 3 — observes `CosmeticPreviewCoordinator` so the
-/// store sheet auto-dismisses when a live preview starts
-/// (the user is being navigated to a live view).
 struct CosmeticsStoreView: View {
     @EnvironmentObject private var storeManager: StoreManager
     @EnvironmentObject private var registry: CustomisationRegistry
     @EnvironmentObject private var previewCoordinator: CosmeticPreviewCoordinator
-    // Phase 4 — read the shared preview manager from the
-    // environment so the store sheet always observes the
-    // same instance as the countdown overlay in `ContentView`.
-    // Previously this was an `@ObservedObject` parameter that
-    // defaulted to a fresh `PreviewProfileManager()` when the
-    // caller passed `nil` — which meant any sheet opened
-    // outside of `ContentView` (Settings → Cosmetics, the
-    // palette / chart / background pickers) created its own
-    // throwaway instance. The preview then ran on the
-    // throwaway instance while the overlay observed the
-    // original instance, which still had `remainingSeconds
-    // == 0` — so the UI showed "Ends in 0s" immediately.
     @EnvironmentObject private var previewManager: PreviewProfileManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProduct: CosmeticProduct?
     @State private var isRestoring: Bool = false
     @State private var restoreBanner: RestoreBanner?
 
-    /// Phase 2 — when non-nil, the view auto-presents
-    /// `CosmeticDetailView` for the matching product on first
-    /// appear. Set by `ContentView` after it observes a
-    /// non-nil value from `CosmeticDeepLinkHandler.pendingProductID`.
     let initialPendingProductID: String?
 
     /// Default init — used by Settings, the debug menu, and
@@ -147,13 +93,10 @@ struct CosmeticsStoreView: View {
 
     // MARK: - Deep-link handling
 
-    /// Auto-present `CosmeticDetailView` for the product
-    /// matching `initialPendingProductID`. Safe to call
-    /// multiple times — guards against re-presenting the
-    /// same product when SwiftUI re-fires `onAppear`.
     private func presentDeepLinkedProductIfNeeded() {
         guard let productID = initialPendingProductID else { return }
         guard let product = CosmeticCatalog.product(id: productID) else { return }
+        guard storeManager.isVisibleInStore(product) else { return }
         // Don't overwrite an already-presented detail sheet.
         guard selectedProduct == nil else { return }
         selectedProduct = product
@@ -188,12 +131,6 @@ struct CosmeticsStoreView: View {
             // touching it here keeps SwiftUI honest.
             _ = previewManager.remainingSeconds
         }
-        // Phase 3 — when a live preview starts (the user
-        // tapped "Preview" inside `CosmeticDetailView`),
-        // dismiss this sheet so the user lands on the
-        // correct live view underneath. The coordinator's
-        // `presentedDestination` drives `ContentView`'s
-        // tab switch.
         .onChange(of: previewCoordinator.presentedDestination) { newValue in
             if newValue != nil {
                 dismiss()
@@ -236,7 +173,7 @@ struct CosmeticsStoreView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(CosmeticCatalog.shippedProducts
+                    ForEach(storeVisibleProducts
                         .filter { $0.productKind != .supporterPack }
                         .sorted { $0.priceCents < $1.priceCents }
                     ) { product in
@@ -269,7 +206,7 @@ struct CosmeticsStoreView: View {
                 ForEach(visiblePacks, id: \.id) { pack in
                     PackDisclosureRow(
                         pack: pack,
-                        products: CosmeticCatalog.products(inPack: pack.id),
+                        products: visibleProducts(inPack: pack.id),
                         isOwned: { product in storeManager.owns(product) },
                         isPurchasing: { product in storeManager.purchaseInProgressID == product.id },
                         onTapProduct: { selectedProduct = $0 }
@@ -279,18 +216,34 @@ struct CosmeticsStoreView: View {
         }
     }
 
+    /// Products that pass the catalog gate, StoreKit
+    /// availability, and the owned-product exception.
+    private var storeVisibleProducts: [CosmeticProduct] {
+        storeManager.storeVisibleProducts()
+    }
+
+    private func visibleProducts(inPack packID: String) -> [CosmeticProduct] {
+        CosmeticCatalog.products(inPack: packID)
+            .filter { storeManager.isVisibleInStore($0) }
+    }
+
     /// The packs visible in the store list. The Supporter
     /// Pack is handled separately in `supporterPackSection`
     /// so it's not duplicated here.
     private var visiblePacks: [CosmeticPack] {
-        CosmeticCatalog.shippedProducts
+        storeVisibleProducts
             .filter { $0.productKind != .supporterPack }
             .reduce(into: [CosmeticPack]()) { partial, product in
                 guard let packID = product.packID else { return }
-                if let idx = partial.firstIndex(where: { $0.id == packID }) {
+                if partial.contains(where: { $0.id == packID }) {
                     return  // already added
                 }
-                partial.append(CosmeticPack(id: packID, displayName: packID.capitalized))
+                partial.append(
+                    CosmeticPack(
+                        id: packID,
+                        displayName: product.resolvedPackDisplayName
+                    )
+                )
             }
     }
 
@@ -300,7 +253,8 @@ struct CosmeticsStoreView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let supporterPack = CosmeticCatalog.product(
                 id: CosmeticCatalog.supporterPackID
-            ) {
+            ),
+               storeManager.isVisibleInStore(supporterPack) {
                 SupporterPackCard(
                     product: supporterPack,
                     isOwned: storeManager.owns(supporterPack),
@@ -360,7 +314,7 @@ struct CosmeticsStoreView: View {
         isRestoring = true
         defer { isRestoring = false }
         await storeManager.restorePurchases()
-        let ownedCount = CosmeticCatalog.shippedProducts
+        let ownedCount = storeVisibleProducts
             .filter { storeManager.owns($0) }
             .count
         restoreBanner = RestoreBanner(
@@ -374,11 +328,6 @@ struct CosmeticsStoreView: View {
 
 // MARK: - FeaturedCosmeticCard
 
-/// A single horizontal carousel card for a featured
-/// cosmetic. Phase 3 — renders the product's optional
-/// `tileImageName` if the user has dropped a JPEG into the
-/// matching imageset; otherwise falls back to the SF Symbol
-/// placeholder.
 struct FeaturedCosmeticCard: View {
     let product: CosmeticProduct
     let isOwned: Bool
@@ -435,11 +384,6 @@ struct FeaturedCosmeticCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    /// The featured-card hero image. Resolves to the
-    /// product's `tileImageName` if present (and the JPEG
-    /// has been dropped into the asset catalog); otherwise
-    /// falls back to a kind-appropriate SF Symbol
-    /// placeholder.
     @ViewBuilder
     private var tileImage: some View {
         if let image = CosmeticTileImage.image(for: product) {
@@ -472,10 +416,6 @@ struct FeaturedCosmeticCard: View {
 
 // MARK: - CosmeticPack
 
-/// Lightweight pack descriptor for the category list. The
-/// "pack" is just a logical grouping — there's no separate
-/// pack object in the catalog. Built on demand by
-/// `CosmeticsStoreView.visiblePacks`.
 struct CosmeticPack: Identifiable {
     let id: String
     let displayName: String
@@ -552,9 +492,6 @@ struct ProductRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Phase 3 — render a small thumbnail of the
-                // tile image when present, otherwise the
-                // kind-appropriate SF Symbol.
                 if let image = CosmeticTileImage.image(for: product) {
                     image
                         .resizable()
@@ -612,16 +549,6 @@ struct ProductRow: View {
 
 // MARK: - SupporterPackCard
 
-/// Special card for the Supporter Pack. The pack is
-/// render-distinct from the regular catalogue items so it
-/// reads as a "thank you for funding" affordance.
-///
-/// Phase 4 — the hero now reads the optional `tileImageName`
-/// first (so a user-dropped JPEG renders), then falls back to
-/// the kind-appropriate `CosmeticTilePlaceholder` (which uses
-/// a distinctive gold/amber gradient for the Supporter Pack).
-/// Previously the card used a hardcoded pink/purple gradient
-/// that ignored the tile image entirely.
 struct SupporterPackCard: View {
     let product: CosmeticProduct
     let isOwned: Bool
@@ -680,12 +607,6 @@ struct SupporterPackCard: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    /// The Supporter Pack hero. Resolves to the product's
-    /// `tileImageName` if present (and the JPEG has been
-    /// dropped into the asset catalog); otherwise falls back
-    /// to the kind-appropriate SF Symbol placeholder (which
-    /// uses a distinctive gold/amber gradient for the
-    /// Supporter Pack).
     @ViewBuilder
     private var tileImage: some View {
         if let image = CosmeticTileImage.image(for: product) {
@@ -699,11 +620,6 @@ struct SupporterPackCard: View {
         }
     }
 
-    /// Honest overlay copy + icon for the Supporter Pack.
-    /// Reads as "premium" without being manipulative — the
-    /// `sparkles` icon and "Unlocks everything" text are
-    /// factual (the pack does unlock every current and
-    /// future cosmetic).
     private var supporterPackOverlay: some View {
         VStack(spacing: 4) {
             Image(systemName: "sparkles")

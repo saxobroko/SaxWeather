@@ -132,6 +132,150 @@ final class CosmeticCatalogTests: XCTestCase {
         )
     }
 
+    // MARK: - Store visibility (catalog + StoreKit)
+
+    func test_isPurchasableInStore_requiresShippedAndStoreKit() {
+        let auroraBackgrounds = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.aurora.backgrounds"
+        )!
+        let storeKitIDs: Set<String> = [auroraBackgrounds.id]
+
+        XCTAssertTrue(
+            CosmeticCatalog.isPurchasableInStore(
+                auroraBackgrounds,
+                storeKitAvailableIDs: storeKitIDs
+            )
+        )
+        XCTAssertFalse(
+            CosmeticCatalog.isPurchasableInStore(
+                auroraBackgrounds,
+                storeKitAvailableIDs: []
+            ),
+            "Shipped products missing from StoreKit must not be purchasable"
+        )
+
+        let neonBackgrounds = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.neon.backgrounds"
+        )!
+        XCTAssertFalse(
+            CosmeticCatalog.isPurchasableInStore(
+                neonBackgrounds,
+                storeKitAvailableIDs: [neonBackgrounds.id]
+            ),
+            "Un-shipped products must not be purchasable even when StoreKit returns them"
+        )
+    }
+
+    func test_isPurchasableInStore_respectsSeasonalWindowWhenShipped() {
+        var halloween = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.seasonal.halloween"
+        )!
+        // Simulate a shipped Halloween pack that ASC approved.
+        halloween = CosmeticProduct(
+            id: halloween.id,
+            displayName: halloween.displayName,
+            subtitle: halloween.subtitle,
+            priceTier: halloween.priceTier,
+            productKind: halloween.productKind,
+            packID: halloween.packID,
+            packDisplayName: halloween.packDisplayName,
+            assetReferences: halloween.assetReferences,
+            tileImageName: halloween.tileImageName,
+            widgetParity: halloween.widgetParity,
+            seasonalWindow: halloween.seasonalWindow,
+            familyShareable: halloween.familyShareable,
+            previewDurationSeconds: halloween.previewDurationSeconds,
+            priceCents: halloween.priceCents,
+            isShipped: true,
+            symbolName: halloween.symbolName
+        )
+        let storeKitIDs: Set<String> = [halloween.id]
+        let inWindow = makeDate(month: 10, day: 15)
+        let outOfWindow = makeDate(month: 12, day: 15)
+
+        XCTAssertTrue(
+            CosmeticCatalog.isPurchasableInStore(
+                halloween,
+                storeKitAvailableIDs: storeKitIDs,
+                at: inWindow
+            )
+        )
+        XCTAssertFalse(
+            CosmeticCatalog.isPurchasableInStore(
+                halloween,
+                storeKitAvailableIDs: storeKitIDs,
+                at: outOfWindow
+            )
+        )
+    }
+
+    func test_isVisibleInStore_keepsOwnedProductsWithoutStoreKit() {
+        let auroraBackgrounds = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.aurora.backgrounds"
+        )!
+        let owned: Set<String> = [auroraBackgrounds.id]
+
+        XCTAssertTrue(
+            CosmeticCatalog.isVisibleInStore(
+                auroraBackgrounds,
+                storeKitAvailableIDs: [],
+                isOwned: { owned.contains($0.id) }
+            ),
+            "Owned products stay visible when ASC temporarily withholds them"
+        )
+        XCTAssertFalse(
+            CosmeticCatalog.isVisibleInStore(
+                auroraBackgrounds,
+                storeKitAvailableIDs: [],
+                isOwned: { _ in false }
+            ),
+            "Unowned products missing from StoreKit must be hidden"
+        )
+    }
+
+    func test_isVisibleInStore_bundleHiddenWhenNotInStoreKit() {
+        let megaAurora = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.bundle.mega.aurora"
+        )!
+        let auroraOnly: Set<String> = [
+            "com.saxweather.cosmetic.aurora.backgrounds",
+            "com.saxweather.cosmetic.aurora.palette",
+            "com.saxweather.cosmetic.aurora.chart"
+        ]
+
+        XCTAssertFalse(
+            CosmeticCatalog.isVisibleInStore(
+                megaAurora,
+                storeKitAvailableIDs: auroraOnly,
+                isOwned: { _ in false }
+            ),
+            "Bundles must be approved in ASC themselves — component IDs are not enough"
+        )
+        XCTAssertTrue(
+            CosmeticCatalog.isVisibleInStore(
+                megaAurora,
+                storeKitAvailableIDs: auroraOnly.union([megaAurora.id]),
+                isOwned: { _ in false }
+            )
+        )
+    }
+
+    func test_isVisibleInStore_starterBundleStaysHiddenWhenUnshipped() {
+        let starter = CosmeticCatalog.product(
+            id: "com.saxweather.cosmetic.bundle.starter"
+        )!
+        let storeKitIDs: Set<String> = [starter.id]
+
+        XCTAssertFalse(
+            CosmeticCatalog.isVisibleInStore(
+                starter,
+                storeKitAvailableIDs: storeKitIDs,
+                isOwned: { _ in false }
+            ),
+            "Starter Pack references un-shipped items and remains catalog-gated off"
+        )
+    }
+
     // MARK: - Seasonal window
 
     func test_seasonalWindow_handlesNonWrappingWindow() {

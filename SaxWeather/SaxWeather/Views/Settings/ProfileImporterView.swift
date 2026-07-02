@@ -1,27 +1,3 @@
-//
-//  ProfileImporterView.swift
-//  SaxWeather
-//
-//  Phase 7 — Settings UI rebuild.
-//
-//  Export and import `.saxtheme` profiles. The view is a single
-//  sheet with two sections:
-//
-//    1. **Export** — exports the active profile to a `.saxtheme`
-//       JSON file in the user's Documents directory and presents a
-//       `ShareLink` so the user can AirDrop it, save it to Files,
-//       or share it any other way. Credentials
-//       (`wuApiKey` / `stationID` / `owmApiKey`) are stripped from
-//       the export by default — honouring `shareThemeOnExport`.
-//
-//    2. **Import** — opens a `.fileImporter` for `.saxtheme` files.
-//       The selected file is read, validated, migrated via
-//       `ProfileMigrator`, and a confirmation alert appears before
-//       the imported profile is applied via
-//       `CustomisationRegistry.apply(_:)`.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §2.9 and §4.7.
-//
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -30,9 +6,6 @@ struct ProfileImporterView: View {
     @EnvironmentObject private var customisation: CustomisationRegistry
     @Environment(\.dismiss) private var dismiss
 
-    /// The custom UTType for `.saxtheme` files. Falls back to
-    /// `json` if the UTI isn't registered (e.g. older app builds
-    /// that pre-date the Phase 8 Info.plist update).
     static let saxthemeContentType: UTType = {
         UTType("com.saxobroko.saxtheme") ?? .json
     }()

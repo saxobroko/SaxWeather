@@ -1,38 +1,3 @@
-//
-//  SettingsBackupAndRestoreView.swift
-//  SaxWeather
-//
-//  Phase 9 — Settings UI rebuild.
-//
-//  A dedicated sub-page that surfaces the "backup and restore"
-//  features under a single, focused roof:
-//
-//    1. **Backup** — exports the active profile to a `.saxtheme`
-//       file in the user's Documents directory and presents a
-//       `ShareLink` so the user can AirDrop it, save it to Files,
-//       or share it any other way. Credentials
-//       (`wuApiKey` / `stationID` / `owmApiKey`) are stripped from
-//       the export by default — honouring `shareThemeOnExport`.
-//
-//    2. **Restore** — opens a `.fileImporter` for `.saxtheme`
-//       files. The selected file is read, validated, migrated via
-//       `ProfileMigrator`, and a confirmation alert appears before
-//       the imported profile is applied via
-//       `CustomisationRegistry.apply(_:)`.
-//
-//    3. **iCloud Sync** — opt-in toggle that mirrors the active
-//       profile to `NSUbiquitousKeyValueStore` so it follows the
-//       user across every device signed in to the same iCloud
-//       account. Last-modified-wins conflict resolution. The
-//       section surfaces the current sync status, the timestamp
-//       of the last successful sync, and buttons to force a pull
-//       from iCloud or delete the remote copy.
-//
-//  Designed to be reached via a `NavigationLink` from the main
-//  Settings list — it owns its own `navigationTitle` so it reads
-//  correctly when pushed onto the settings stack.
-//
-//
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -128,7 +93,7 @@ struct SettingsBackupAndRestoreView: View {
                         customisation.apply(remote)
                     }
                 } label: {
-                    Label("Restore from iCloud Now", systemImage: "arrow.down.icloud")
+                    Label("Restore from iCloud Now", systemImage: "arrow.counterclockwise.icloud")
                 }
                 .buttonStyle(.plain)
 

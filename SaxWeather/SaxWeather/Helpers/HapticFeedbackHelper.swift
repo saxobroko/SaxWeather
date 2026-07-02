@@ -34,12 +34,6 @@ class HapticFeedbackHelper {
         return UserDefaults.standard.bool(forKey: "hapticOnSelection")
     }
 
-    /// The user-configured impact strength. Read from
-    /// `@AppStorage("hapticIntensity")` and used to pick a
-    /// native `UIImpactFeedbackGenerator.FeedbackStyle` for the
-    /// `light()` / `medium()` / `heavy()` helpers. Falls back
-    /// to `.medium` (the registry default) when the key is
-    /// missing or unrecognised.
     private var intensityStyle: UIImpactFeedbackGenerator.FeedbackStyle {
         guard let raw = UserDefaults.standard.string(forKey: "hapticIntensity") else {
             return .medium
@@ -51,14 +45,6 @@ class HapticFeedbackHelper {
         }
     }
 
-    /// Light, medium, or heavy impact, all scaled to the
-    /// user-configured `hapticIntensity`. `light()` always
-    /// downgrades by one tier (so "Light" stays noticeable);
-    /// `heavy()` always upgrades by one tier (so "Heavy" still
-    /// feels important); `medium()` matches the chosen
-    /// intensity exactly. This way the chosen intensity flows
-    /// through the entire app instead of being a label on a
-    /// picker that did nothing.
     func light() {
         guard isHapticEnabled else { return }
         let style: UIImpactFeedbackGenerator.FeedbackStyle
@@ -110,10 +96,6 @@ class HapticFeedbackHelper {
         generator.notificationOccurred(.error)
     }
     
-    /// Selection haptic - for picker changes. Honours the
-    /// `hapticOnSelection` Behaviour setting; some users find
-    /// selection haptics too noisy in pickers and want to
-    /// keep only button taps / refresh feedback.
     func selection() {
         guard isHapticEnabled, isSelectionHapticEnabled else { return }
         let generator = UISelectionFeedbackGenerator()

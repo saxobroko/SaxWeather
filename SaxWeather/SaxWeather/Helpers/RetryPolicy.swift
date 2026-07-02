@@ -12,16 +12,7 @@
 
 import Foundation
 
-/// Describes how aggressively the "Try Again" button should
-/// retry after a failure. Used by [`ErrorView`] so the same
-/// behaviour is consistent across the app — pull-to-refresh
-/// failures, geocoding errors, API-key errors, etc.
 struct RetryPolicy: Equatable {
-    /// Maximum number of backoff-delayed retries the user
-    /// gets before the button reverts to "Try Again" without
-    /// any delay. After this, subsequent taps invoke the
-    /// retry closure immediately (no further backoff) so a
-    /// determined user is never blocked.
     var maxAttempts: Int
     /// Initial delay before the first retry, in seconds.
     var baseDelay: TimeInterval
@@ -43,10 +34,6 @@ struct RetryPolicy: Equatable {
         backoffMultiplier: 2.0
     )
 
-    /// Aggressive policy: immediate retries, no backoff. Use
-    /// for actions where a long pause would feel broken (e.g.
-    /// "Try Again" on a non-network failure like a bad API
-    /// key — there's no point waiting to retry that).
     static let immediate = RetryPolicy(
         maxAttempts: 0,
         baseDelay: 0,

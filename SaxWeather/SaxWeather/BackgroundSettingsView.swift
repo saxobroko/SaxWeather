@@ -1,36 +1,3 @@
-//
-//  BackgroundSettingsView.swift
-//  SaxWeather
-//
-//  Phase 5 — Background engine UI.
-//
-//  Owns every knob in `BackgroundSpec`:
-//    • `mode` (preset / custom image / gradient / dynamic accent)
-//    • `useCustom` (gate for the custom image)
-//    • `customImageData` (the picked image, re-encoded to ≤ 200 KB)
-//    • `gradient` (top + bottom `ColourToken` + opacities)
-//    • `dynamicTint` (the `ColourToken` used by `.dynamicAccent`)
-//    • `perCondition` (per-condition photo library)
-//    • `timeOfDayRule` (none / dawnDayDuskNight / hourRange)
-//    • `overlayOpacity` (the dark overlay strength)
-//
-//  IAP GATING
-//  ----------
-//  Background customisation is sold as a single in-app purchase
-//  (the same "Custom Backgrounds" product the original settings
-//  view shipped with). Without the IAP the entire settings
-//  surface is hidden behind a paywall — the only way to access
-//  the controls is to buy the IAP first. The free default
-//  experience (preset image + 0.28 overlay) continues to work
-//  for every user regardless of purchase state.
-//
-//  The `BackgroundResolver` enforces the same gate at render
-//  time so the home screen always shows the free default when
-//  the IAP is locked, even if the spec still contains stale
-//  customisations from a prior purchase.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §1.2 and §4.5.
-//
 
 import SwiftUI
 #if os(iOS)
@@ -50,11 +17,6 @@ struct BackgroundSettingsView: View {
     @State private var perConditionEditorTarget: String?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    // Phase 2 — per-row lock UI. When the user taps a locked
-    // BackgroundMode row we present CosmeticsStoreView (via
-    // `pendingLockedProductID`) pointing at the cosmetic they
-    // need to buy. The cosmetic detail sheet auto-presents
-    // inside the store, matching the deep-link flow.
     @State private var pendingLockedProductID: String?
 
     private var knobs: Binding<KnobStorage> { registry.knobsBinding }
@@ -96,9 +58,6 @@ struct BackgroundSettingsView: View {
         .onChange(of: storeManager.purchaseError) { error in
             showingAlert = error != nil
         }
-        // Phase 2 — sheet presented when the user taps a locked
-        // BackgroundMode row. The CosmeticsStoreView auto-shows
-        // CosmeticDetailView for the requested product.
         .sheet(item: Binding(
             get: { pendingLockedProductID.map { LockedProductID(value: $0) } },
             set: { pendingLockedProductID = $0?.value }
@@ -131,14 +90,6 @@ struct BackgroundSettingsView: View {
             case .dynamicAccent:
                 dynamicAccentSection
             case .aurora:
-                // Phase 4 — the single Aurora preset reuses
-                // the preset-mode UI. The BackgroundResolver
-                // does the actual visual swap (picking the
-                // right Aurora image based on the current
-                // weather condition); we show the same
-                // per-condition and time-of-day controls so
-                // the user has full customisation over their
-                // Aurora background.
                 presetSection
             }
             perConditionSection
@@ -165,21 +116,6 @@ struct BackgroundSettingsView: View {
 
     private var modeSection: some View {
         Section {
-            // Phase 2 — per-row lock UI. Each `BackgroundMode`
-            // gets its own row showing a thumbnail swatch,
-            // the display name, and a lock badge if it requires
-            // a cosmetic the user doesn't own.
-            //
-            // Tapping rules (per the locked spec):
-            //   • Free modes (preset / customImage / gradient /
-            //     dynamicAccent) commit the selection directly.
-            //   • Owned paid modes commit the selection directly.
-            //   • Locked paid modes (`.aurora` for users who
-            //     don't own the cosmetic) present the in-app
-            //     cosmetics store at the required product's
-            //     detail sheet — they do NOT commit the
-            //     selection, so a locked row can never become
-            //     the selected mode by accident.
             ForEach(displayedBackgroundModes, id: \.self) { mode in
                 BackgroundModeRow(
                     mode: mode,
@@ -201,13 +137,6 @@ struct BackgroundSettingsView: View {
         }
     }
 
-    /// The full set of `BackgroundMode` cases displayed in
-    /// the per-row list. New themed modes (Neon, Seasonal)
-    /// will add their own cases here in later phases.
-    ///
-    /// Phase 4 — the single `.aurora` case is displayed as
-    /// one row in the picker. The resolver picks the right
-    /// Aurora image based on the current weather condition.
     private var displayedBackgroundModes: [BackgroundMode] {
         BackgroundMode.allCases
     }
@@ -731,12 +660,6 @@ struct BackgroundSettingsView_Previews: PreviewProvider {
 
 // MARK: - BackgroundModeRow (Phase 2 — per-row lock UI)
 
-/// A single row in the per-mode list. Renders the mode's
-/// thumbnail swatch, display name, and either a checkmark
-/// (selected / free or owned) or a lock badge (paid and
-/// unowned). Tapping a free or owned row commits the
-/// selection; tapping a locked paid row fires
-/// `onTapLocked` instead.
 struct BackgroundModeRow: View {
     let mode: BackgroundMode
     let isSelected: Bool
@@ -794,10 +717,6 @@ struct BackgroundModeRow: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    /// Small colour-swatch thumbnail for the row. Free modes
-    /// get a neutral swatch; Aurora gets the palette-cosmicAurora
-    /// gradient. Cosmetic-specific thumbnails (Neon, Seasonal,
-    /// etc.) will plug in here in later phases.
     @ViewBuilder
     private var thumbnail: some View {
         switch mode {
@@ -810,9 +729,6 @@ struct BackgroundModeRow: View {
         case .dynamicAccent:
             swatch(colors: [.orange.opacity(0.4), .yellow.opacity(0.6)])
         case .aurora:
-            // Phase 4 — the single Aurora preset uses the
-            // palette-driven swatch. The detail view (and the
-            // home screen) shows the actual per-condition image.
             swatch(colors: [
                 Color(red: 0.36, green: 0.75, blue: 0.74),
                 Color(red: 0.04, green: 0.11, blue: 0.23)
@@ -856,10 +772,6 @@ struct BackgroundModeRow: View {
 }
 
 extension BackgroundMode {
-    /// User-facing name for the per-row lock UI.
-    /// Phase 4 — the single Aurora preset uses the pack-level
-    /// name ("Aurora Backgrounds") so the picker reads as a
-    /// single row.
     var displayName: String {
         switch self {
         case .preset:          return "Preset"

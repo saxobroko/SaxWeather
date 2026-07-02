@@ -13,24 +13,6 @@ import MapKit
 import UIKit
 #endif
 
-// MARK: - Popup Environment
-struct PopupData {
-    let title: String
-    let value: String
-    let description: String
-}
-
-private struct PopupStateKey: EnvironmentKey {
-    static let defaultValue: Binding<PopupData?> = .constant(nil)
-}
-
-extension EnvironmentValues {
-    var popupState: Binding<PopupData?> {
-        get { self[PopupStateKey.self] }
-        set { self[PopupStateKey.self] = newValue }
-    }
-}
-
 // MARK: - Deep-link wrapper (Phase 2)
 
 /// Phase 2 — `Identifiable` wrapper used to drive the
@@ -59,8 +41,8 @@ struct UsageProductID: Identifiable {
 // MARK: - Content View
 struct ContentView: View {
     @EnvironmentObject var storeManager: StoreManager
+    @EnvironmentObject var locationsManager: SavedLocationsManager
     @StateObject private var weatherService = WeatherService()
-    @StateObject private var locationsManager = SavedLocationsManager()
     @State private var showSettings = false
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
@@ -76,8 +58,7 @@ struct ContentView: View {
     // for any legacy reader.
     @ObservedObject private var registry = CustomisationRegistry.shared
     @Environment(\.colorScheme) private var systemColorScheme
-    @StateObject private var weatherAlertManager = WeatherAlertManager()
-    @State private var activePopup: PopupData?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showingLocationMenu = false
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var selectedTab: Int = 0
@@ -88,6 +69,7 @@ struct ContentView: View {
     // from `SaxWeatherApp`; we only read its `pendingProductID`
     // here and forward it into our own state.
     @EnvironmentObject private var deepLinkHandler: CosmeticDeepLinkHandler
+    @EnvironmentObject private var locationDeepLinkHandler: WeatherLocationDeepLinkHandler
     @State private var pendingDeepLinkProductID: String?
     // Phase 5 — drives the palette + chart-skin picker sheets
     // presented in response to a "Use now" / "Use this" tap.
@@ -97,6 +79,8 @@ struct ContentView: View {
     @State private var pendingUsagePalette: String?
     @State private var pendingUsageChart: String?
     @State private var pendingUsageBackground: String?
+    @State private var selectedFeelsLikeMetric: WeatherMetricInfo?
+    @State private var presentedLocationPreview: LocationWeatherPreviewRequest?
 
     // Phase 3 — live cosmetic-preview coordinator. Owned at the
     // root so navigation logic + countdown overlay can both
@@ -137,6 +121,12 @@ struct ContentView: View {
     // Computed property to check if we should show location text.
     // Honours the user-configured `showLocationHeader` setting in
     // addition to the legacy WU override.
+    /// Summary-mode share affordance — hidden in Detailed layout.
+    private var showShareButton: Bool {
+        displayMode != "Detailed"
+            && weatherService.weather?.hasData == true
+    }
+
     private var shouldShowLocationText: Bool {
         // User has turned the header off entirely.
         guard SettingsBehaviour.showLocationHeader else { return false }
@@ -211,7 +201,164 @@ struct ContentView: View {
         guard let doubleValue = Double(value) else { return value }
         return String(format: "%.4f", doubleValue)
     }
-    
+
+    private func consumePendingAppIntentNavigation() {
+        guard let locationId = AppIntentNavigation.consumePendingLocationID() else { return }
+        navigateToLocation(id: locationId)
+    }
+
+    private func consumePendingWeatherLink() {
+        let link = AppIntentNavigation.consumePendingWeatherLink()
+            ?? locationDeepLinkHandler.pendingLink
+        guard let link else { return }
+        locationDeepLinkHandler.clearPending()
+        presentLocationPreview(.sharedLink(from: link))
+    }
+
+    private func presentLocationPreview(_ request: LocationWeatherPreviewRequest) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            presentedLocationPreview = request
+        }
+    }
+
+    private func dismissLocationPreview() {
+        presentedLocationPreview = nil
+    }
+
+    private var isLocationSwitchBlockedByAPIKeys: Bool {
+        let wuApiKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+        let stationID = UserDefaults.standard.string(forKey: "stationID") ?? ""
+        return !disableAPIKeys && (!wuApiKey.isEmpty || !stationID.isEmpty)
+    }
+
+    private func adoptPreviewLocation(_ request: LocationWeatherPreviewRequest) {
+        if request.isGPSPreview {
+            locationsManager.selectCurrentLocation()
+            weatherService.useGPS = true
+        } else if let savedID = request.savedLocationID,
+                  let location = locationsManager.locations.first(where: { $0.id == savedID }) {
+            locationsManager.selectLocation(location)
+            weatherService.useGPS = false
+        } else {
+            weatherService.useGPS = false
+
+            let latString = String(request.latitude)
+            let lonString = String(request.longitude)
+            UserDefaults.standard.set(latString, forKey: "latitude")
+            UserDefaults.standard.set(lonString, forKey: "longitude")
+            WidgetSyncService.shared.syncManualCoordinates(
+                latitude: latString,
+                longitude: lonString
+            )
+
+            if let stationID = request.stationID, !stationID.isEmpty {
+                let wuKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+                if !wuKey.isEmpty {
+                    UserDefaults.standard.set(stationID, forKey: "stationID")
+                }
+            }
+
+            if let match = locationsManager.locations.first(where: {
+                abs($0.latitude - request.latitude) < 0.0001
+                    && abs($0.longitude - request.longitude) < 0.0001
+            }) {
+                locationsManager.selectLocation(match)
+            }
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "LocationWeatherPreview.adopt")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 0
+        }
+    }
+
+    private func addAndUsePreviewLocation(_ request: LocationWeatherPreviewRequest) {
+        let rawName = request.name ?? String(
+            format: "%.4f, %.4f",
+            request.latitude,
+            request.longitude
+        )
+        let locationName = ShareLocationPlaceholder.isPlaceholder(rawName)
+            ? ShareLocationResolver.coordinateFallback(
+                latitude: request.latitude,
+                longitude: request.longitude
+            )
+            : rawName
+
+        if locationsManager.addLocation(
+            name: locationName,
+            latitude: request.latitude,
+            longitude: request.longitude
+        ), let addedLocation = locationsManager.locations.last {
+            locationsManager.selectLocation(addedLocation)
+            weatherService.useGPS = false
+            Task {
+                await weatherService.fetchWeather(calledFrom: "LocationWeatherPreview.addAndUse")
+            }
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = 0
+            }
+        }
+    }
+
+    /// Applies a shared link as the active app location (e.g. after explicit user action).
+    private func navigateToWeatherLink(_ link: PendingWeatherLink) {
+        weatherService.useGPS = false
+
+        let latString = String(link.latitude)
+        let lonString = String(link.longitude)
+        UserDefaults.standard.set(latString, forKey: "latitude")
+        UserDefaults.standard.set(lonString, forKey: "longitude")
+        WidgetSyncService.shared.syncManualCoordinates(
+            latitude: latString,
+            longitude: lonString
+        )
+
+        if let stationID = link.stationID, !stationID.isEmpty {
+            let wuKey = KeychainService.shared.getApiKey(forService: "wu") ?? ""
+            if !wuKey.isEmpty {
+                UserDefaults.standard.set(stationID, forKey: "stationID")
+            }
+        }
+
+        if let match = locationsManager.locations.first(where: {
+            abs($0.latitude - link.latitude) < 0.0001 && abs($0.longitude - link.longitude) < 0.0001
+        }) {
+            locationsManager.selectLocation(match)
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "WeatherShareLink")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 0
+        }
+    }
+
+    private func navigateToLocation(id locationId: UUID) {
+        if let location = locationsManager.locations.first(where: { $0.id == locationId }) {
+            locationsManager.selectLocation(location)
+            weatherService.useGPS = false
+        } else if locationId == SavedLocation.currentLocationEntry.id {
+            locationsManager.selectCurrentLocation()
+            weatherService.useGPS = true
+        } else {
+            return
+        }
+
+        Task {
+            await weatherService.fetchWeather(calledFrom: "AppIntent.NavigateToLocation")
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selectedTab = 1
+        }
+    }
+
     var body: some View {
         ZStack {
             Group {
@@ -238,7 +385,7 @@ struct ContentView: View {
                         .tag(1)
 
                         NavigationStack {
-                            AlertsView(alertManager: weatherAlertManager, weatherService: weatherService)
+                            AlertsView(weatherService: weatherService)
                         }
                         .tabItem {
                             Label("Alerts", systemImage: "exclamationmark.triangle")
@@ -255,7 +402,9 @@ struct ContentView: View {
 
                         #if DEBUG
                         NavigationStack {
-                            LottieDebugView()
+                            LottieDebugView(locationsManager: locationsManager)
+                                .environmentObject(weatherService)
+                                .environmentObject(registry)
                         }
                         .tabItem {
                             Label("Debug", systemImage: "ladybug.fill")
@@ -269,14 +418,9 @@ struct ContentView: View {
                         if weatherService.useGPS {
                             locationsManager.selectCurrentLocation()
                         }
-                        
-                        Task {
-                            await weatherService.fetchWeather(calledFrom: "TabView.onAppear")
-                        }
                     }
                 }
             }
-            .environment(\.popupState, $activePopup)
             // Phase 3 — inject the preview coordinator so child
             // views (`CosmeticsStoreView`, `CosmeticDetailView`)
             // can observe it.
@@ -320,46 +464,58 @@ struct ContentView: View {
                     isFirstLaunch = true
                 }
             }
-
-            // Global popup
-            if let popupData = activePopup {
-                Color.black.opacity(0.6)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        activePopup = nil
-                    }
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text(popupData.title)
-                            .font(.system(size: 17, weight: .semibold))
-                        Spacer()
-                        Text(popupData.value)
-                            .font(.system(size: 17))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Divider()
-                    
-                    Text(popupData.description)
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineSpacing(4)
+            // Phase 5 — App Intents navigation. When the user runs
+            // the "Show Forecast" intent, we persist the target
+            // location and post a notification. onAppear / active
+            // also consume any pending location for cold launches.
+            .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.navigateNotification)) { notification in
+                if let locationId = notification.userInfo?["locationId"] as? UUID {
+                    navigateToLocation(id: locationId)
                 }
-                .padding()
-                .frame(width: 280)
-                #if os(iOS)
-                .background(Color(UIColor.systemBackground))
-                #elseif os(macOS)
-                .background(Color(NSColor.windowBackgroundColor))
-                #endif
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.2), radius: 8)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.weatherLinkNotification)) { _ in
+                consumePendingWeatherLink()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: LocationPreviewNavigation.requestNotification)) { _ in
+                if let request = LocationPreviewNavigation.consumePending() {
+                    presentLocationPreview(request)
+                }
+            }
+            .onAppear {
+                consumePendingAppIntentNavigation()
+                consumePendingWeatherLink()
+                if let request = LocationPreviewNavigation.consumePending() {
+                    presentLocationPreview(request)
+                }
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    consumePendingAppIntentNavigation()
+                    consumePendingWeatherLink()
+                    if let request = LocationPreviewNavigation.consumePending() {
+                        presentLocationPreview(request)
+                    }
+                }
+            }
+            .fullScreenCover(item: $presentedLocationPreview) { request in
+                LocationWeatherPreviewSheet(
+                    request: request,
+                    locationsManager: locationsManager,
+                    onDismiss: dismissLocationPreview,
+                    onUseLocation: {
+                        adoptPreviewLocation(request)
+                    },
+                    onAddAndUseLocation: {
+                        addAndUsePreviewLocation(request)
+                    }
+                )
+                .environmentObject(storeManager)
+                .environmentObject(registry)
+                .environmentObject(colourTokenStore)
+                .environmentObject(chartPaletteStore)
             }
         }
         .accessibleAnimation(.easeInOut, value: isFirstLaunch)
-        .accessibleAnimation(.easeInOut, value: activePopup != nil)
         // Phase 3 — live-preview countdown overlay. Slides in
         // from the top whenever a cosmetic preview is active
         // (after the user tapped "Preview" inside
@@ -580,32 +736,47 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.25), value: healthMonitor.hasAnyBlockingIssue)
                 Spacer()
             }
+            .allowsHitTesting(healthMonitor.hasAnyBlockingIssue)
 
-            // Floating hamburger menu button — overlaid on top of content so it
-            // does not push the layout down (a "z-index" style overlay).
-            if showHamburgerMenu {
+            // Top overlay: share (summary) on the left, hamburger on the right.
+            if showShareButton || showHamburgerMenu {
                 HStack {
-                    Spacer()
-                    Button {
-                        #if canImport(UIKit)
-                        HapticFeedbackHelper.shared.light()
-                        #endif
-                        showingLocationMenu = true
-                    } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
-                            )
-                            .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                    if showShareButton,
+                       let weather = weatherService.weather,
+                       weather.hasData {
+                        WeatherShareButton(
+                            weather: weather,
+                            displayLocationName: currentLocationText,
+                            unitSystem: unitSystem,
+                            weatherService: weatherService,
+                            locationsManager: locationsManager
+                        )
                     }
-                    .accessibilityLabel("Location Menu")
-                    .accessibilityHint("Switch between saved locations")
+
+                    Spacer()
+
+                    if showHamburgerMenu {
+                        Button {
+                            #if canImport(UIKit)
+                            HapticFeedbackHelper.shared.light()
+                            #endif
+                            showingLocationMenu = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                                )
+                                .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                        }
+                        .accessibilityLabel("Location Menu")
+                        .accessibilityHint("Switch between saved locations")
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -617,8 +788,25 @@ struct ContentView: View {
             HamburgerLocationMenuView(
                 locationsManager: locationsManager,
                 weatherService: weatherService,
+                previewBeforeChangingLocation: SettingsBehaviour.previewBeforeChangingLocation,
+                isLocationSwitchBlockedByAPIKeys: isLocationSwitchBlockedByAPIKeys,
+                onRequestPreview: { request in
+                    showingLocationMenu = false
+                    presentLocationPreview(request)
+                },
                 onDismiss: { showingLocationMenu = false }
             )
+        }
+        .sheet(item: $selectedFeelsLikeMetric) { metric in
+            WeatherMetricInfoContent(
+                title: metric.title,
+                value: metric.value,
+                description: metric.description
+            )
+            #if os(iOS)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            #endif
         }
         // `swipeBetweenLocations` Behaviour setting — swipe
         // horizontally on the home screen to switch between
@@ -627,6 +815,23 @@ struct ContentView: View {
         .modifier(LocationSwipeModifier(
             enabled: SettingsBehaviour.swipeBetweenLocations,
             locationsManager: locationsManager,
+            weatherService: weatherService,
+            previewBeforeChangingLocation: SettingsBehaviour.previewBeforeChangingLocation
+                && !isLocationSwitchBlockedByAPIKeys,
+            onSwipeToLocation: { target in
+                let coordinates = weatherService.currentLocation
+                presentLocationPreview(
+                    .locationPeek(savedLocation: target, coordinates: coordinates)
+                )
+            }
+        ))
+        // `experimentalSwipeRefresh` — register pull-to-refresh on
+        // the whole home screen so it works outside the scroll view.
+        // ScrollView keeps its own `.refreshable` so the system
+        // control still appears when pulling inside the scroll area.
+        .modifier(PullToRefreshModifier(
+            enabled: SettingsBehaviour.pullToRefresh
+                && SettingsBehaviour.experimentalSwipeRefresh,
             weatherService: weatherService
         ))
     }
@@ -642,7 +847,9 @@ struct ContentView: View {
             sunset: weatherService.forecast?.daily.first?.sunset,
             now: Date(),
             customBackgroundUnlocked: storeManager.customBackgroundUnlocked,
-            isCosmeticUnlocked: storeManager.owns
+            isCosmeticUnlocked: { id in
+                storeManager.owns(id) || previewManager.isPreviewing(id)
+            }
         )
         return BackgroundViewWrapper(strategy: strategy)
     }
@@ -695,13 +902,6 @@ struct ContentView: View {
         Group {
             if let weather = weatherService.weather, weather.hasData {
                 VStack(spacing: 8) {
-                    // Stale data warning — appears when the
-                    // last successful fetch is older than the
-                    // freshness threshold (default 1 hour).
-                    // Hidden entirely when data is fresh.
-                    StaleDataWarning(weatherService: weatherService)
-                        .animation(.easeInOut(duration: 0.2), value: weatherService.lastSuccessfulFetch)
-
                     // Location label - only show when appropriate
                     if shouldShowLocationText {
                         Text("Weather for \(currentLocationText)")
@@ -710,6 +910,10 @@ struct ContentView: View {
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                             .padding(.top, 20)
+                    }
+
+                    if SettingsBehaviour.showHeroLastUpdated {
+                        HeroLastUpdatedButton(weatherService: weatherService)
                     }
                     
                     #if os(macOS)
@@ -727,7 +931,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                     #endif
                     
-                    let unitSymbol = unitSystem == "Metric" ? "°C" : "°F"
+                    let unitSymbol = UnitSystem.from(rawValue: unitSystem).temperatureLabel
                     
                     // Current Temperature Display
                     if let temperature = weather.temperature {
@@ -747,10 +951,23 @@ struct ContentView: View {
                         #endif
                     }
                     if let feelsLike = weather.feelsLike {
-                        Text(String(format: "Feels like %.1f%@", feelsLike, unitSymbol))
-                            .accessibleFont(size: 20, weight: .medium)
-                            .accessibleContrast()
-                            .foregroundColor(.primary)
+                        Button {
+                            selectedFeelsLikeMetric = WeatherMetricInfo(
+                                title: "Feels Like",
+                                value: String(format: "%.1f%@", feelsLike, unitSymbol),
+                                description: WeatherMetricDescriptions.feelsLikeDescription(
+                                    for: weather,
+                                    unitSystem: unitSystem
+                                )
+                            )
+                        } label: {
+                            Text(String(format: "Feels like %.1f%@", feelsLike, unitSymbol))
+                                .accessibleFont(size: 20, weight: .medium)
+                                .accessibleContrast()
+                                .foregroundColor(.primary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Shows how this value was calculated")
                     }
 
                     HStack {
@@ -866,7 +1083,7 @@ struct ContentView: View {
     }
     
     private var temperatureUnit: String {
-        UserDefaults.standard.string(forKey: "unitSystem") == "Metric" ? "°C" : "°F"
+        UnitSystem.from(rawValue: unitSystem).temperatureLabel
     }
     
     private var selectedColorScheme: ColorScheme? {
@@ -1001,17 +1218,18 @@ struct WeatherDetailsView: View {
     @Environment(\.colorScheme) private var colorScheme
     let weather: Weather
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
+    @State private var selectedMetric: WeatherMetricInfo?
     
     private var temperatureUnit: String {
-        unitSystem == "Metric" ? "°C" : "°F"
+        UnitSystem.from(rawValue: unitSystem).temperatureLabel
     }
     
     private var speedUnit: String {
-        unitSystem == "Metric" ? "km/h" : "mph"
+        UnitSystem.from(rawValue: unitSystem).speedLabel
     }
     
     private var pressureUnit: String {
-        unitSystem == "Metric" ? "hPa" : "inHg"
+        UnitSystem.from(rawValue: unitSystem).pressureLabel
     }
     
     var body: some View {
@@ -1025,7 +1243,14 @@ struct WeatherDetailsView: View {
         VStack(spacing: 12) {
             ForEach(weatherMetrics, id: \.title) { metric in
                 if let value = metric.value {
-                    WeatherRowView(title: metric.title, value: value)
+                    WeatherRowView(title: metric.title, value: value) {
+                        selectedMetric = WeatherMetricInfo(
+                            title: metric.title,
+                            value: value,
+                            description: WeatherMetricDescriptions.description(for: metric.title, unitSystem: unitSystem),
+                            windDirection: metric.title == "Wind Speed" ? windDirection : nil
+                        )
+                    }
                         .transition(
                             .asymmetric(
                                 insertion: .opacity
@@ -1038,7 +1263,22 @@ struct WeatherDetailsView: View {
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 16)
+        .allowsHitTesting(true)
         .styledCard()
+        .sheet(item: $selectedMetric) { metric in
+            WeatherMetricInfoContent(
+                title: metric.title,
+                value: metric.value,
+                description: metric.description,
+                windDirection: metric.windDirection
+            )
+            #if os(iOS)
+            .presentationDetents(
+                metric.windDirection != nil ? [.height(380)] : [.height(260)]
+            )
+            .presentationDragIndicator(.visible)
+            #endif
+        }
         .animation(
             .easeInOut(duration: 0.4),
             value: weatherMetrics.compactMap { $0.value }.count
@@ -1056,11 +1296,23 @@ struct WeatherDetailsView: View {
             ("Solar Radiation", weather.solarRadiation.map { "\($0) W/m²" })
         ]
     }
+
+    private var windDirection: Double? {
+        if let current = weather.currentWindDirection {
+            return current
+        }
+        if let forecast = weather.forecasts.first {
+            return Double(forecast.windDirection)
+        }
+        return nil
+    }
+
 }
 
 // MARK: - Extended Weather Section
 struct ExtendedWeatherSection: View {
     let weather: Weather
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
@@ -1073,6 +1325,19 @@ struct ExtendedWeatherSection: View {
             let _ = print("   - Sun Data: \(weather.sunData != nil ? "Available" : "nil")")
             let _ = print("   - Hourly Precip: \(weather.hourlyPrecipitation.count) items")
             #endif
+
+            // What to Wear — rule-based suggestions from feels-like,
+            // rain probability, wind, and UV.
+            if let wearData = WhatToWearData.from(
+                weather: weather,
+                unitSystem: UnitSystem.from(rawValue: unitSystem)
+            ) {
+                WhatToWearCardView(data: wearData)
+                    .padding(.horizontal, 20)
+                    .transition(
+                        .opacity.combined(with: .move(edge: .bottom))
+                    )
+            }
 
             // UV Index (enhanced with recommendations).
             // Each card slides up and fades in once its data
@@ -1119,7 +1384,10 @@ struct ExtendedWeatherSection: View {
 
             // Hourly Precipitation Graph
             if !weather.hourlyPrecipitation.isEmpty {
-                PrecipitationGraphView(hourlyData: weather.hourlyPrecipitation)
+                PrecipitationGraphView(
+                    hourlyData: weather.hourlyPrecipitation,
+                    timeZoneIdentifier: weather.locationTimeZoneIdentifier
+                )
                     .padding(.horizontal, 20)
                     .transition(
                         .opacity.combined(with: .move(edge: .bottom))
@@ -1162,89 +1430,117 @@ struct ExtendedWeatherSection: View {
             .easeInOut(duration: 0.4),
             value: weather.pollen?.tree
         )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.feelsLike
+        )
+        .animation(
+            .easeInOut(duration: 0.4),
+            value: weather.windSpeed
+        )
     }
 }
 
-// MARK: - Custom Popup View
-struct CustomPopup<Content: View>: View {
-    let content: Content
-    @Binding var isPresented: Bool
-    
-    init(isPresented: Binding<Bool>, @ViewBuilder content: () -> Content) {
-        self._isPresented = isPresented
-        self.content = content()
-    }
-    
+// MARK: - Weather Metric Info
+struct WeatherMetricInfo: Identifiable {
+    var id: String { title }
+    let title: String
+    let value: String
+    let description: String
+    var windDirection: Double? = nil
+}
+
+struct WeatherMetricInfoContent: View {
+    let title: String
+    let value: String
+    let description: String
+    var windDirection: Double? = nil
+
     var body: some View {
-        if isPresented {
-            ZStack {
-                // Full screen transparent button to handle dismissal
-                Color.black.opacity(0.6)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        isPresented = false
-                    }
-                
-                content
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            #if os(iOS)
-                            .fill(Color(UIColor.systemBackground))
-                            #elseif os(macOS)
-                            .fill(Color(NSColor.windowBackgroundColor))
-                            #endif
-                            .shadow(color: .black.opacity(0.2), radius: 8)
-                    )
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                Text(value)
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
             }
-            .transition(.opacity)
-            .zIndex(999) // Ensure popup is always on top
+
+            Divider()
+
+            if let windDirection {
+                VStack(spacing: 8) {
+                    WindCompassView(
+                        direction: windDirection,
+                        size: .regular,
+                        showCardinalLabel: false
+                    )
+                    Text("\(WindCompassView.cardinalAbbreviation(for: windDirection)) (\(String(format: "%.0f°", windDirection)))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            ScrollView {
+                Text(description)
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineSpacing(4)
+            }
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 // MARK: - Weather Row View
-struct WeatherRowView: View {
+struct WeatherRowView<Accessory: View>: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.popupState) private var popupState
-    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     let title: String
     let value: String
-    
-    var description: String {
-        switch title {
-            case "Humidity":
-                return "Humidity is the amount of water vapor present in the air. High humidity can make it feel warmer than it actually is, while low humidity can make it feel cooler."
-            case "Dew Point":
-                let threshold = unitSystem == "Metric" ? "18°C" : "65°F"
-                return "Dew point is the temperature at which water vapor in the air begins to condense. A higher dew point (above \(threshold)) means the air feels more humid and uncomfortable."
-            case "Pressure":
-                return "Atmospheric pressure affects weather conditions. Falling pressure often indicates approaching storms, while rising pressure typically means clearer weather."
-            case "Wind Speed":
-                return "Wind speed measures how fast the air is moving. Higher wind speeds can make it feel colder and may affect outdoor activities."
-            case "Wind Gust":
-                return "Wind gusts are sudden increases in wind speed. They're typically stronger than the average wind speed and can be particularly important for outdoor safety."
-            case "UV Index":
-                return "The UV Index measures the intensity of ultraviolet radiation from the sun. Higher values (6+) mean greater risk of sun damage and need for protection."
-            case "Solar Radiation":
-                return "Solar radiation measures the sun's energy reaching Earth's surface. It affects temperature and can impact solar panel efficiency."
-            default:
-                return "Weather measurement data"
-        }
+    let onTap: () -> Void
+    @ViewBuilder let accessory: () -> Accessory
+
+    init(
+        title: String,
+        value: String,
+        onTap: @escaping () -> Void,
+        @ViewBuilder accessory: @escaping () -> Accessory
+    ) {
+        self.title = title
+        self.value = value
+        self.onTap = onTap
+        self.accessory = accessory
     }
     
     var body: some View {
+        Button(action: onTap) {
+            rowContent
+                .frame(maxWidth: .infinity, minHeight: 39, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Shows an explanation of this measurement")
+    }
+
+    @ViewBuilder
+    private var rowContent: some View {
         if #available(iOS 26.2, *) {
-            // iOS 26+ style with subtle dark tint and glass effect
             HStack(spacing: 12) {
                 HStack(spacing: 8) {
                     Image(systemName: iconName)
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(colorScheme == .dark ? 
-                            Color.white.opacity(0.6) : 
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.6) :
                             Color.black.opacity(0.5)
                         )
                         .frame(width: 24)
-                    
+
                     Text(title)
                         .accessibleFont(size: 16, weight: .medium)
                         .accessibleContrast()
@@ -1253,29 +1549,32 @@ struct WeatherRowView: View {
                             Color.black.opacity(0.7)
                         )
                 }
-                
+
                 Spacer()
-                
-                Text(value)
-                    .accessibleFont(size: 16, weight: .semibold)
-                    .accessibleContrast()
+
+                HStack(spacing: 8) {
+                    Text(value)
+                        .accessibleFont(size: 16, weight: .semibold)
+                        .accessibleContrast()
+                        .foregroundStyle(colorScheme == .dark ?
+                            Color.white.opacity(0.9) :
+                            Color.black.opacity(0.8)
+                        )
+
+                    accessory()
+                }
+
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(colorScheme == .dark ?
-                        Color.white.opacity(0.9) :
-                        Color.black.opacity(0.8)
+                        Color.white.opacity(0.45) :
+                        Color.black.opacity(0.35)
                     )
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 4)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                popupState.wrappedValue = PopupData(
-                    title: title,
-                    value: value,
-                    description: description
-                )
-            }
         } else {
-            // Fallback for iOS 25 and earlier
             HStack {
                 Text(title)
                     .font(.headline)
@@ -1284,16 +1583,13 @@ struct WeatherRowView: View {
                 Text(value)
                     .font(.body)
                     .foregroundColor(colorScheme == .dark ? .white : .black)
+
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                popupState.wrappedValue = PopupData(
-                    title: title,
-                    value: value,
-                    description: description
-                )
-            }
         }
     }
     
@@ -1312,39 +1608,9 @@ struct WeatherRowView: View {
     }
 }
 
-// MARK: - Weather Metric Detail View
-struct WeatherMetricDetailView: View {
-    let title: String
-    let value: String
-    let description: String
-    @Environment(\.colorScheme) private var colorScheme
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                Spacer()
-                Text(value)
-                    .font(.system(size: 17))
-                    .foregroundColor(.secondary)
-            }
-            
-            Divider()
-            
-            Text(description)
-                .font(.system(size: 15))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(4)
-        }
-        .padding()
-        .frame(width: 280)
-        #if os(iOS)
-        .background(Color(UIColor.systemBackground))
-        #elseif os(macOS)
-        .background(Color(NSColor.windowBackgroundColor))
-        #endif
+extension WeatherRowView where Accessory == EmptyView {
+    init(title: String, value: String, onTap: @escaping () -> Void) {
+        self.init(title: title, value: value, onTap: onTap, accessory: { EmptyView() })
     }
 }
 
@@ -1356,6 +1622,9 @@ struct WeatherMetricDetailView: View {
 struct HamburgerLocationMenuView: View {
     @ObservedObject var locationsManager: SavedLocationsManager
     @ObservedObject var weatherService: WeatherService
+    let previewBeforeChangingLocation: Bool
+    let isLocationSwitchBlockedByAPIKeys: Bool
+    let onRequestPreview: (LocationWeatherPreviewRequest) -> Void
     let onDismiss: () -> Void
 
     @AppStorage("disableAPIKeys") private var disableAPIKeys = false
@@ -1376,7 +1645,11 @@ struct HamburgerLocationMenuView: View {
         UserDefaults.standard.string(forKey: "stationID") ?? ""
     }
     private var isOverriddenByAPIKeys: Bool {
-        !disableAPIKeys && (!wuApiKey.isEmpty || !stationID.isEmpty)
+        isLocationSwitchBlockedByAPIKeys
+    }
+
+    private var shouldPreviewBeforeSwitching: Bool {
+        previewBeforeChangingLocation && !isOverriddenByAPIKeys
     }
 
     private var isGPSSelected: Bool {
@@ -1419,7 +1692,7 @@ struct HamburgerLocationMenuView: View {
                         isSelected: isGPSSelected,
                         isDisabled: false
                     ) {
-                        selectCurrentLocation()
+                        handleLocationTap(locationsManager.currentLocationEntry)
                     }
 
                     if locationsManager.locations.isEmpty {
@@ -1442,7 +1715,18 @@ struct HamburgerLocationMenuView: View {
                                     locationsManager.selectedLocation?.id == location.id,
                                 isDisabled: false
                             ) {
-                                selectLocation(location)
+                                handleLocationTap(location)
+                            }
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                #if canImport(UIKit)
+                                HapticFeedbackHelper.shared.medium()
+                                #endif
+                                onRequestPreview(
+                                    .peekOnly(
+                                        savedLocation: location,
+                                        coordinates: weatherService.currentLocation
+                                    )
+                                )
                             }
                         }
                     }
@@ -1535,6 +1819,24 @@ struct HamburgerLocationMenuView: View {
 
     // MARK: - Selection Handlers
 
+    private func handleLocationTap(_ location: SavedLocation) {
+        if shouldPreviewBeforeSwitching {
+            onRequestPreview(
+                .locationPeek(
+                    savedLocation: location,
+                    coordinates: weatherService.currentLocation
+                )
+            )
+            return
+        }
+
+        if location.isCurrentLocation {
+            selectCurrentLocation()
+        } else {
+            selectLocation(location)
+        }
+    }
+
     private func selectCurrentLocation() {
         #if canImport(UIKit)
         HapticFeedbackHelper.shared.light()
@@ -1581,23 +1883,15 @@ struct HamburgerLocationMenuView: View {
         let validatedLon = validationResult.normalizedLongitude ?? lon
         let locationName = mapSelectedLocationName ?? "Selected Location"
 
-        if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-            if let addedLocation = locationsManager.locations.last {
-                locationsManager.selectLocation(addedLocation)
-                weatherService.useGPS = false
-                Task {
-                    await weatherService.fetchWeather(calledFrom: "HamburgerLocationMenuView.addMapLocation")
-                }
-            }
-            mapSelectedLocation = nil
-            mapSelectedLocationName = nil
-            onDismiss()
-        } else {
-            alertMessage = "Invalid coordinates. Please try again."
-            showingAlert = true
-            mapSelectedLocation = nil
-            mapSelectedLocationName = nil
-        }
+        mapSelectedLocation = nil
+        mapSelectedLocationName = nil
+        onRequestPreview(
+            .addLocation(
+                name: locationName,
+                latitude: validatedLat,
+                longitude: validatedLon
+            )
+        )
     }
 }
 
@@ -1605,6 +1899,8 @@ struct HamburgerLocationMenuView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+            .environmentObject(StoreManager.shared)
+            .environmentObject(SavedLocationsManager())
     }
 }
 
@@ -1613,6 +1909,9 @@ struct HamburgerLocationMenuView_Previews: PreviewProvider {
         HamburgerLocationMenuView(
             locationsManager: SavedLocationsManager(),
             weatherService: WeatherService(),
+            previewBeforeChangingLocation: true,
+            isLocationSwitchBlockedByAPIKeys: false,
+            onRequestPreview: { _ in },
             onDismiss: {}
         )
     }
@@ -1663,13 +1962,16 @@ struct LocationSwipeModifier: ViewModifier {
     let enabled: Bool
     @ObservedObject var locationsManager: SavedLocationsManager
     @ObservedObject var weatherService: WeatherService
+    let previewBeforeChangingLocation: Bool
+    let onSwipeToLocation: (SavedLocation) -> Void
 
     func body(content: Content) -> some View {
         if enabled {
             content
-                .gesture(
+                .simultaneousGesture(
                     DragGesture(minimumDistance: 60)
                         .onEnded { value in
+                            guard abs(value.translation.width) > abs(value.translation.height) else { return }
                             handleSwipe(translation: value.translation.width)
                         }
                 )
@@ -1696,6 +1998,12 @@ struct LocationSwipeModifier: ViewModifier {
         #if canImport(UIKit)
         HapticFeedbackHelper.shared.light()
         #endif
+
+        if previewBeforeChangingLocation {
+            onSwipeToLocation(target)
+            return
+        }
+
         if target.isCurrentLocation {
             locationsManager.selectCurrentLocation()
             weatherService.useGPS = true

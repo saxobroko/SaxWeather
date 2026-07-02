@@ -1,5 +1,5 @@
 {
-  "originHash" : "117b521efab96f4eda2a0f45c75715be88595e977dec1dc8872739063a311c96",
+  "originHash" : "cb549b53cb63c6824a026662e8a5829c1a849025e26744e89bb608e1b9ecc79d",
   "pins" : [
     {
       "identity" : "keychain-swift",
@@ -17,15 +17,6 @@
       "state" : {
         "revision" : "26d84192430ed5b104d64b8086872bb4979d65a4",
         "version" : "4.4.0"
-      }
-    },
-    {
-      "identity" : "xmlcoder",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/MaxDesiatov/XMLCoder",
-      "state" : {
-        "revision" : "b1e944cbd0ef33787b13f639a5418d55b3bed501",
-        "version" : "0.17.1"
       }
     }
   ],

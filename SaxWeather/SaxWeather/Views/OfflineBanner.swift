@@ -13,13 +13,6 @@
 
 import SwiftUI
 
-/// Slim banner that appears at the top of the app when the
-/// device loses connectivity. Designed to be placed inside a
-/// `.safeAreaInset(edge: .top)` modifier on the root view.
-///
-/// Uses the shared `NetworkMonitor` singleton (a published
-/// `ObservableObject`) so the banner reactively follows
-/// connectivity changes without any per-view plumbing.
 struct OfflineBanner: View {
     @ObservedObject private var monitor = NetworkMonitor.shared
 

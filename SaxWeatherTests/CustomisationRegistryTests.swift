@@ -350,15 +350,11 @@ final class CustomisationRegistryTests: XCTestCase {
             "backgroundDynamicTint", "backgroundPerCondition", "backgroundGradient",
             "lottieOverrideMap",
             "temperaturePrecision", "windPrecision", "pressurePrecision",
-            "visibleMetrics", "hourlyMetrics", "extendedCardsEnabled", "showLocationLabel",
+            "showLocationLabel",
             "hapticIntensity", "pullToRefresh", "tapDayToExpand", "longPressToCustomise",
             "confirmDestructive",
             "weatherAlertSounds", "quietHours", "refreshSound",
             "hapticOnSelection", "tapticOnRefresh",
-            "locationNicknames", "customLabels",
-            "shortcutName", "shareThemeOnExport",
-            "widgetAccentSource",
-            "hourlyCardStyle", "dailyCardStyle", "chartAxes",
         ]
         for id in existing {
             XCTAssertTrue(ids.contains(id), "Missing descriptor for \(id)")
@@ -367,8 +363,8 @@ final class CustomisationRegistryTests: XCTestCase {
         // Genuinely new v2 knobs.
         let newOnes = [
             "iconSizeMultiplier",
-            "swipeBetweenLocations", "showLocationHeader", "compactCardsInLandscape",
-            "showHourlySummary", "detailedColumnCount",
+            "swipeBetweenLocations", "showLocationHeader", "previewBeforeChangingLocation",
+            "compactCardsInLandscape",
             "vibrateOnPullToRefresh", "confirmQuit",
             "experimentalNewHeroLayout", "experimentalSwipeRefresh",
         ]

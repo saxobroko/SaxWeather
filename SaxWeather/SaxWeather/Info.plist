@@ -31,5 +31,7 @@
 	<string>Your location is used to provide weather information for your current location.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Your location is used to provide weather information for your current location and to update widgets in the background.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SaxWeather saves weather snapshot images to your photo library when you choose Save to Photos.</string>
 </dict>
 </plist>

@@ -1,24 +1,3 @@
-//
-//  ColourToken.swift
-//  SaxWeather
-//
-//  Phase 3 — typed colour primitive used by every visual knob.
-//
-//  Why a dedicated type? Three reasons:
-//    1. **Type safety** — `\.visual.accentColor` is `ColourToken`,
-//       not `String`. The compiler catches typos at the call site.
-//    2. **Pluggable sources** — `.named("blue")` reuses the
-//       shipped palette; `.rgb(...)` and `.hex(...)` let power
-//       users pick exact colours via the JSON profile editor or
-//       `.saxtheme` import.
-//    3. **JSON + UserDefaults friendly** — `ColourToken` encodes
-//       as a single `String` (`"blue"` / `"#FF8800"` /
-//       `"rgb(1.0,0.5,0.0,1.0)"`), so it round-trips losslessly
-//       through `.saxtheme` and through the bridge's
-//       `@AppStorage` keys without a custom container.
-//
-//  See `plans/INFINITE_CUSTOMISATION_PLAN.md` §1.1 + §4.3.
-//
 
 import SwiftUI
 #if canImport(AppKit)
@@ -112,10 +91,6 @@ enum ColourToken: Codable, Hashable, Sendable {
         }
     }
 
-    /// Convenience for SwiftUI views that don't care about
-    /// colour scheme (most cards, lists, etc.). Uses the current
-    /// environment colour scheme via the system `Color.primary`
-    /// / `.secondary` references that adapt automatically.
     var color: Color { color(for: .light) }
 
     // MARK: - Built-in palette

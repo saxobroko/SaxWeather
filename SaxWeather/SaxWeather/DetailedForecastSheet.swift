@@ -20,16 +20,11 @@ struct DetailedForecastSheet: View {
     let unitSystem: String
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
-    // Phase 6 — `loadingFailed` removed; `ConditionIcon` handles
-    // the Lottie → SF Symbol fallback internally.
 
     // Shared asymmetric transition reused across the
     // detail grid so each card fades and scales in uniformly.
     private var cardTransition: AnyTransition {
-        .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.9)),
-            removal: .opacity
-        )
+        .cardAppearance
     }
 
     var body: some View {
@@ -57,12 +52,6 @@ struct DetailedForecastSheet: View {
                 VStack(spacing: 16) {
                     // Lottie animation with temperature
                     HStack(spacing: 25) {
-                        // Phase 6 — migrated to `ConditionIcon` so the
-                        // iconography knobs in `IconographySpec` are
-                        // honoured automatically. The SF Symbol
-                        // fallback replaces the previous text-emoji
-                        // fallback for consistency with the rest of
-                        // the app.
                         ConditionIcon(
                             weatherCode: day.weatherCode,
                             isNight: false,
@@ -138,7 +127,7 @@ struct DetailedForecastSheet: View {
                     WeatherDetailCard(
                         icon: "wind",
                         label: "Wind Speed",
-                        value: "\(Int(round(day.windSpeed))) \(unitSystem == "Metric" ? "km/h" : "mph")",
+                        value: "\(Int(round(day.windSpeed))) \(UnitSystem.from(rawValue: unitSystem).speedLabel)",
                         color: .teal
                     )
                     .transition(cardTransition)

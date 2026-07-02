@@ -473,33 +473,44 @@ struct SunArcView: View {
 // MARK: - Precipitation Graph
 struct PrecipitationGraphView: View {
     let hourlyData: [HourlyPrecipitation]
+    var timeZoneIdentifier: String? = nil
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingDetail = false
-    // Part F — observe the reactive chart palette store so the
-    // rain probability chart re-renders when the chart skin or
-    // entitlements change (e.g. during a live preview of the
-    // Aurora Chart Skin cosmetic). The store observes
-    // `CustomisationRegistry` and `StoreManager` and updates its
-    // `@Published var activeSkin` when either changes.
     @EnvironmentObject private var chartPaletteStore: ChartPaletteStore
 
-    /// Resolved colour scheme for the rain probability chart.
-    /// Free users always get the default blue tones; users who
-    /// own the Aurora Chart Skin IAP (or the Supporter Pack)
-    /// get the Aurora palette (ocean blue → teal → coral).
-    ///
-    /// Part F — reads `chartPaletteStore.activeSkin` directly so
-    /// SwiftUI tracks the dependency and re-renders when the
-    /// chart skin changes (e.g. during a live preview).
     private var chartColors: ChartColorScheme {
         ChartColorScheme.rainProbability(activeSkin: chartPaletteStore.activeSkin)
     }
 
+    private var locationCalendar: Calendar {
+        var calendar = Calendar.current
+        if let timeZoneIdentifier,
+           let timeZone = TimeZone(identifier: timeZoneIdentifier) {
+            calendar.timeZone = timeZone
+        }
+        return calendar
+    }
+
+    private var displayData: [HourlyPrecipitation] {
+        let now = Date()
+        guard let startIndex = hourlyData.firstIndex(where: {
+            locationCalendar.compare($0.hour, to: now, toGranularity: .hour) != .orderedAscending
+        }) else {
+            return Array(hourlyData.prefix(24))
+        }
+        return Array(hourlyData.dropFirst(startIndex).prefix(24))
+    }
+
+    private var hourLabelFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = locationCalendar.timeZone
+        return formatter
+    }
+
     var body: some View {
-        // Part F — direct reference to `chartPaletteStore.activeSkin`
-        // so SwiftUI tracks the dependency and re-renders when
-        // the chart skin or entitlements change (e.g. during a
-        // live preview of the Aurora Chart Skin cosmetic).
         let _ = chartPaletteStore.activeSkin
         Button(action: {
             showingDetail = true
@@ -512,9 +523,6 @@ struct PrecipitationGraphView: View {
                 HStack {
                     Image(systemName: "cloud.rain.fill")
                         .font(.system(size: 20))
-                        // Part F — use the resolved chart colour
-                        // scheme's `primary` for the header icon
-                        // so the icon matches the bar fill.
                         .foregroundColor(chartColors.primary)
 
                     Text("Rain Probability")
@@ -541,10 +549,6 @@ struct PrecipitationGraphView: View {
                                 path.move(to: CGPoint(x: 0, y: y))
                                 path.addLine(to: CGPoint(x: geometry.size.width, y: y))
                             }
-                            // Part F — use the resolved chart
-                            // colour scheme's `background` for
-                            // the grid lines so they match the
-                            // chart's colour identity.
                             .stroke(chartColors.background, lineWidth: 1)
                         }
 
@@ -555,15 +559,10 @@ struct PrecipitationGraphView: View {
                         // undifferentiated strip of bars — a
                         // common source of the "glitchy" feel
                         // users reported.
-                        if let nowIndex = currentHourIndex() {
+                        if !displayData.isEmpty {
                             let columnWidth = columnWidth(in: geometry.size)
-                            let x = columnWidth * CGFloat(nowIndex) + columnWidth / 2
+                            let x = columnWidth / 2
                             Rectangle()
-                                // Part F — use the resolved chart
-                                // colour scheme's `accent` for
-                                // the "now" indicator so it
-                                // matches the chart's colour
-                                // identity.
                                 .fill(chartColors.accent.opacity(0.85))
                                 .frame(width: 2, height: geometry.size.height)
                                 .position(x: x, y: geometry.size.height / 2)
@@ -581,7 +580,7 @@ struct PrecipitationGraphView: View {
                         // never appears empty for users with no
                         // rain in the next 24 hours.
                         HStack(alignment: .bottom, spacing: 2) {
-                            ForEach(Array(hourlyData.prefix(24).enumerated()), id: \.offset) { _, data in
+                            ForEach(Array(displayData.enumerated()), id: \.offset) { _, data in
                                 VStack(spacing: 2) {
                                     Spacer(minLength: 0)
 
@@ -606,9 +605,9 @@ struct PrecipitationGraphView: View {
                                         .cornerRadius(2)
                                         .animation(.easeInOut(duration: 0.4), value: data.probability)
 
-                                    // Hour label (show every 3 hours)
-                                    if Calendar.current.component(.hour, from: data.hour) % 3 == 0 {
-                                        Text(data.hour, style: .time)
+                                    // Hour label (show every 3 hours in the location timezone)
+                                    if locationCalendar.component(.hour, from: data.hour) % 3 == 0 {
+                                        Text(hourLabelFormatter.string(from: data.hour))
                                             .font(.system(size: 9))
                                             .foregroundColor(.secondary)
                                             .fixedSize()
@@ -634,13 +633,10 @@ struct PrecipitationGraphView: View {
                 // transitions between fetches (e.g. when the user
                 // changes location) ease smoothly instead of
                 // snapping.
-                .animation(.easeInOut(duration: 0.3), value: hourlyData.count)
+                .animation(.easeInOut(duration: 0.3), value: displayData.count)
                 
                 // Legend
                 HStack(spacing: 16) {
-                    // Part F — use the resolved chart colour
-                    // scheme's `primary` for the legend swatches
-                    // so they match the bar fill.
                     LegendItem(color: chartColors.primary.opacity(0.3), text: "Light")
                     LegendItem(color: chartColors.primary.opacity(0.6), text: "Moderate")
                     LegendItem(color: chartColors.primary.opacity(0.9), text: "Heavy")
@@ -658,16 +654,14 @@ struct PrecipitationGraphView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingDetail) {
-            PrecipitationDetailView(data: hourlyData)
+            PrecipitationDetailView(
+                data: displayData,
+                timeZoneIdentifier: timeZoneIdentifier
+            )
         }
     }
     
     private func colorForProbability(_ probability: Int) -> Color {
-        // Part F — use the resolved chart colour scheme instead
-        // of hardcoded `Color.blue`. The scheme's `primary` is
-        // the bar fill (top stop), `secondary` is the gradient
-        // bottom stop. Free users see blue tones; Aurora owners
-        // see the Aurora palette (ocean blue → teal).
         let base = chartColors.primary
         switch probability {
         case 0..<30: return base.opacity(0.3)
@@ -676,37 +670,62 @@ struct PrecipitationGraphView: View {
         }
     }
 
-    /// Index of the column whose hour matches the current
-    /// device clock. Returns `nil` when the "now" hour is not
-    /// in the displayed range (e.g. late at night when the
-    /// 24-hour window is already in tomorrow's afternoon).
-    private func currentHourIndex() -> Int? {
-        let now = Date()
-        return hourlyData.prefix(24).firstIndex { entry in
-            Calendar.current.isDate(entry.hour, equalTo: now, toGranularity: .hour)
-        }
-    }
-
-    /// Width of one bar column in the chart. We compute this
-    /// from the container width, the number of columns, and
-    /// the inter-column spacing so the "now" indicator sits
-    /// exactly between the bars regardless of device size.
     private func columnWidth(in size: CGSize) -> CGFloat {
-        let columns = max(1, hourlyData.prefix(24).count)
+        let columns = max(1, displayData.count)
         let spacing: CGFloat = 2
         let totalSpacing = spacing * CGFloat(columns - 1)
         return max(0, (size.width - totalSpacing) / CGFloat(columns))
     }
 
-    /// Pinned-bar height for a given probability. We cap the
-    /// drawn height at `container` so 100% bars still leave a
-    /// hairline of breathing room at the top — the previous
-    /// implementation hit the very top edge of the
-    /// GeometryReader which made high-probability bars look
-    /// "stuck" to the card.
     private func barHeight(probability: Int, container: CGFloat) -> CGFloat {
         let cappedContainer = max(0, container - 2)
         return cappedContainer * CGFloat(probability) / 100
+    }
+}
+
+// MARK: - What to Wear Card
+struct WhatToWearCardView: View {
+    let data: WhatToWearData
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "tshirt.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.teal)
+
+                Text("What to Wear")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Spacer()
+
+                if let feelsLikeSummary = data.feelsLikeSummary {
+                    Text(feelsLikeSummary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(data.suggestions) { suggestion in
+                    RecommendationRow(icon: suggestion.icon, text: suggestion.text)
+                }
+            }
+        }
+        .padding(16)
+        .styledCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = ["What to wear"]
+        if let feelsLikeSummary = data.feelsLikeSummary {
+            parts.append(feelsLikeSummary)
+        }
+        parts.append(contentsOf: data.suggestions.map(\.text))
+        return parts.joined(separator: ". ")
     }
 }
 

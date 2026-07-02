@@ -140,7 +140,7 @@
       "internalID" : "2234567892",
       "localizations" : [
         {
-          "description" : "A small private acknowledgement in Settings → About. Purely cosmetic — no public visibility, no social comparison.",
+          "description" : "A small private acknowledgement in Settings → About.",
           "displayName" : "Supporter Badge",
           "locale" : "en_US"
         }

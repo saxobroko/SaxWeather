@@ -16,7 +16,15 @@ struct WeatherAnimationHelper {
         case _ where conditionLower.contains("clear"):
             return isNight ? "clear-night" : "clear-day"
         case _ where conditionLower.contains("partly cloudy"):
-            return isNight ? "partly-cloudy-night" : "partly-cloudy-day"
+            // Bundled daytime file is `partly-cloudy.json`
+            // (no `-day` suffix). `partly-cloudy-day` would
+            // fail to load and ConditionIcon would silently
+            // fall back to the SF Symbol, which is why the
+            // main page hero animation has been broken for
+            // the default "Partly Cloudy" condition while the
+            // forecast page (which uses WMO codes and resolves
+            // to `partly-cloudy`) keeps working.
+            return isNight ? "partly-cloudy-night" : "partly-cloudy"
         case _ where conditionLower.contains("cloudy") || conditionLower.contains("overcast"):
             return "cloudy"
         case _ where conditionLower.contains("fog") || conditionLower.contains("mist"):

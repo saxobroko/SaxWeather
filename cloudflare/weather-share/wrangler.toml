@@ -1,0 +1,15 @@
+name = "weather-share"
+main = "src/index.js"
+compatibility_date = "2025-07-01"
+
+routes = [
+  { pattern = "weather.saxobroko.com/*", zone_name = "saxobroko.com" }
+]
+
+[vars]
+APPLE_TEAM_ID = "F2AHYWP9BX"
+IOS_BUNDLE_ID = "com.saxobroko.SaxWeather"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"

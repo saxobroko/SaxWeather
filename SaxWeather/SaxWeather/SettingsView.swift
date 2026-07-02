@@ -12,14 +12,17 @@ import MapKit
 import UIKit
 #endif
 
+private func requestAddLocationPreview(name: String, latitude: Double, longitude: Double) {
+    LocationPreviewNavigation.request(
+        .addLocation(name: name, latitude: latitude, longitude: longitude)
+    )
+}
+
 struct SettingsView: View {
     @ObservedObject var weatherService: WeatherService
     @EnvironmentObject var storeManager: StoreManager
-    /// Customisation engine — Phase 2: every `@AppStorage` write
-    /// below is forwarded to the registry via `.onChange` modifiers
-    /// attached at the body root, so the registry is the single
-    /// mutation path. Reads stay as `@AppStorage` for now.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
+    @EnvironmentObject private var locationsManager: SavedLocationsManager
     @AppStorage("wuApiKey") private var wuApiKey = ""
     @AppStorage("stationID") private var stationID = ""
     @AppStorage("owmApiKey") private var owmApiKey = ""
@@ -35,7 +38,6 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @Environment(\.colorScheme) private var systemColorScheme
-    @StateObject private var locationsManager = SavedLocationsManager()
     @StateObject private var healthMonitor = APIKeyHealthMonitor.shared
     @State private var showingAddLocationSheet = false
     @State private var addLocationMode: AddLocationMode? = nil
@@ -62,10 +64,6 @@ struct SettingsView: View {
     var isOnboarding: Bool = false
     @Environment(\.dismiss) private var dismiss
 
-    // Phase 7 — Settings search bar (iOS Settings pattern).
-    // When non-empty, hides the full settings tree and shows
-    // matching customisation knobs from the registry's catalogue.
-    // Clearing the query restores the normal settings list.
     @State private var settingsSearchQuery: String = ""
     /// Sheet presented when a search result row opens a sheet
     /// (Theme switcher, Share Theme, Tip Jar).
@@ -128,9 +126,6 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                             .padding()
 
-                            // Phase 1 — Cosmetics Store entry
-                            // point (macOS). Mirrors the iOS
-                            // entry point one row below.
                             Button {
                                 showingCosmeticsStore = true
                             } label: {
@@ -142,6 +137,10 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .padding()
+                        }
+                        GroupBox(label: Text("Feedback").font(.title3).fontWeight(.semibold)) {
+                            feedbackSection
+                                .padding()
                         }
                         GroupBox(label: Text("About").font(.title3).fontWeight(.semibold)) {
                             aboutSection
@@ -158,9 +157,6 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .center)
             }
             .navigationTitle("Settings")
-            // Phase 2 bridge — every bridged setting forwards its
-            // new value to the registry. The existing side effects
-            // (Task { fetch… }, etc.) are preserved.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
                 customisationRegistry.set(\.layout.forecastDays, newValue)
@@ -182,9 +178,6 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                // Phase 3 — accentColor is now a ColourToken; the
-                // existing `@AppStorage` writes a plain String, so
-                // wrap on the bridge.
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
@@ -221,12 +214,6 @@ struct SettingsView: View {
         }
         #else
         NavigationStack(path: $searchNavigationPath) {
-            // Phase 7 — the search results view renders its own
-            // `List` so its `Button` rows get the proper List row
-            // tap handling. The normal settings tree still uses
-            // the outer `List` below. Wrapped in `Group` so the
-            // navigation modifiers apply to whichever branch is
-            // active.
             Group {
                 if settingsSearchQuery.isEmpty {
                     List {
@@ -244,13 +231,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            // Phase 7 — sheets driven by the search results.
             .sheet(item: $searchSheet) { sheet in
                 searchSheetView(for: sheet)
             }
-            // Phase 7 — navigation destinations driven by the
-            // search results. Cleared every time the user starts a
-            // new search.
             .navigationDestination(for: SettingsSearchRoute.self) { route in
                 searchDestinationView(for: route)
             }
@@ -265,9 +248,6 @@ struct SettingsView: View {
                     searchSheet = nil
                 }
             }
-            // Phase 7 — iOS-Settings-style search bar pinned to the
-            // navigation bar. Typing a query collapses the settings
-            // tree into a filtered results list.
             .searchable(
                 text: $settingsSearchQuery,
                 placement: .navigationBarDrawer(displayMode: .always),
@@ -279,9 +259,6 @@ struct SettingsView: View {
             .toolbar(settingsSearchQuery.isEmpty ? .visible : .visible, for: .navigationBar)
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
-            // Phase 2 bridge — iOS body. Same as the macOS body:
-            // every bridged setting forwards its new value to the
-            // registry.
             .onChange(of: forecastDays) { newValue in
                 Task { await weatherService.fetchForecasts() }
                 customisationRegistry.set(\.layout.forecastDays, newValue)
@@ -303,9 +280,6 @@ struct SettingsView: View {
                 customisationRegistry.set(\.data.disableAPIKeys, newValue)
             }
             .onChange(of: accentColor) { newValue in
-                // Phase 3 — accentColor is now a ColourToken; the
-                // existing `@AppStorage` writes a plain String, so
-                // wrap on the bridge.
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
             }
             .sheet(isPresented: $showingTipJar) {
@@ -432,6 +406,12 @@ struct SettingsView: View {
             BehaviourSettingsView()
         case .backupAndRestore:
             SettingsBackupAndRestoreView()
+        case .feedback(let category):
+            FeedbackView(
+                initialCategory: category,
+                dataSource: weatherService.currentDataSource,
+                unitSystem: unitSystem
+            )
         case .about:
             AboutSettingsView()
         case .attribution:
@@ -458,6 +438,10 @@ struct SettingsView: View {
         // and cellular.
         NetworkQualityHint()
 
+        // MARK: Weather
+        // Everything to do with *what* weather is shown and where
+        // it comes from: saved places, data providers, and the
+        // units / forecast preferences that shape the numbers.
         Section {
             NavigationLink {
                 LocationsSettingsView(
@@ -466,7 +450,12 @@ struct SettingsView: View {
                     weatherService: weatherService
                 )
             } label: {
-                Label("Locations", systemImage: "location.fill")
+                settingsRow(
+                    title: "Locations",
+                    subtitle: "Saved places and current location",
+                    systemImage: "location.fill",
+                    tint: .blue
+                )
             }
 
             NavigationLink {
@@ -497,7 +486,12 @@ struct SettingsView: View {
                 )
                 #endif
             } label: {
-                Label("Weather Data", systemImage: "cloud.sun.fill")
+                settingsRow(
+                    title: "Weather Data",
+                    subtitle: "Data sources and API keys",
+                    systemImage: "cloud.sun.fill",
+                    tint: .cyan
+                )
             }
 
             NavigationLink {
@@ -515,40 +509,89 @@ struct SettingsView: View {
                     displayModes: displayModes
                 )
             } label: {
-                Label("Preferences", systemImage: "slider.horizontal.3")
+                settingsRow(
+                    title: "Preferences",
+                    subtitle: "Units, forecast length, and layout",
+                    systemImage: "slider.horizontal.3",
+                    tint: .indigo
+                )
             }
+        } header: {
+            Text("Weather")
+        } footer: {
+            Text("Manage your saved places, choose data providers, and set the units and forecast options used across the app.")
+        }
+
+        // MARK: Personalisation
+        // How the app looks and feels: theme, motion/haptics, and
+        // accessibility accommodations.
+        Section {
             NavigationLink {
                 AppearanceSettingsView()
             } label: {
-                Label("Appearance", systemImage: "paintbrush.fill")
+                settingsRow(
+                    title: "Appearance",
+                    subtitle: "Theme, colours, and backgrounds",
+                    systemImage: "paintbrush.fill",
+                    tint: .purple
+                )
+            }
+
+            // v2 — Behaviour is the new home for haptics,
+            // gestures, alert sounds, and experimental flags.
+            NavigationLink {
+                BehaviourSettingsView()
+            } label: {
+                settingsRow(
+                    title: "Behaviour",
+                    subtitle: "Haptics, gestures, and alert sounds",
+                    systemImage: "hand.tap.fill",
+                    tint: .orange
+                )
             }
 
             NavigationLink {
                 AccessibilitySettingsView()
             } label: {
-                Label("Accessibility", systemImage: "accessibility")
+                settingsRow(
+                    title: "Accessibility",
+                    subtitle: "Motion, contrast, and VoiceOver",
+                    systemImage: "accessibility",
+                    tint: .green
+                )
             }
-
-            // v2 — Behaviour is the new home for haptics,
-            // gestures, alert sounds, and experimental flags.
-            // It is a top-level tab on the same row as the rest.
-            NavigationLink {
-                BehaviourSettingsView()
-            } label: {
-                Label("Behaviour", systemImage: "hand.tap.fill")
+        } header: {
+            Text("Personalisation")
+        } footer: {
+            // Experimental settings disclaimer. Some knobs in the
+            // registry (especially under Behaviour) are still being
+            // iterated on and may produce unexpected results.
+            Label {
+                Text("Some behaviour settings are experimental and may have unintended consequences.")
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
             }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
 
-            // v2 — Customisation hub inlined with the other top-
-            // level tabs (no separate section header). Opens the
-            // full searchable catalogue of every knob in the
-            // registry.
+        // MARK: Advanced
+        // The full searchable catalogue of every registry knob for
+        // power users who know exactly what they want.
+        Section {
             Button {
                 searchSheet = .searchAllSettings
             } label: {
                 HStack {
-                    Label("Search All Settings", systemImage: "magnifyingglass")
+                    settingsRow(
+                        title: "Search All Settings",
+                        subtitle: "Find and edit any option",
+                        systemImage: "magnifyingglass",
+                        tint: .gray
+                    )
                     Spacer()
-                    Text("\(customisationRegistry.profile.knobs.allEditableKnobCount) knobs")
+                    Text("\(customisationRegistry.profile.knobs.allEditableKnobCount)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Image(systemName: "chevron.right")
@@ -558,33 +601,23 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Search All Settings")
             .accessibilityHint("Search every customisation knob the registry knows about")
+        } header: {
+            Text("Advanced")
         } footer: {
-            // Experimental settings disclaimer. Some knobs in the
-            // registry (especially under Behaviour) are still being
-            // iterated on and may produce unexpected results. The
-            // footer keeps the warning visible without crowding the
-            // row list itself.
-            Label {
-                Text("Some settings are experimental and may have unintended consequences.")
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .padding(.top, 4)
+            Text("Browse and search every customisation option the app offers in one place.")
         }
 
-        // Empty section acts as a visual gap before Support /
-        // About / Attribution so the rows above don't feel
-        // crowded against the closing tabs.
-        Section { EmptyView() }
-
+        // MARK: Data
         Section {
             NavigationLink {
                 SettingsBackupAndRestoreView()
             } label: {
-                Label("Backup & Restore", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                settingsRow(
+                    title: "Backup & Restore",
+                    subtitle: "Export, import, and iCloud sync",
+                    systemImage: "arrow.triangle.2.circlepath.circle.fill",
+                    tint: .teal
+                )
             }
         } header: {
             Text("Data")
@@ -592,51 +625,59 @@ struct SettingsView: View {
             Text("Back up your settings to a .saxtheme file, restore from one, or sync across your devices with iCloud.")
         }
 
+        // MARK: Support
         Section {
             Button {
                 showingTipJar = true
             } label: {
-                HStack {
-                    Label("Support Development", systemImage: "heart.fill")
-                        .foregroundColor(.pink)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                settingsRow(
+                    title: "Support Development",
+                    subtitle: "Leave a tip for the developer",
+                    systemImage: "heart.fill",
+                    tint: .pink,
+                    showsChevron: true
+                )
             }
             .accessibilityLabel("Support Development")
             .accessibilityHint("Leave a tip to support the app")
 
-            // Phase 1 — Cosmetics Store entry point.
-            // Adjacent to the Tip Jar so the "support
-            // development" surface stays together. The icon
-            // is `paintbrush.pointed.fill` per the plan's
-            // ethical-iconography guidelines — distinct from
-            // `paintbrush.fill` (Appearance) and
-            // `paintpalette.fill` (which the store itself
-            // uses).
             Button {
                 showingCosmeticsStore = true
             } label: {
-                HStack {
-                    Label("Cosmetics", systemImage: "paintbrush.pointed.fill")
-                        .foregroundColor(.accentColor)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                settingsRow(
+                    title: "Cosmetics",
+                    subtitle: "Themes, palettes, and extras",
+                    systemImage: "paintbrush.pointed.fill",
+                    tint: .accentColor,
+                    showsChevron: true
+                )
             }
             .accessibilityLabel("Cosmetics")
             .accessibilityHint("Browse and purchase cosmetic items for the app")
+        } header: {
+            Text("Support")
         }
 
+        // MARK: Feedback
+        Section {
+            feedbackSection
+        } header: {
+            Text("Feedback")
+        } footer: {
+            Text("Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included.")
+        }
+
+        // MARK: About
         Section {
             NavigationLink {
                 AboutSettingsView()
             } label: {
-                Label("About", systemImage: "info.circle.fill")
+                settingsRow(
+                    title: "About",
+                    subtitle: "Version and app information",
+                    systemImage: "info.circle.fill",
+                    tint: .blue
+                )
             }
 
             NavigationLink {
@@ -647,9 +688,58 @@ struct SettingsView: View {
                     currentDataSource: weatherService.currentDataSource
                 )
             } label: {
-                Label("Attribution", systemImage: "network")
+                settingsRow(
+                    title: "Attribution",
+                    subtitle: "Data providers and licences",
+                    systemImage: "network",
+                    tint: .secondary
+                )
+            }
+        } header: {
+            Text("About")
+        }
+    }
+
+    /// A consistent settings row: a coloured, rounded icon tile
+    /// followed by a title and a short explanatory subtitle. Keeps
+    /// every top-level destination visually aligned and easier to
+    /// scan than a bare `Label`.
+    @ViewBuilder
+    private func settingsRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        showsChevron: Bool = false
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 29, height: 29)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(tint)
+                )
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.body)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if showsChevron {
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
     }
 
     // Safe accessor for weather values using Mirror
@@ -950,6 +1040,30 @@ struct SettingsView: View {
         }
     }
     
+    private var feedbackSection: some View {
+        Group {
+            NavigationLink {
+                FeedbackView(
+                    initialCategory: .bug,
+                    dataSource: weatherService.currentDataSource,
+                    unitSystem: unitSystem
+                )
+            } label: {
+                Label("Send Feedback", systemImage: "envelope.fill")
+            }
+
+            NavigationLink {
+                FeedbackView(
+                    initialCategory: .idea,
+                    dataSource: weatherService.currentDataSource,
+                    unitSystem: unitSystem
+                )
+            } label: {
+                Label("Request a Feature", systemImage: "lightbulb.fill")
+            }
+        }
+    }
+
     private var aboutSection: some View {
         Group {
             // Version
@@ -1296,24 +1410,16 @@ struct SettingsView: View {
                     
                     // Use the geocoded name or a default name
                     let locationName = mapSelectedLocationName ?? "Selected Location"
-                    
-                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-                        // Find the newly added location to select it
-                        if let addedLocation = locationsManager.locations.last {
-                            locationsManager.selectLocation(addedLocation)
-                            weatherService.useGPS = false
-                            Task {
-                                await weatherService.fetchWeather(calledFrom: "SettingsView.addMapLocation")
-                            }
-                        }
-                        // Reset state
-                        addLocationMode = nil
-                        mapSelectedLocation = nil
-                        mapSelectedLocationName = nil
-                    } else {
-                        alertMessage = "Invalid coordinates. Please try again."
-                        showingAlert = true
-                    }
+
+                    requestAddLocationPreview(
+                        name: locationName,
+                        latitude: validatedLat,
+                        longitude: validatedLon
+                    )
+                    addLocationMode = nil
+                    mapSelectedLocation = nil
+                    mapSelectedLocationName = nil
+                    showingAddLocationSheet = false
                 } else {
                     alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                     showingAlert = true
@@ -1347,21 +1453,16 @@ struct SettingsView: View {
                         let validatedLat = validationResult.normalizedLatitude ?? lat
                         let validatedLon = validationResult.normalizedLongitude ?? lon
                         
-                        if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
-                            // Find the newly added location to select it
-                            if let addedLocation = locationsManager.locations.last {
-                                locationsManager.selectLocation(addedLocation)
-                                weatherService.useGPS = false
-                                Task { await weatherService.fetchWeather(calledFrom: "SettingsView.addLocation") }
-                            }
-                            showingAddLocationSheet = false
-                            newLocationName = ""
-                            newLatitude = ""
-                            newLongitude = ""
-                        } else {
-                            alertMessage = "Invalid coordinates. Please check your values and try again."
-                            showingAlert = true
-                        }
+                        requestAddLocationPreview(
+                            name: newLocationName,
+                            latitude: validatedLat,
+                            longitude: validatedLon
+                        )
+                        showingAddLocationSheet = false
+                        addLocationMode = nil
+                        newLocationName = ""
+                        newLatitude = ""
+                        newLongitude = ""
                     } else {
                         alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
                         showingAlert = true
@@ -1426,23 +1527,18 @@ struct SettingsView: View {
                                 let validatedLat = validationResult.normalizedLatitude ?? lat
                                 let validatedLon = validationResult.normalizedLongitude ?? lon
                                 
-                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
-                                    // Find the newly added location to select it
-                                    if let addedLocation = locationsManager.locations.last {
-                                        locationsManager.selectLocation(addedLocation)
-                                        weatherService.useGPS = false
-                                        Task { await weatherService.fetchWeather(calledFrom: "SettingsView.citySearch") }
-                                    }
-                                    showingAddLocationSheet = false
-                                    citySearchQuery = ""
-                                    citySearchResults = []
-                                    selectedSearchCompletion = nil
-                                    citySearchCoordinate = nil
-                                    citySearchError = nil
-                                } else {
-                                    // Handle error - but we don't have access to alertMessage/showingAlert here
-                                    print("Failed to add location")
-                                }
+                                requestAddLocationPreview(
+                                    name: name,
+                                    latitude: validatedLat,
+                                    longitude: validatedLon
+                                )
+                                showingAddLocationSheet = false
+                                addLocationMode = nil
+                                citySearchQuery = ""
+                                citySearchResults = []
+                                selectedSearchCompletion = nil
+                                citySearchCoordinate = nil
+                                citySearchError = nil
                             } else {
                                 // Handle error - but we don't have access to alertMessage/showingAlert here
                                 print("Invalid coordinates: \(validationResult.errorMessage ?? "Unknown error")")
@@ -1591,23 +1687,6 @@ struct SettingsView: View {
 
 // MARK: - Settings search results (Phase 7)
 
-/// The view that replaces the normal Settings list when the user
-/// types in the `.searchable` bar at the top of `SettingsView`.
-///
-/// Two kinds of rows:
-///   1. **Matching top-level settings rows** — Locations, Weather
-///      Data, Preferences, Appearance, Accessibility, Backup &
-///      Restore, Support Development, About, Attribution. Tapping
-///      opens the relevant destination (NavigationLink or sheet).
-///   2. **Matching customisation knobs** from the registry's
-///      catalogue. Tapping always navigates to the knob's owning
-///      settings page — no in-place toggling.
-///
-/// IAP-locked knobs (anything in `BackgroundSpec` that requires
-/// the custom-background purchase) are split into a dedicated
-/// "Purchase Required" section at the top of the results. Tapping
-/// a locked row opens the TipJar so the user can unlock without
-/// leaving the search context.
 struct SettingsSearchResults: View {
     @EnvironmentObject private var customisation: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager
@@ -1618,9 +1697,6 @@ struct SettingsSearchResults: View {
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        // Phase 7 — render our own `List` so the `Button` rows
-        // get proper List row tap handling. The outer `List` in
-        // `SettingsView` is bypassed when the search bar is active.
         List {
             if results.isEmpty {
                 Section {
@@ -1758,7 +1834,6 @@ struct SettingsSearchResults: View {
     }
 }
 
-/// What kind of destination a settings row opens.
 enum SettingsSearchAction {
     case sheet(SettingsSheet)
     case navigate(SettingsSearchRoute)
@@ -1768,10 +1843,6 @@ enum SettingsSearchAction {
 enum SettingsSheet: Identifiable {
     case profileImporter
     case tipJar
-    /// v2 — “Search All Settings…” entry from the Customisation
-    /// section in the main settings tree. Presents the standalone
-    /// `KnobSearchView` so users have one tap to every knob in
-    /// the registry.
     case searchAllSettings
 
     var id: String {
@@ -1795,19 +1866,18 @@ enum SettingsSearchRoute: Hashable {
     case accessibility
     case behaviour
     case backupAndRestore
+    case feedback(FeedbackCategory)
     case about
     case attribution
 
-    /// Map a knob's owning route to the corresponding settings
-    /// navigation route. `behaviour` knobs (haptics, gestures,
-    /// alerts, experimental flags) land on the new
-    /// `BehaviourSettingsView` rather than Accessibility or
-    /// Preferences.
     static func from(_ owning: KnobOwningRoute) -> SettingsSearchRoute {
         switch owning {
         case .appearance:    return .appearance
         case .preferences:   return .preferences
-        case .accessibility: return .behaviour
+        case .behaviour:     return .behaviour
+        case .accessibility: return .accessibility
+        case .weatherData:   return .weatherData
+        case .cardStyle:     return .cardStyle
         }
     }
 }
@@ -1868,6 +1938,14 @@ struct SettingsSearchItem: Identifiable {
               subtitle: "Leave a tip",
               symbolName: "heart.fill",
               action: .sheet(.tipJar)),
+        .init(id: "sendFeedback", title: "Send Feedback",
+              subtitle: "Report a bug to the developer",
+              symbolName: "envelope.fill",
+              action: .navigate(.feedback(.bug))),
+        .init(id: "requestFeature", title: "Request a Feature",
+              subtitle: "Suggest an improvement",
+              symbolName: "lightbulb.fill",
+              action: .navigate(.feedback(.idea))),
         .init(id: "about", title: "About",
               subtitle: "Version & developer",
               symbolName: "info.circle.fill",
@@ -2019,6 +2097,8 @@ enum SearchKnobValueFormatter {
         case "showHamburgerMenu":           return k.layout.showHamburgerMenu ? "On" : "Off"
         case "swipeBetweenLocations":       return k.layout.swipeBetweenLocations ? "On" : "Off"
         case "showLocationHeader":          return k.layout.showLocationHeader ? "On" : "Off"
+        case "previewBeforeChangingLocation": return k.layout.previewBeforeChangingLocation ? "On" : "Off"
+        case "showHeroLastUpdated":         return k.layout.showHeroLastUpdated ? "On" : "Off"
         case "compactCardsInLandscape":     return k.layout.compactCardsInLandscape ? "On" : "Off"
 
         // Forecast
@@ -2055,6 +2135,9 @@ enum SearchKnobValueFormatter {
         case "longPressToCustomise":        return k.behaviour.longPressToCustomise ? "On" : "Off"
         case "confirmDestructive":          return k.behaviour.confirmDestructive ? "On" : "Off"
         case "weatherAlertSounds":          return k.behaviour.weatherAlertSounds ? "On" : "Off"
+        case "rainAlertsEnabled":           return k.behaviour.rainAlertsEnabled ? "On" : "Off"
+        case "severeWeatherAlertsEnabled":  return k.behaviour.severeWeatherAlertsEnabled ? "On" : "Off"
+        case "aiAlertSummariesEnabled":     return k.behaviour.aiAlertSummariesEnabled ? "On" : "Off"
         case "speakWeatherAlerts":          return k.behaviour.speakWeatherAlerts ? "On" : "Off"
         case "quietHours":                  return quietHoursSummary(start: k.behaviour.quietHoursStart,
                                                                      end:   k.behaviour.quietHoursEnd)
@@ -2122,8 +2205,10 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(weatherService: WeatherService())
             .environmentObject(StoreManager.shared)
+            .environmentObject(SavedLocationsManager())
         SettingsView(weatherService: WeatherService(), isOnboarding: true)
             .environmentObject(StoreManager.shared)
+            .environmentObject(SavedLocationsManager())
     }
 }
 
@@ -2603,24 +2688,16 @@ struct LocationsSettingsView: View {
                     
                     // Use the geocoded name or a default name
                     let locationName = mapSelectedLocationName ?? "Selected Location"
-                    
-                    if locationsManager.addLocation(name: locationName, latitude: validatedLat, longitude: validatedLon) {
-                        // Find the newly added location to select it
-                        if let addedLocation = locationsManager.locations.last {
-                            locationsManager.selectLocation(addedLocation)
-                            weatherService.useGPS = false
-                            Task {
-                                await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addMapLocation")
-                            }
-                        }
-                        // Reset state
-                        addLocationMode = nil
-                        mapSelectedLocation = nil
-                        mapSelectedLocationName = nil
-                    } else {
-                        alertMessage = "Invalid coordinates. Please try again."
-                        showingAlert = true
-                    }
+
+                    requestAddLocationPreview(
+                        name: locationName,
+                        latitude: validatedLat,
+                        longitude: validatedLon
+                    )
+                    addLocationMode = nil
+                    mapSelectedLocation = nil
+                    mapSelectedLocationName = nil
+                    showingAddLocationSheet = false
                 } else {
                     alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                     showingAlert = true
@@ -2683,24 +2760,16 @@ struct LocationsSettingsView: View {
                             let validatedLat = validationResult.normalizedLatitude ?? lat
                             let validatedLon = validationResult.normalizedLongitude ?? lon
                             
-                            if locationsManager.addLocation(name: newLocationName, latitude: validatedLat, longitude: validatedLon) {
-                                // Find the newly added location to select it
-                                if let addedLocation = locationsManager.locations.last {
-                                    locationsManager.selectLocation(addedLocation)
-                                    weatherService.useGPS = false
-                                    Task {
-                                        await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addManualLocation")
-                                    }
-                                }
-                                showingAddLocationSheet = false
-                                addLocationMode = nil
-                                newLocationName = ""
-                                newLatitude = ""
-                                newLongitude = ""
-                            } else {
-                                alertMessage = "Invalid coordinates. Please check your values and try again."
-                                showingAlert = true
-                            }
+                            requestAddLocationPreview(
+                                name: newLocationName,
+                                latitude: validatedLat,
+                                longitude: validatedLon
+                            )
+                            showingAddLocationSheet = false
+                            addLocationMode = nil
+                            newLocationName = ""
+                            newLatitude = ""
+                            newLongitude = ""
                         } else {
                             alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please check your values and try again."
                             showingAlert = true
@@ -2806,26 +2875,18 @@ struct LocationsSettingsView: View {
                                 let validatedLat = validationResult.normalizedLatitude ?? lat
                                 let validatedLon = validationResult.normalizedLongitude ?? lon
                                 
-                                if locationsManager.addLocation(name: name, latitude: validatedLat, longitude: validatedLon) {
-                                    // Find the newly added location to select it
-                                    if let addedLocation = locationsManager.locations.last {
-                                        locationsManager.selectLocation(addedLocation)
-                                        weatherService.useGPS = false
-                                        Task {
-                                            await weatherService.fetchWeather(calledFrom: "LocationsSettingsView.addCityLocation")
-                                        }
-                                    }
-                                    showingAddLocationSheet = false
-                                    addLocationMode = nil
-                                    citySearchQuery = ""
-                                    citySearchResults = []
-                                    selectedSearchCompletion = nil
-                                    citySearchCoordinate = nil
-                                    citySearchError = nil
-                                } else {
-                                    alertMessage = "Invalid coordinates. Please try again."
-                                    showingAlert = true
-                                }
+                                requestAddLocationPreview(
+                                    name: name,
+                                    latitude: validatedLat,
+                                    longitude: validatedLon
+                                )
+                                showingAddLocationSheet = false
+                                addLocationMode = nil
+                                citySearchQuery = ""
+                                citySearchResults = []
+                                selectedSearchCompletion = nil
+                                citySearchCoordinate = nil
+                                citySearchError = nil
                             } else {
                                 alertMessage = validationResult.errorMessage ?? "Invalid coordinates. Please try again."
                                 showingAlert = true
@@ -3132,9 +3193,6 @@ struct WeatherSourcesSettingsView: View {
 
 // MARK: Preferences Settings
 struct PreferencesSettingsView: View {
-    // Phase 2 bridge — customisation registry injected at the app
-    // root via `.environmentObject`. Every setting write below
-    // routes through `.onChange` to the registry.
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
 
     @Binding var unitSystem: String
@@ -3162,6 +3220,8 @@ struct PreferencesSettingsView: View {
     @AppStorage("cardDensity") private var cardDensity: String = CardDensity.regular.rawValue
     @AppStorage("swipeBetweenLocations") private var swipeBetweenLocations: Bool = true
     @AppStorage("showLocationHeader") private var showLocationHeader: Bool = true
+    @AppStorage("previewBeforeChangingLocation") private var previewBeforeChangingLocation: Bool = true
+    @AppStorage("showHeroLastUpdated") private var showHeroLastUpdated: Bool = false
     @AppStorage("compactCardsInLandscape") private var compactCardsInLandscape: Bool = true
     @AppStorage("showLocationLabel") private var showLocationLabel: Bool = true
 
@@ -3338,6 +3398,30 @@ struct PreferencesSettingsView: View {
                 .onChange(of: showLocationHeader) { newValue in
                     customisationRegistry.set(\.layout.showLocationHeader, newValue)
                 }
+                Toggle(isOn: $previewBeforeChangingLocation) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Preview Before Changing Location")
+                            .font(.body)
+                        Text("Show a full-screen weather preview before switching or adding a location.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .onChange(of: previewBeforeChangingLocation) { newValue in
+                    customisationRegistry.set(\.layout.previewBeforeChangingLocation, newValue)
+                }
+                Toggle(isOn: $showHeroLastUpdated) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Hero Last Updated")
+                            .font(.body)
+                        Text("Display the “Last updated” button on the hero card.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .onChange(of: showHeroLastUpdated) { newValue in
+                    customisationRegistry.set(\.layout.showHeroLastUpdated, newValue)
+                }
                 Toggle(isOn: $swipeBetweenLocations) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Swipe Between Locations")
@@ -3460,6 +3544,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Theme", systemImage: "circle.lefthalf.filled")
+            } footer: {
+                Text("Choose whether the app follows your system appearance or stays permanently light or dark.")
             }
 
             Section {
@@ -3487,6 +3573,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Accent Color", systemImage: "paintpalette")
+            } footer: {
+                Text("The highlight colour used for buttons, links, and selected controls throughout the app.")
             }
             .onChange(of: accentColor) { newValue in
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
@@ -3570,6 +3658,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Icons", systemImage: "cloud.sun.fill")
+            } footer: {
+                Text("Control the look of weather icons — colour style, filled vs outline symbols, and their size.")
             }
             .onChange(of: weatherIconStyle) { newValue in
                 if let parsed = WeatherIconStyle(rawValue: newValue) {
@@ -3608,6 +3698,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Animations", systemImage: "play.rectangle.fill")
+            } footer: {
+                Text("Pick which animated icon set to use and how fast it plays.")
             }
             .onChange(of: lottieAnimationSet) { newValue in
                 if let parsed = LottieAnimationSet(rawValue: newValue) {
@@ -3628,15 +3720,10 @@ struct AppearanceSettingsView: View {
                     .environmentObject(storeManager)
             } header: {
                 Label("Background", systemImage: "photo")
+            } footer: {
+                Text("Set a solid colour, gradient, or your own photo as the app background.")
             }
 
-            // Phase 5 — palette + chart-skin pickers. The
-            // cosmetic palette / chart skin are committed to
-            // the profile via the in-app pickers, so the
-            // user needs a route to them from the main
-            // Settings tree. Mirrors `BackgroundSettingsButton`'s
-            // shape (a row that presents the picker as a
-            // sheet) so the navigation feels consistent.
             Section {
                 PalettePickerRow()
                 ChartSkinPickerRow()
@@ -3715,6 +3802,9 @@ struct BehaviourSettingsView: View {
 
     // MARK: - Alerts & Sounds
     @AppStorage("weatherAlertSounds") private var weatherAlertSounds = true
+    @AppStorage("rainAlertsEnabled") private var rainAlertsEnabled = true
+    @AppStorage("severeWeatherAlertsEnabled") private var severeWeatherAlertsEnabled = true
+    @AppStorage("aiAlertSummariesEnabled") private var aiAlertSummariesEnabled = true
     @AppStorage("quietHoursStart") private var quietHoursStart: Int = 22
     @AppStorage("quietHoursEnd") private var quietHoursEnd: Int = 7
     @AppStorage("refreshSound") private var refreshSound = false
@@ -3791,6 +3881,17 @@ struct BehaviourSettingsView: View {
             .onChange(of: confirmQuit) { customisationRegistry.set(\.behaviour.confirmQuit, $0) }
 
             Section {
+                Toggle("Rain Alerts", isOn: $rainAlertsEnabled)
+                Toggle("Severe Weather Alerts", isOn: $severeWeatherAlertsEnabled)
+                VStack(alignment: .leading, spacing: 2) {
+                    Toggle("AI Alert Summaries", isOn: $aiAlertSummariesEnabled)
+                        .disabled(!WeatherAlertExplainer.isSupported)
+                    if !WeatherAlertExplainer.isSupported {
+                        Text("Requires a device with Apple Intelligence enabled.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Toggle("Weather Alert Sounds", isOn: $weatherAlertSounds)
                 Toggle("Enable Quiet Hours", isOn: quietHoursEnabled)
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3817,8 +3918,11 @@ struct BehaviourSettingsView: View {
             } header: {
                 Label("Alerts & Sounds", systemImage: "speaker.wave.3.fill")
             } footer: {
-                Text("Quiet Hours mutes alert sounds during a daily time range. Times wrap past midnight (e.g. 22:00 → 07:00).")
+                Text("Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. AI Alert Summaries use Apple Intelligence on-device to explain warnings in plain language. Quiet Hours mutes notification sounds during a daily time range.")
             }
+            .onChange(of: rainAlertsEnabled) { customisationRegistry.set(\.behaviour.rainAlertsEnabled, $0) }
+            .onChange(of: severeWeatherAlertsEnabled) { customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, $0) }
+            .onChange(of: aiAlertSummariesEnabled) { customisationRegistry.set(\.behaviour.aiAlertSummariesEnabled, $0) }
             .onChange(of: weatherAlertSounds) { customisationRegistry.set(\.behaviour.weatherAlertSounds, $0) }
             .onChange(of: quietHoursStart) { newValue in
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3880,6 +3984,9 @@ struct BehaviourSettingsView: View {
         customisationRegistry.set(\.behaviour.longPressToCustomise, defaults.behaviour.longPressToCustomise)
         customisationRegistry.set(\.behaviour.confirmDestructive, defaults.behaviour.confirmDestructive)
         customisationRegistry.set(\.behaviour.weatherAlertSounds, defaults.behaviour.weatherAlertSounds)
+        customisationRegistry.set(\.behaviour.rainAlertsEnabled, defaults.behaviour.rainAlertsEnabled)
+        customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, defaults.behaviour.severeWeatherAlertsEnabled)
+        customisationRegistry.set(\.behaviour.aiAlertSummariesEnabled, defaults.behaviour.aiAlertSummariesEnabled)
         customisationRegistry.set(\.behaviour.refreshSound, defaults.behaviour.refreshSound)
         customisationRegistry.set(\.behaviour.vibrateOnPullToRefresh, defaults.behaviour.vibrateOnPullToRefresh)
         customisationRegistry.set(\.behaviour.confirmQuit, defaults.behaviour.confirmQuit)
@@ -3899,13 +4006,6 @@ struct AboutSettingsView: View {
     /// cosmetic.
     @EnvironmentObject private var storeManager: StoreManager
 
-    /// `true` when the user owns any cosmetic that grants
-    /// the Supporter acknowledgement. Per
-    /// `plans/COSMETIC_MONETIZATION_PLAN.md` §5.4 — true
-    /// for owners of the standalone Supporter Badge *or*
-    /// the Supporter Pack (the Supporter Pack's
-    /// `isOwned` short-circuit handles the latter
-    /// automatically).
     private var isSupporter: Bool {
         storeManager.owns("com.saxweather.cosmetic.supporter.badge")
             || storeManager.owns(CosmeticCatalog.supporterPackID)
@@ -4106,12 +4206,6 @@ struct AttributionSettingsView: View {
 
 // MARK: - Phase 5 — Palette + Chart Skin picker rows (cosmetic-only)
 
-/// Settings row that presents `PalettePickerView` as a sheet.
-/// Mirrors `BackgroundSettingsButton`'s shape (a tappable
-/// row that shows a chevron and the current palette name as
-/// the detail text). Reading the current palette name from
-/// the registry keeps the row's detail text in sync with
-/// whatever the user picks inside the picker.
 struct PalettePickerRow: View {
     @EnvironmentObject private var customisationRegistry: CustomisationRegistry
     @EnvironmentObject private var storeManager: StoreManager

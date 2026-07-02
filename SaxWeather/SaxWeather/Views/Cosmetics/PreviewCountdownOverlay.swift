@@ -1,32 +1,6 @@
-//
-//  PreviewCountdownOverlay.swift
-//  SaxWeather
-//
-//  Phase 3 — Live preview countdown overlay.
-//  Phase 4 — Countdown timer fix.
-//
-//  Sits at the top of any live view during a cosmetic
-//  preview. Shows the product name, the remaining seconds
-//  (ticking down from 30 to 0), and a "Stop Preview" button
-//  that ends the preview immediately.
-//
-//  Phase 4 — the overlay now observes `PreviewProfileManager`
-//  directly so it re-renders when `remainingSeconds` changes.
-//  Previously the overlay took `remainingSeconds` as a
-//  parameter and the caller hardcoded it to 0, so the
-//  countdown never ticked.
-//
 
 import SwiftUI
 
-/// Top-of-screen countdown banner shown while a cosmetic
-/// preview is active. Lays itself out as a single capsule so
-/// it reads as a transient UI element, not a sheet.
-///
-/// Phase 4 — observes `PreviewProfileManager` directly so it
-/// re-renders when `remainingSeconds` changes. The manager
-/// drives a `Timer.scheduledTimer` that decrements
-/// `remainingSeconds` every second.
 struct PreviewCountdownOverlay: View {
     /// The preview manager. The overlay reads
     /// `remainingSeconds` from this object so it re-renders
@@ -72,14 +46,6 @@ struct PreviewCountdownOverlay: View {
     }
 }
 
-/// A wrapper view that conditionally renders the countdown
-/// overlay while a preview is active. Returns the underlying
-/// content unmodified when no preview is running — so it's
-/// safe to attach to any view (the cost is one `.opacity`
-/// flip + one optional `VStack` insert).
-///
-/// Phase 4 — observes `PreviewProfileManager` directly so it
-/// re-renders when `remainingSeconds` changes.
 struct WithPreviewCountdown<Content: View>: View {
     let previewManager: PreviewProfileManager
     let productName: String?
