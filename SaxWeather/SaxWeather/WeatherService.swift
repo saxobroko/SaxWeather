@@ -872,7 +872,7 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
             throw WeatherError.invalidAPIKey
         }
 
-        let units = unitSystem == "Metric" ? "metric" : "imperial"
+        let units = "metric"
         let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&units=\(units)&appid=\(apiKey)"
 
         guard let url = URL(string: urlString) else {
@@ -941,8 +941,8 @@ class WeatherService: NSObject, ObservableObject, CLLocationManagerDelegate {
                 humidity: Double(currentWeather.main.humidity),
                 dew_point: calculateDewPoint(temp: currentWeather.main.temp, humidity: Double(currentWeather.main.humidity)),
                 pressure: Double(currentWeather.main.pressure),
-                wind_speed: currentWeather.wind.speed,
-                wind_gust: currentWeather.wind.gust ?? 0,
+                wind_speed: UnitConverter.mpsToKmh(currentWeather.wind.speed),
+                wind_gust: UnitConverter.mpsToKmh(currentWeather.wind.gust ?? 0),
                 uvi: 0,
                 clouds: Double(currentWeather.clouds.all)
             )

@@ -299,10 +299,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if unitSystem == "Imperial" {
             temperature = temperature * 9 / 5 + 32
             feelsLike = feelsLike * 9 / 5 + 32
-            windSpeed = windSpeed * 0.621371
+            windSpeed = UnitConverter.mpsToMph(windSpeed)
             pressure = pressure * 0.02953
         } else if unitSystem == "UK" {
-            windSpeed = windSpeed * 0.621371
+            windSpeed = UnitConverter.mpsToMph(windSpeed)
         }
 
         widgetData["temperature"] = temperature
@@ -444,7 +444,6 @@ struct SaxWeatherApp: App {
                     // Fetch weather and forecast data when the app appears
                     Task {
                         await weatherService.fetchWeather(calledFrom: "SaxWeatherApp.onAppear")
-                        await weatherService.fetchForecasts()
                     }
 
                     #if os(iOS)

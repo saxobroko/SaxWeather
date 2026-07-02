@@ -148,7 +148,7 @@ extension WeatherService {
             "latitude=\(latitude)" +
             "&longitude=\(longitude)" +
             "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
-            "precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
+            "precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,uv_index" +
             "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum," +
             "precipitation_probability_max,weather_code,wind_speed_10m_max," +
             "wind_direction_10m_dominant,relative_humidity_2m_max,pressure_msl_max," +

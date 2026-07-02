@@ -276,10 +276,6 @@ struct ContentView: View {
                         if weatherService.useGPS {
                             locationsManager.selectCurrentLocation()
                         }
-                        
-                        Task {
-                            await weatherService.fetchWeather(calledFrom: "TabView.onAppear")
-                        }
                     }
                 }
             }
@@ -565,6 +561,7 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.25), value: healthMonitor.hasAnyBlockingIssue)
                 Spacer()
             }
+            .allowsHitTesting(healthMonitor.hasAnyBlockingIssue)
 
             // Floating hamburger menu button — overlaid on top of content so it
             // does not push the layout down (a "z-index" style overlay).
@@ -989,15 +986,15 @@ struct WeatherDetailsView: View {
     @State private var selectedMetric: WeatherMetricInfo?
     
     private var temperatureUnit: String {
-        unitSystem == "Metric" ? "°C" : "°F"
+        UnitSystem.from(rawValue: unitSystem).temperatureLabel
     }
     
     private var speedUnit: String {
-        unitSystem == "Metric" ? "km/h" : "mph"
+        UnitSystem.from(rawValue: unitSystem).speedLabel
     }
     
     private var pressureUnit: String {
-        unitSystem == "Metric" ? "hPa" : "inHg"
+        UnitSystem.from(rawValue: unitSystem).pressureLabel
     }
     
     var body: some View {

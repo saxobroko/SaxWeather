@@ -263,12 +263,12 @@ struct HourlyForecastView: View {
 
         for i in 0..<min(response.hourly.weather_code.count, 24) {
             if let date = formatter.date(from: response.hourly.time[i]) {
-                let _ = timeFormatter.string(from: date).lowercased()
+                let displayTime = timeFormatter.string(from: date).lowercased()
 
                 forecasts.append(HourlyWeatherData(
                     id: i,
-                    time: /* conversion logic here */ Date(),
-                    timeString: response.hourly.time[i],
+                    time: date,
+                    timeString: displayTime,
                     temperature: response.hourly.temperature_2m[i],
                     weatherCode: response.hourly.weather_code[i],
                     windSpeed: response.hourly.wind_speed_10m[i],
