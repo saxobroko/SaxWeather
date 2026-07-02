@@ -271,3 +271,204 @@ struct HourlyPrecipitation: Codable {
         }
     }
 }
+
+// MARK: - What to Wear
+struct WhatToWearSuggestion: Identifiable {
+    let id = UUID()
+    let icon: String
+    let text: String
+}
+
+struct WhatToWearData {
+    let suggestions: [WhatToWearSuggestion]
+    let feelsLikeSummary: String?
+
+    /// Rule-based clothing and accessory suggestions derived from
+    /// feels-like temperature, hourly rain probability, wind speed,
+    /// and UV index. Returns `nil` when there isn't enough base
+    /// weather data to produce meaningful advice.
+    static func from(weather: Weather, unitSystem: UnitSystem) -> WhatToWearData? {
+        let effectiveTemp = weather.feelsLike ?? weather.temperature
+        guard effectiveTemp != nil
+            || weather.windSpeed != nil
+            || !weather.hourlyPrecipitation.isEmpty
+            || weather.uvIndex != nil
+        else { return nil }
+
+        var suggestions: [WhatToWearSuggestion] = []
+
+        if let temp = effectiveTemp {
+            suggestions.append(contentsOf: clothingSuggestions(
+                feelsLike: temp,
+                unitSystem: unitSystem
+            ))
+        }
+
+        if let rainSuggestion = rainSuggestion(
+            hourlyData: weather.hourlyPrecipitation,
+            timeZoneIdentifier: weather.locationTimeZoneIdentifier
+        ) {
+            suggestions.append(rainSuggestion)
+        }
+
+        if let windSpeed = weather.windSpeed,
+           let windSuggestion = windSuggestion(windSpeed: windSpeed, unitSystem: unitSystem) {
+            suggestions.append(windSuggestion)
+        }
+
+        if let uvIndex = weather.uvIndex,
+           let uvSuggestion = uvSuggestion(uvIndex: uvIndex) {
+            suggestions.append(uvSuggestion)
+        }
+
+        guard !suggestions.isEmpty else { return nil }
+
+        let feelsLikeSummary: String?
+        if let feelsLike = weather.feelsLike {
+            let label = unitSystem.temperatureLabel
+            feelsLikeSummary = String(format: "Feels like %.0f%@", feelsLike, label)
+        } else {
+            feelsLikeSummary = nil
+        }
+
+        return WhatToWearData(
+            suggestions: suggestions,
+            feelsLikeSummary: feelsLikeSummary
+        )
+    }
+
+    // MARK: - Clothing (feels-like)
+
+    private static func clothingSuggestions(
+        feelsLike: Double,
+        unitSystem: UnitSystem
+    ) -> [WhatToWearSuggestion] {
+        let celsius = UnitConverter.convertTemperature(
+            feelsLike,
+            from: unitSystem,
+            to: .metric
+        )
+
+        let text: String
+        let icon: String
+        switch celsius {
+        case ..<(-5):
+            text = "Heavy coat, hat & gloves"
+            icon = "snowflake"
+        case (-5)..<5:
+            text = "Warm jacket & layers"
+            icon = "coat.fill"
+        case 5..<12:
+            text = "Jacket recommended"
+            icon = "coat.fill"
+        case 12..<18:
+            text = "Light jacket or sweater"
+            icon = "wind"
+        case 18..<24:
+            text = "Comfortable — light layers optional"
+            icon = "tshirt"
+        case 24..<30:
+            text = "Short sleeves, breathable fabrics"
+            icon = "tshirt.fill"
+        default:
+            text = "Stay cool — light clothing & hydrate"
+            icon = "sun.max.fill"
+        }
+
+        return [WhatToWearSuggestion(icon: icon, text: text)]
+    }
+
+    // MARK: - Rain (hourly precipitation)
+
+    private static let rainProbabilityThreshold = 50
+
+    private static func rainSuggestion(
+        hourlyData: [HourlyPrecipitation],
+        timeZoneIdentifier: String?
+    ) -> WhatToWearSuggestion? {
+        guard !hourlyData.isEmpty else { return nil }
+
+        var calendar = Calendar.current
+        if let timeZoneIdentifier,
+           let timeZone = TimeZone(identifier: timeZoneIdentifier) {
+            calendar.timeZone = timeZone
+        }
+
+        let now = Date()
+        let upcoming = hourlyData.filter {
+            calendar.compare($0.hour, to: now, toGranularity: .hour) != .orderedAscending
+        }
+
+        guard let rainHour = upcoming.first(where: {
+            $0.probability >= rainProbabilityThreshold
+        }) else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = calendar.timeZone
+
+        let isCurrentHour = calendar.isDate(rainHour.hour, equalTo: now, toGranularity: .hour)
+        let timeLabel = formatter.string(from: rainHour.hour)
+
+        let text: String
+        if isCurrentHour {
+            text = rainHour.probability >= 70
+                ? "Umbrella recommended now"
+                : "Umbrella recommended"
+        } else {
+            text = "Umbrella after \(timeLabel)"
+        }
+
+        return WhatToWearSuggestion(icon: "umbrella.fill", text: text)
+    }
+
+    // MARK: - Wind
+
+    private static func windSuggestion(
+        windSpeed: Double,
+        unitSystem: UnitSystem
+    ) -> WhatToWearSuggestion? {
+        let kmh = UnitConverter.convertWind(windSpeed, from: unitSystem, to: .metric)
+
+        switch kmh {
+        case 60...:
+            return WhatToWearSuggestion(
+                icon: "wind",
+                text: "Strong winds — windbreaker & secure loose items"
+            )
+        case 40..<60:
+            return WhatToWearSuggestion(
+                icon: "wind",
+                text: "Windbreaker recommended"
+            )
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - UV
+
+    private static func uvSuggestion(uvIndex: Int) -> WhatToWearSuggestion? {
+        switch uvIndex {
+        case 8...:
+            return WhatToWearSuggestion(
+                icon: "sun.max.fill",
+                text: "SPF 50+ & hat — high UV"
+            )
+        case 6...7:
+            return WhatToWearSuggestion(
+                icon: "sun.max.fill",
+                text: "SPF 30+ & hat recommended"
+            )
+        case 3...5:
+            return WhatToWearSuggestion(
+                icon: "sun.max.fill",
+                text: "Sunscreen recommended"
+            )
+        default:
+            return nil
+        }
+    }
+}

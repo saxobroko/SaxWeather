@@ -683,6 +683,52 @@ struct PrecipitationGraphView: View {
     }
 }
 
+// MARK: - What to Wear Card
+struct WhatToWearCardView: View {
+    let data: WhatToWearData
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "tshirt.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.teal)
+
+                Text("What to Wear")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Spacer()
+
+                if let feelsLikeSummary = data.feelsLikeSummary {
+                    Text(feelsLikeSummary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(data.suggestions) { suggestion in
+                    RecommendationRow(icon: suggestion.icon, text: suggestion.text)
+                }
+            }
+        }
+        .padding(16)
+        .styledCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = ["What to wear"]
+        if let feelsLikeSummary = data.feelsLikeSummary {
+            parts.append(feelsLikeSummary)
+        }
+        parts.append(contentsOf: data.suggestions.map(\.text))
+        return parts.joined(separator: ". ")
+    }
+}
+
 // MARK: - Helper Views
 struct RecommendationRow: View {
     let icon: String

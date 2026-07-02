@@ -547,8 +547,13 @@ struct SunMoonDetailView: View {
 struct PrecipitationDetailView: View {
     let data: [HourlyPrecipitation]
     var timeZoneIdentifier: String? = nil
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+
+    private var unit: UnitSystem {
+        UnitSystem.from(rawValue: unitSystem)
+    }
 
     private var hourLabelFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -598,7 +603,7 @@ struct PrecipitationDetailView: View {
                             InfoCard(
                                 icon: "drop.fill",
                                 title: "Total Expected",
-                                value: String(format: "%.1f mm", totalPrecipitation),
+                                value: UnitConverter.formatPrecipitation(totalPrecipitation, unit: unit),
                                 color: .cyan
                             )
                             
@@ -957,6 +962,11 @@ struct MoonPhaseCard: View {
 struct HourlyPrecipRow: View {
     let data: HourlyPrecipitation
     var timeZoneIdentifier: String? = nil
+    @AppStorage("unitSystem") private var unitSystem: String = "Metric"
+
+    private var unit: UnitSystem {
+        UnitSystem.from(rawValue: unitSystem)
+    }
     
     private var hourLabelFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -1006,7 +1016,7 @@ struct HourlyPrecipRow: View {
             }
             .frame(height: 20)
             
-            Text(String(format: "%.1f mm", data.amount))
+            Text(UnitConverter.formatPrecipitation(data.amount, unit: unit))
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
                 .frame(width: 60, alignment: .trailing)
