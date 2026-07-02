@@ -6,6 +6,7 @@
 const APP_SCHEME = "saxweather";
 const APP_HOST = "weather";
 const SITE_ORIGIN = "https://weather.saxobroko.com";
+const APP_STORE_URL = "https://apps.apple.com/au/app/saxweather/id6742063425";
 
 export default {
   async fetch(request, env, ctx) {
@@ -256,7 +257,7 @@ function sharePage(url) {
     ${params.station ? `<div class="station">Personal weather station: ${escapeHtml(params.station)}</div>` : ""}
     <div class="actions">
       <a class="btn btn-primary" href="${escapeHtml(appURL)}" id="open-app">Open in SaxWeather</a>
-      <a class="btn btn-secondary" href="https://apps.apple.com/search?term=SaxWeather">Get SaxWeather on the App Store</a>
+      <a class="btn btn-secondary" href="${APP_STORE_URL}">Get SaxWeather on the App Store</a>
     </div>
     <p class="footer">Tap Open in SaxWeather to view live conditions in the app.</p>
   </main>
@@ -269,7 +270,7 @@ function sharePage(url) {
           e.preventDefault();
           window.location.href = appURL;
           setTimeout(function () {
-            window.location.href = "https://apps.apple.com/search?term=SaxWeather";
+            window.location.href = ${JSON.stringify(APP_STORE_URL)};
           }, 1500);
         });
       }
@@ -287,7 +288,7 @@ function sharePage(url) {
 }
 
 function landingPage() {
-  const appStore = "https://apps.apple.com/search?term=SaxWeather";
+  const appStore = APP_STORE_URL;
   const github = "https://github.com/saxobroko/SaxWeather";
   const dev = "https://saxobroko.com";
   const ogImage = `${SITE_ORIGIN}/assets/aurora/default.jpg`;
