@@ -17,7 +17,7 @@ import AppKit
 /// Developer-facing constants for in-app feedback.
 /// Change `supportEmail` here if the contact address moves.
 enum FeedbackConfig {
-    static let supportEmail = "rascalxena@y7mail.com"
+    static let supportEmail = "weatherapp@saxobroko.com"
     static let appName = "SaxWeather"
 }
 
@@ -70,24 +70,106 @@ enum FeedbackCategory: String, CaseIterable, Identifiable, Hashable {
 struct FeedbackMailDraft: Equatable {
     let recipients: [String]
     let subject: String
+    /// Plain text for clipboard fallback.
     let body: String
+    /// Explicit HTML with `<br>` tags — Mail collapses raw newlines otherwise.
+    let htmlBody: String
+}
+
+enum FeedbackMailBodyFormatter {
+    static func normalizeNewlines(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+    }
+
+    static func plainTextBody(
+        message: String,
+        replyEmail: String,
+        dataSource: String,
+        unitSystem: String
+    ) -> String {
+        var lines = linesFromMessage(message)
+        if !replyEmail.isEmpty {
+            lines.append("")
+            lines.append("Reply-to: \(replyEmail)")
+        }
+        lines.append(contentsOf: FeedbackDiagnostics.plainLines(dataSource: dataSource, unitSystem: unitSystem))
+        return lines.joined(separator: "\n")
+    }
+
+    static func htmlBody(
+        message: String,
+        replyEmail: String,
+        dataSource: String,
+        unitSystem: String
+    ) -> String {
+        var lines = linesFromMessage(message)
+        if !replyEmail.isEmpty {
+            lines.append("")
+            lines.append("Reply-to: \(replyEmail)")
+        }
+        lines.append(contentsOf: FeedbackDiagnostics.plainLines(dataSource: dataSource, unitSystem: unitSystem))
+
+        let htmlLines = lines.map { line -> String in
+            let escaped = htmlEscape(line)
+            return escaped.isEmpty ? "&nbsp;" : escaped
+        }
+
+        let content = htmlLines.joined(separator: "<br>")
+        return """
+        <html><head><meta charset="utf-8"></head><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.5;color:#000000;">\(content)</body></html>
+        """
+    }
+
+    private static func linesFromMessage(_ message: String) -> [String] {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        return normalizeNewlines(trimmed).components(separatedBy: "\n")
+    }
+
+    private static func htmlEscape(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+    }
+
+    /// `URLQueryAllowed` leaves newlines unencoded; mailto handlers then collapse them to spaces.
+    static func mailtoParameter(_ value: String) -> String {
+        normalizeNewlines(value).unicodeScalars.map { scalar in
+            switch scalar {
+            case "\n":
+                return "%0D%0A"
+            case "\r":
+                return ""
+            default:
+                let character = String(scalar)
+                let encoded = character.addingPercentEncoding(
+                    withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+                ) ?? character
+                return encoded
+            }
+        }.joined()
+    }
 }
 
 enum FeedbackDiagnostics {
-    static func footer(dataSource: String, unitSystem: String) -> String {
+    static func plainLines(dataSource: String, unitSystem: String) -> [String] {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
 
-        return """
-
-        ---
-        Diagnostics (please don't remove)
-        App: \(FeedbackConfig.appName) \(version) (\(build))
-        \(platformLine())
-        Data source: \(dataSource)
-        Unit system: \(unitSystem)
-        ---
-        """
+        return [
+            "",
+            "---",
+            "Diagnostics (please don't remove)",
+            "App: \(FeedbackConfig.appName) \(version) (\(build))",
+            platformLine(),
+            "Data source: \(dataSource)",
+            "Unit system: \(unitSystem)",
+            "---"
+        ]
     }
 
     private static func platformLine() -> String {
@@ -125,18 +207,23 @@ enum FeedbackSender {
     ) -> FeedbackMailDraft {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         let subject = "[\(FeedbackConfig.appName)] \(category.subjectTag)"
-
-        var body = trimmedMessage
         let email = replyEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !email.isEmpty {
-            body += "\n\nReply-to: \(email)"
-        }
-        body += FeedbackDiagnostics.footer(dataSource: dataSource, unitSystem: unitSystem)
 
         return FeedbackMailDraft(
             recipients: [FeedbackConfig.supportEmail],
             subject: subject,
-            body: body
+            body: FeedbackMailBodyFormatter.plainTextBody(
+                message: trimmedMessage,
+                replyEmail: email,
+                dataSource: dataSource,
+                unitSystem: unitSystem
+            ),
+            htmlBody: FeedbackMailBodyFormatter.htmlBody(
+                message: trimmedMessage,
+                replyEmail: email,
+                dataSource: dataSource,
+                unitSystem: unitSystem
+            )
         )
     }
 
@@ -156,14 +243,10 @@ enum FeedbackSender {
     }
 
     private static func mailtoURL(for draft: FeedbackMailDraft) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = draft.recipients.joined(separator: ",")
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: draft.subject),
-            URLQueryItem(name: "body", value: draft.body)
-        ]
-        return components.url
+        let to = draft.recipients.joined(separator: ",")
+        let subject = FeedbackMailBodyFormatter.mailtoParameter(draft.subject)
+        let body = FeedbackMailBodyFormatter.mailtoParameter(draft.body)
+        return URL(string: "mailto:\(to)?subject=\(subject)&body=\(body)")
     }
 
     private static func openURL(_ url: URL) -> Bool {

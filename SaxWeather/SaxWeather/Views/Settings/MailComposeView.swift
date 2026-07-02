@@ -20,7 +20,7 @@ struct MailComposeView: UIViewControllerRepresentable {
         controller.mailComposeDelegate = context.coordinator
         controller.setToRecipients(draft.recipients)
         controller.setSubject(draft.subject)
-        controller.setMessageBody(draft.body, isHTML: false)
+        controller.setMessageBody(draft.htmlBody, isHTML: true)
         return controller
     }
 

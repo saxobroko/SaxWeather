@@ -97,15 +97,21 @@ struct FeedbackView: View {
 
     private var messageSection: some View {
         Section {
-            TextField(
-                String(localized: "Your message", comment: "Feedback message field placeholder."),
-                text: $message,
-                axis: .vertical
-            )
-            .lineLimit(5...12)
-            #if os(iOS)
-            .textInputAutocapitalization(.sentences)
-            #endif
+            ZStack(alignment: .topLeading) {
+                if message.isEmpty {
+                    Text(String(localized: "Your message", comment: "Feedback message field placeholder."))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+                        .padding(.leading, 5)
+                        .allowsHitTesting(false)
+                }
+
+                TextEditor(text: $message)
+                    .frame(minHeight: 140)
+                    #if os(iOS)
+                    .scrollContentBackground(.hidden)
+                    #endif
+            }
         } header: {
             Text(String(localized: "Message", comment: "Feedback message section header."))
         } footer: {
