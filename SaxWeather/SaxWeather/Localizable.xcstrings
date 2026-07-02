@@ -109,9 +109,6 @@
     "%lld dp" : {
 
     },
-    "%lld knobs" : {
-
-    },
     "%lld percent" : {
 
     },
@@ -207,6 +204,9 @@
     "About" : {
 
     },
+    "Accent" : {
+
+    },
     "Accent Color" : {
 
     },
@@ -255,10 +255,19 @@
     "Adds a small private acknowledgement in Settings → About." : {
       "comment" : "Long description for Supporter Badge."
     },
+    "Advanced" : {
+
+    },
     "Aggressive refresh uses more battery; Battery Saver throttles network calls." : {
 
     },
+    "AI Alert Summaries" : {
+
+    },
     "Air Quality" : {
+
+    },
+    "Alert details" : {
 
     },
     "Alerts" : {
@@ -296,9 +305,6 @@
     },
     "An aurora-themed gradient for the hourly temperature chart." : {
       "comment" : "Subtitle for the Aurora Hourly Chart Skin cosmetic tile."
-    },
-    "Animation" : {
-
     },
     "Animation Set" : {
 
@@ -341,12 +347,6 @@
 
     },
     "API keys for Weather Underground and OpenWeatherMap are currently disabled. Weather data will use Apple Weather, Open-Meteo, or saved locations only." : {
-
-    },
-    "App Intents" : {
-
-    },
-    "App State" : {
 
     },
     "App version" : {
@@ -442,6 +442,9 @@
     "Bold Text" : {
 
     },
+    "Boost contrast, add text outlines, and use bold text for easier reading." : {
+
+    },
     "Border" : {
 
     },
@@ -452,6 +455,9 @@
 
     },
     "Browse and purchase cosmetic items for the app" : {
+
+    },
+    "Browse and search every customisation option the app offers in one place." : {
 
     },
     "Bug Report" : {
@@ -523,6 +529,9 @@
     "Choose how to share the current weather" : {
 
     },
+    "Choose whether the app follows your system appearance or stays permanently light or dark." : {
+
+    },
     "Close" : {
       "comment" : "Accessibility label for the close button."
     },
@@ -550,20 +559,20 @@
     "Contact Developer" : {
       "comment" : "Navigation title for general feedback form."
     },
+    "Content" : {
+
+    },
+    "Control the look of weather icons — colour style, filled vs outline symbols, and their size." : {
+
+    },
     "Coordinates are valid" : {
 
     },
     "Coordinates:" : {
 
     },
-    "Copied" : {
-
-    },
     "Copied to Clipboard" : {
       "comment" : "Alert title when mail is unavailable."
-    },
-    "Copy Debug Bundle JSON" : {
-
     },
     "Corner Radius" : {
 
@@ -584,6 +593,9 @@
       "comment" : "Title of the cosmetics store view."
     },
     "Could not find the specified location." : {
+
+    },
+    "Could not load the full warning text. Use the link below to read it on the source website." : {
 
     },
     "Current" : {
@@ -689,9 +701,6 @@
 
     },
     "Developer" : {
-
-    },
-    "Developer Debug" : {
 
     },
     "Diagnostics" : {
@@ -1174,6 +1183,12 @@
     "Experimental" : {
 
     },
+    "Explain in plain language" : {
+
+    },
+    "Explaining…" : {
+
+    },
     "Export" : {
 
     },
@@ -1190,6 +1205,9 @@
 
     },
     "Exports your current theme as a .saxtheme file. Credentials (API keys) are removed before sharing." : {
+
+    },
+    "Extra descriptions for screen readers and spoken severe-weather alerts." : {
 
     },
     "Failed to fetch weather data: %@" : {
@@ -1220,9 +1238,6 @@
 
     },
     "Force Reduce Motion" : {
-
-    },
-    "Force Weather Refresh" : {
 
     },
     "Forecast" : {
@@ -1353,6 +1368,9 @@
     "Highlight" : {
 
     },
+    "Home Layout" : {
+
+    },
     "Hour Range" : {
 
     },
@@ -1475,6 +1493,9 @@
     "Loading forecast data..." : {
 
     },
+    "Loading full warning…" : {
+
+    },
     "Loading weather data..." : {
 
     },
@@ -1526,9 +1547,6 @@
     "Loop Mode" : {
 
     },
-    "Lottie Preview" : {
-
-    },
     "Love SaxWeather?" : {
 
     },
@@ -1553,10 +1571,16 @@
     "Makes text and UI elements more distinct" : {
 
     },
+    "Manage your saved places, choose data providers, and set the units and forecast options used across the app." : {
+
+    },
     "Match Original Glass Look" : {
 
     },
     "Material Opacity" : {
+
+    },
+    "Medium" : {
 
     },
     "Melbourne" : {
@@ -1580,13 +1604,13 @@
     "More rain expected again in %@." : {
 
     },
+    "Motion & Animations" : {
+
+    },
     "N" : {
 
     },
     "Name" : {
-
-    },
-    "Need coordinates and weather to build share links." : {
 
     },
     "Neumorphic" : {
@@ -1640,9 +1664,6 @@
     "No weather alerts for your location" : {
 
     },
-    "No weather loaded" : {
-
-    },
     "No, rain is not expected in the next hour in %@." : {
 
     },
@@ -1650,9 +1671,6 @@
 
     },
     "Not Now" : {
-
-    },
-    "Note: Pull-to-refresh haptic cannot be disabled (iOS limitation)" : {
 
     },
     "Notifications are off. You can enable them any time in Settings, then Notifications, then SaxWeather." : {
@@ -1777,10 +1795,16 @@
     "Personal weather station data" : {
 
     },
+    "Personalisation" : {
+
+    },
     "Photography Times" : {
 
     },
     "Pick the font family that suits the look you’re going for. System is the iOS default." : {
+
+    },
+    "Pick which animated icon set to use and how fast it plays." : {
 
     },
     "Pin day" : {
@@ -1811,6 +1835,9 @@
 
     },
     "Pollutant Levels" : {
+
+    },
+    "Power User" : {
 
     },
     "Precipitation" : {
@@ -1897,7 +1924,7 @@
     "Rain Alerts" : {
 
     },
-    "Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. Quiet Hours mutes notification sounds during a daily time range." : {
+    "Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. AI Alert Summaries use Apple Intelligence on-device to explain warnings in plain language. Quiet Hours mutes notification sounds during a daily time range." : {
 
     },
     "Rain expected to start in %@" : {
@@ -1921,6 +1948,9 @@
     "Reduce Motion" : {
 
     },
+    "Reduce or disable motion and animated weather icons to cut down on movement." : {
+
+    },
     "Reduces animations throughout the app" : {
 
     },
@@ -1936,9 +1966,6 @@
     "Refreshes weather data" : {
 
     },
-    "Reload Widgets" : {
-
-    },
     "Remove iCloud Backup" : {
 
     },
@@ -1951,8 +1978,14 @@
     "Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included." : {
 
     },
+    "Reported" : {
+
+    },
     "Request a Feature" : {
       "comment" : "Navigation title for feature request form."
+    },
+    "Requires a device with Apple Intelligence enabled." : {
+
     },
     "Requires iOS 16+" : {
 
@@ -2094,6 +2127,9 @@
     "Send Feedback" : {
       "comment" : "Navigation title for bug feedback form.\nPrimary send feedback button."
     },
+    "Set a solid colour, gradient, or your own photo as the app background." : {
+
+    },
     "Set: %@" : {
 
     },
@@ -2118,13 +2154,7 @@
     "Share %@" : {
 
     },
-    "Share Links" : {
-
-    },
     "Share Location Link" : {
-
-    },
-    "Share text" : {
 
     },
     "Share Text Summary" : {
@@ -2178,16 +2208,22 @@
     "Skip" : {
 
     },
+    "Small" : {
+
+    },
     "Smaller" : {
 
     },
     "Snowy cabin backgrounds, snowflake animations, and a red/green palette." : {
       "comment" : "Subtitle for the Christmas Pack cosmetic tile."
     },
-    "Some settings are experimental and may have unintended consequences." : {
+    "Some behaviour settings are experimental and may have unintended consequences." : {
 
     },
     "Source Code" : {
+
+    },
+    "Source: %@" : {
 
     },
     "Speaks severe weather alerts when they occur" : {
@@ -2229,6 +2265,18 @@
     "Style" : {
 
     },
+    "Summarise all alerts" : {
+
+    },
+    "Summarised on-device by Apple Intelligence" : {
+
+    },
+    "Summarising…" : {
+
+    },
+    "Summary" : {
+
+    },
     "Sun & Moon" : {
 
     },
@@ -2248,6 +2296,9 @@
 
     },
     "Sunset" : {
+
+    },
+    "Support" : {
 
     },
     "Support Development" : {
@@ -2339,6 +2390,9 @@
     "Test Refresh" : {
 
     },
+    "Text Size" : {
+
+    },
     "Thank You! 🎉" : {
 
     },
@@ -2352,6 +2406,9 @@
 
     },
     "The gradient stretches from top to bottom of the screen on every condition." : {
+
+    },
+    "The highlight colour used for buttons, links, and selected controls throughout the app." : {
 
     },
     "The shipped preset image is multiplied with this tint. Try warm tones at dusk." : {
@@ -2435,6 +2492,9 @@
 
     },
     "Try the redesigned hero card layout." : {
+
+    },
+    "Turn off “Use System Text Size” to set a custom scale just for this app." : {
 
     },
     "Turn on to overlay a custom image on top of the preset when one is set." : {
@@ -2524,6 +2584,12 @@
     "View" : {
 
     },
+    "Visual" : {
+
+    },
+    "VoiceOver" : {
+
+    },
     "W" : {
 
     },
@@ -2560,9 +2626,6 @@
     "Weather may be outdated — tap below to refresh" : {
 
     },
-    "Weather Payload" : {
-
-    },
     "Weather Snapshot" : {
 
     },
@@ -2584,7 +2647,7 @@
     "When enabled, text will resize according to your system settings" : {
 
     },
-    "Widget Sync" : {
+    "Widgets" : {
 
     },
     "Width" : {
