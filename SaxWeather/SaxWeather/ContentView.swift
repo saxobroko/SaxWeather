@@ -41,8 +41,8 @@ struct UsageProductID: Identifiable {
 // MARK: - Content View
 struct ContentView: View {
     @EnvironmentObject var storeManager: StoreManager
+    @EnvironmentObject var locationsManager: SavedLocationsManager
     @StateObject private var weatherService = WeatherService()
-    @StateObject private var locationsManager = SavedLocationsManager()
     @State private var showSettings = false
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @AppStorage("isFirstLaunch") private var isFirstLaunch = true
@@ -1897,6 +1897,8 @@ struct HamburgerLocationMenuView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+            .environmentObject(StoreManager())
+            .environmentObject(SavedLocationsManager())
     }
 }
 

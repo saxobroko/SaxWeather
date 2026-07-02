@@ -370,6 +370,7 @@ struct SaxWeatherApp: App {
     @StateObject private var weatherAlertManager = WeatherAlertManager.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var weatherService = WeatherService()
+    @StateObject private var locationsManager = SavedLocationsManager()
     // Customisation engine — single source of truth for every
     // knob. Phase 1: model + registry + persistence only; existing
     // `@AppStorage` reads continue to work unchanged. The registry
@@ -410,6 +411,7 @@ struct SaxWeatherApp: App {
             ContentView()
                 .environmentObject(storeManager)
                 .environmentObject(weatherService)
+                .environmentObject(locationsManager)
                 .environmentObject(weatherAlertManager)
                 .environmentObject(customisationRegistry)
                 .environmentObject(deepLinkHandler)

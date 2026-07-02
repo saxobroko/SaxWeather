@@ -14,8 +14,8 @@ import CoreLocation
 struct DetailedWeatherView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var weatherService: WeatherService
+    @EnvironmentObject private var locationsManager: SavedLocationsManager
     @AppStorage("unitSystem") private var unitSystem: String = "Metric"
-    @StateObject private var locationsManager = SavedLocationsManager()
     @State private var selectedMetric: WeatherMetricInfo?
     
     var body: some View {
