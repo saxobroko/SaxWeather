@@ -1104,6 +1104,11 @@ fileprivate enum WidgetUnitConverter {
 struct SaxWeatherWidgetEntryView : View {
     var entry: WeatherWidgetEntry
     @Environment(\.widgetFamily) var widgetFamily
+
+    private var widgetUnitSystem: UnitSystem {
+        let raw = WidgetSharedConfig.sharedDefaults?.string(forKey: WidgetSharedConfig.Keys.unitSystem) ?? "Metric"
+        return UnitSystem.from(rawValue: raw)
+    }
     
     // Helper to format relative time
     private func relativeTimeString(from date: Date?) -> String {
@@ -1474,7 +1479,7 @@ struct SaxWeatherWidgetEntryView : View {
                                     Text("Wind")
                                         .font(.system(size: 10, weight: .medium))
                                         .foregroundColor(.secondary)
-                                    Text("\(String(format: "%.1f", windSpeed)) km/h")
+                                    Text("\(String(format: "%.1f", windSpeed)) \(widgetUnitSystem.speedLabel)")
                                         .font(.system(size: 18, weight: .medium))
                                         .foregroundColor(.primary)
                                         .minimumScaleFactor(0.8)
@@ -1522,7 +1527,7 @@ struct SaxWeatherWidgetEntryView : View {
                                     Text("Pressure")
                                         .font(.system(size: 10, weight: .medium))
                                         .foregroundColor(.secondary)
-                                    Text("\(String(format: "%.0f", pressure)) hPa")
+                                    Text("\(String(format: "%.0f", pressure)) \(widgetUnitSystem.pressureLabel)")
                                         .font(.system(size: 18, weight: .medium))
                                         .foregroundColor(.primary)
                                         .minimumScaleFactor(0.8)

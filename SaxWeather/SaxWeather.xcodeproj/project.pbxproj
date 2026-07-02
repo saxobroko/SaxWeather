@@ -79,6 +79,7 @@
 		78F435F62FE12E8500BE4F71 /* Exceptions for "SaxWeather" folder in "SaxWeatherWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Helpers/UnitConverter.swift,
 				Helpers/WidgetStaleness.swift,
 			);
 			target = 7899C5F12DD9242C00A698C9 /* SaxWeatherWidgetExtension */;
