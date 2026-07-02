@@ -438,6 +438,10 @@ struct SettingsView: View {
         // and cellular.
         NetworkQualityHint()
 
+        // MARK: Weather
+        // Everything to do with *what* weather is shown and where
+        // it comes from: saved places, data providers, and the
+        // units / forecast preferences that shape the numbers.
         Section {
             NavigationLink {
                 LocationsSettingsView(
@@ -446,7 +450,12 @@ struct SettingsView: View {
                     weatherService: weatherService
                 )
             } label: {
-                Label("Locations", systemImage: "location.fill")
+                settingsRow(
+                    title: "Locations",
+                    subtitle: "Saved places and current location",
+                    systemImage: "location.fill",
+                    tint: .blue
+                )
             }
 
             NavigationLink {
@@ -477,7 +486,12 @@ struct SettingsView: View {
                 )
                 #endif
             } label: {
-                Label("Weather Data", systemImage: "cloud.sun.fill")
+                settingsRow(
+                    title: "Weather Data",
+                    subtitle: "Data sources and API keys",
+                    systemImage: "cloud.sun.fill",
+                    tint: .cyan
+                )
             }
 
             NavigationLink {
@@ -495,40 +509,89 @@ struct SettingsView: View {
                     displayModes: displayModes
                 )
             } label: {
-                Label("Preferences", systemImage: "slider.horizontal.3")
+                settingsRow(
+                    title: "Preferences",
+                    subtitle: "Units, forecast length, and layout",
+                    systemImage: "slider.horizontal.3",
+                    tint: .indigo
+                )
             }
+        } header: {
+            Text("Weather")
+        } footer: {
+            Text("Manage your saved places, choose data providers, and set the units and forecast options used across the app.")
+        }
+
+        // MARK: Personalisation
+        // How the app looks and feels: theme, motion/haptics, and
+        // accessibility accommodations.
+        Section {
             NavigationLink {
                 AppearanceSettingsView()
             } label: {
-                Label("Appearance", systemImage: "paintbrush.fill")
+                settingsRow(
+                    title: "Appearance",
+                    subtitle: "Theme, colours, and backgrounds",
+                    systemImage: "paintbrush.fill",
+                    tint: .purple
+                )
+            }
+
+            // v2 — Behaviour is the new home for haptics,
+            // gestures, alert sounds, and experimental flags.
+            NavigationLink {
+                BehaviourSettingsView()
+            } label: {
+                settingsRow(
+                    title: "Behaviour",
+                    subtitle: "Haptics, gestures, and alert sounds",
+                    systemImage: "hand.tap.fill",
+                    tint: .orange
+                )
             }
 
             NavigationLink {
                 AccessibilitySettingsView()
             } label: {
-                Label("Accessibility", systemImage: "accessibility")
+                settingsRow(
+                    title: "Accessibility",
+                    subtitle: "Motion, contrast, and VoiceOver",
+                    systemImage: "accessibility",
+                    tint: .green
+                )
             }
-
-            // v2 — Behaviour is the new home for haptics,
-            // gestures, alert sounds, and experimental flags.
-            // It is a top-level tab on the same row as the rest.
-            NavigationLink {
-                BehaviourSettingsView()
-            } label: {
-                Label("Behaviour", systemImage: "hand.tap.fill")
+        } header: {
+            Text("Personalisation")
+        } footer: {
+            // Experimental settings disclaimer. Some knobs in the
+            // registry (especially under Behaviour) are still being
+            // iterated on and may produce unexpected results.
+            Label {
+                Text("Some behaviour settings are experimental and may have unintended consequences.")
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
             }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
 
-            // v2 — Customisation hub inlined with the other top-
-            // level tabs (no separate section header). Opens the
-            // full searchable catalogue of every knob in the
-            // registry.
+        // MARK: Advanced
+        // The full searchable catalogue of every registry knob for
+        // power users who know exactly what they want.
+        Section {
             Button {
                 searchSheet = .searchAllSettings
             } label: {
                 HStack {
-                    Label("Search All Settings", systemImage: "magnifyingglass")
+                    settingsRow(
+                        title: "Search All Settings",
+                        subtitle: "Find and edit any option",
+                        systemImage: "magnifyingglass",
+                        tint: .gray
+                    )
                     Spacer()
-                    Text("\(customisationRegistry.profile.knobs.allEditableKnobCount) knobs")
+                    Text("\(customisationRegistry.profile.knobs.allEditableKnobCount)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Image(systemName: "chevron.right")
@@ -538,33 +601,23 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Search All Settings")
             .accessibilityHint("Search every customisation knob the registry knows about")
+        } header: {
+            Text("Advanced")
         } footer: {
-            // Experimental settings disclaimer. Some knobs in the
-            // registry (especially under Behaviour) are still being
-            // iterated on and may produce unexpected results. The
-            // footer keeps the warning visible without crowding the
-            // row list itself.
-            Label {
-                Text("Some settings are experimental and may have unintended consequences.")
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .padding(.top, 4)
+            Text("Browse and search every customisation option the app offers in one place.")
         }
 
-        // Empty section acts as a visual gap before Support /
-        // About / Attribution so the rows above don't feel
-        // crowded against the closing tabs.
-        Section { EmptyView() }
-
+        // MARK: Data
         Section {
             NavigationLink {
                 SettingsBackupAndRestoreView()
             } label: {
-                Label("Backup & Restore", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                settingsRow(
+                    title: "Backup & Restore",
+                    subtitle: "Export, import, and iCloud sync",
+                    systemImage: "arrow.triangle.2.circlepath.circle.fill",
+                    tint: .teal
+                )
             }
         } header: {
             Text("Data")
@@ -572,18 +625,18 @@ struct SettingsView: View {
             Text("Back up your settings to a .saxtheme file, restore from one, or sync across your devices with iCloud.")
         }
 
+        // MARK: Support
         Section {
             Button {
                 showingTipJar = true
             } label: {
-                HStack {
-                    Label("Support Development", systemImage: "heart.fill")
-                        .foregroundColor(.pink)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                settingsRow(
+                    title: "Support Development",
+                    subtitle: "Leave a tip for the developer",
+                    systemImage: "heart.fill",
+                    tint: .pink,
+                    showsChevron: true
+                )
             }
             .accessibilityLabel("Support Development")
             .accessibilityHint("Leave a tip to support the app")
@@ -591,19 +644,21 @@ struct SettingsView: View {
             Button {
                 showingCosmeticsStore = true
             } label: {
-                HStack {
-                    Label("Cosmetics", systemImage: "paintbrush.pointed.fill")
-                        .foregroundColor(.accentColor)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                settingsRow(
+                    title: "Cosmetics",
+                    subtitle: "Themes, palettes, and extras",
+                    systemImage: "paintbrush.pointed.fill",
+                    tint: .accentColor,
+                    showsChevron: true
+                )
             }
             .accessibilityLabel("Cosmetics")
             .accessibilityHint("Browse and purchase cosmetic items for the app")
+        } header: {
+            Text("Support")
         }
 
+        // MARK: Feedback
         Section {
             feedbackSection
         } header: {
@@ -612,11 +667,17 @@ struct SettingsView: View {
             Text("Report a bug or suggest an improvement. Diagnostics are attached automatically — no API keys are included.")
         }
 
+        // MARK: About
         Section {
             NavigationLink {
                 AboutSettingsView()
             } label: {
-                Label("About", systemImage: "info.circle.fill")
+                settingsRow(
+                    title: "About",
+                    subtitle: "Version and app information",
+                    systemImage: "info.circle.fill",
+                    tint: .blue
+                )
             }
 
             NavigationLink {
@@ -627,9 +688,58 @@ struct SettingsView: View {
                     currentDataSource: weatherService.currentDataSource
                 )
             } label: {
-                Label("Attribution", systemImage: "network")
+                settingsRow(
+                    title: "Attribution",
+                    subtitle: "Data providers and licences",
+                    systemImage: "network",
+                    tint: .secondary
+                )
+            }
+        } header: {
+            Text("About")
+        }
+    }
+
+    /// A consistent settings row: a coloured, rounded icon tile
+    /// followed by a title and a short explanatory subtitle. Keeps
+    /// every top-level destination visually aligned and easier to
+    /// scan than a bare `Label`.
+    @ViewBuilder
+    private func settingsRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        showsChevron: Bool = false
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 29, height: 29)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(tint)
+                )
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.body)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if showsChevron {
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
     }
 
     // Safe accessor for weather values using Mirror
@@ -1764,7 +1874,10 @@ enum SettingsSearchRoute: Hashable {
         switch owning {
         case .appearance:    return .appearance
         case .preferences:   return .preferences
-        case .accessibility: return .behaviour
+        case .behaviour:     return .behaviour
+        case .accessibility: return .accessibility
+        case .weatherData:   return .weatherData
+        case .cardStyle:     return .cardStyle
         }
     }
 }
@@ -2024,6 +2137,7 @@ enum SearchKnobValueFormatter {
         case "weatherAlertSounds":          return k.behaviour.weatherAlertSounds ? "On" : "Off"
         case "rainAlertsEnabled":           return k.behaviour.rainAlertsEnabled ? "On" : "Off"
         case "severeWeatherAlertsEnabled":  return k.behaviour.severeWeatherAlertsEnabled ? "On" : "Off"
+        case "aiAlertSummariesEnabled":     return k.behaviour.aiAlertSummariesEnabled ? "On" : "Off"
         case "speakWeatherAlerts":          return k.behaviour.speakWeatherAlerts ? "On" : "Off"
         case "quietHours":                  return quietHoursSummary(start: k.behaviour.quietHoursStart,
                                                                      end:   k.behaviour.quietHoursEnd)
@@ -3430,6 +3544,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Theme", systemImage: "circle.lefthalf.filled")
+            } footer: {
+                Text("Choose whether the app follows your system appearance or stays permanently light or dark.")
             }
 
             Section {
@@ -3457,6 +3573,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Accent Color", systemImage: "paintpalette")
+            } footer: {
+                Text("The highlight colour used for buttons, links, and selected controls throughout the app.")
             }
             .onChange(of: accentColor) { newValue in
                 customisationRegistry.set(\.visual.accentColor, ColourToken(rawString: newValue))
@@ -3540,6 +3658,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Icons", systemImage: "cloud.sun.fill")
+            } footer: {
+                Text("Control the look of weather icons — colour style, filled vs outline symbols, and their size.")
             }
             .onChange(of: weatherIconStyle) { newValue in
                 if let parsed = WeatherIconStyle(rawValue: newValue) {
@@ -3578,6 +3698,8 @@ struct AppearanceSettingsView: View {
                 }
             } header: {
                 Label("Animations", systemImage: "play.rectangle.fill")
+            } footer: {
+                Text("Pick which animated icon set to use and how fast it plays.")
             }
             .onChange(of: lottieAnimationSet) { newValue in
                 if let parsed = LottieAnimationSet(rawValue: newValue) {
@@ -3598,6 +3720,8 @@ struct AppearanceSettingsView: View {
                     .environmentObject(storeManager)
             } header: {
                 Label("Background", systemImage: "photo")
+            } footer: {
+                Text("Set a solid colour, gradient, or your own photo as the app background.")
             }
 
             Section {
@@ -3680,6 +3804,7 @@ struct BehaviourSettingsView: View {
     @AppStorage("weatherAlertSounds") private var weatherAlertSounds = true
     @AppStorage("rainAlertsEnabled") private var rainAlertsEnabled = true
     @AppStorage("severeWeatherAlertsEnabled") private var severeWeatherAlertsEnabled = true
+    @AppStorage("aiAlertSummariesEnabled") private var aiAlertSummariesEnabled = true
     @AppStorage("quietHoursStart") private var quietHoursStart: Int = 22
     @AppStorage("quietHoursEnd") private var quietHoursEnd: Int = 7
     @AppStorage("refreshSound") private var refreshSound = false
@@ -3758,6 +3883,15 @@ struct BehaviourSettingsView: View {
             Section {
                 Toggle("Rain Alerts", isOn: $rainAlertsEnabled)
                 Toggle("Severe Weather Alerts", isOn: $severeWeatherAlertsEnabled)
+                VStack(alignment: .leading, spacing: 2) {
+                    Toggle("AI Alert Summaries", isOn: $aiAlertSummariesEnabled)
+                        .disabled(!WeatherAlertExplainer.isSupported)
+                    if !WeatherAlertExplainer.isSupported {
+                        Text("Requires a device with Apple Intelligence enabled.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Toggle("Weather Alert Sounds", isOn: $weatherAlertSounds)
                 Toggle("Enable Quiet Hours", isOn: quietHoursEnabled)
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3784,10 +3918,11 @@ struct BehaviourSettingsView: View {
             } header: {
                 Label("Alerts & Sounds", systemImage: "speaker.wave.3.fill")
             } footer: {
-                Text("Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. Quiet Hours mutes notification sounds during a daily time range.")
+                Text("Rain alerts use Open-Meteo hourly forecasts. Severe alerts use Apple WeatherKit where available, or BOM in Australia. AI Alert Summaries use Apple Intelligence on-device to explain warnings in plain language. Quiet Hours mutes notification sounds during a daily time range.")
             }
             .onChange(of: rainAlertsEnabled) { customisationRegistry.set(\.behaviour.rainAlertsEnabled, $0) }
             .onChange(of: severeWeatherAlertsEnabled) { customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, $0) }
+            .onChange(of: aiAlertSummariesEnabled) { customisationRegistry.set(\.behaviour.aiAlertSummariesEnabled, $0) }
             .onChange(of: weatherAlertSounds) { customisationRegistry.set(\.behaviour.weatherAlertSounds, $0) }
             .onChange(of: quietHoursStart) { newValue in
                 if customisationRegistry.profile.knobs.behaviour.quietHoursStart != nil {
@@ -3851,6 +3986,7 @@ struct BehaviourSettingsView: View {
         customisationRegistry.set(\.behaviour.weatherAlertSounds, defaults.behaviour.weatherAlertSounds)
         customisationRegistry.set(\.behaviour.rainAlertsEnabled, defaults.behaviour.rainAlertsEnabled)
         customisationRegistry.set(\.behaviour.severeWeatherAlertsEnabled, defaults.behaviour.severeWeatherAlertsEnabled)
+        customisationRegistry.set(\.behaviour.aiAlertSummariesEnabled, defaults.behaviour.aiAlertSummariesEnabled)
         customisationRegistry.set(\.behaviour.refreshSound, defaults.behaviour.refreshSound)
         customisationRegistry.set(\.behaviour.vibrateOnPullToRefresh, defaults.behaviour.vibrateOnPullToRefresh)
         customisationRegistry.set(\.behaviour.confirmQuit, defaults.behaviour.confirmQuit)

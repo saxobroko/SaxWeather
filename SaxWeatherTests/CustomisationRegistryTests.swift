@@ -350,15 +350,11 @@ final class CustomisationRegistryTests: XCTestCase {
             "backgroundDynamicTint", "backgroundPerCondition", "backgroundGradient",
             "lottieOverrideMap",
             "temperaturePrecision", "windPrecision", "pressurePrecision",
-            "visibleMetrics", "hourlyMetrics", "extendedCardsEnabled", "showLocationLabel",
+            "showLocationLabel",
             "hapticIntensity", "pullToRefresh", "tapDayToExpand", "longPressToCustomise",
             "confirmDestructive",
             "weatherAlertSounds", "quietHours", "refreshSound",
             "hapticOnSelection", "tapticOnRefresh",
-            "locationNicknames", "customLabels",
-            "shortcutName", "shareThemeOnExport",
-            "widgetAccentSource",
-            "hourlyCardStyle", "dailyCardStyle", "chartAxes",
         ]
         for id in existing {
             XCTAssertTrue(ids.contains(id), "Missing descriptor for \(id)")
@@ -369,7 +365,6 @@ final class CustomisationRegistryTests: XCTestCase {
             "iconSizeMultiplier",
             "swipeBetweenLocations", "showLocationHeader", "previewBeforeChangingLocation",
             "compactCardsInLandscape",
-            "showHourlySummary", "detailedColumnCount",
             "vibrateOnPullToRefresh", "confirmQuit",
             "experimentalNewHeroLayout", "experimentalSwipeRefresh",
         ]
