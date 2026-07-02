@@ -611,6 +611,15 @@ struct ContentView: View {
             locationsManager: locationsManager,
             weatherService: weatherService
         ))
+        // `experimentalSwipeRefresh` — register pull-to-refresh on
+        // the whole home screen so it works outside the scroll view.
+        // ScrollView keeps its own `.refreshable` so the system
+        // control still appears when pulling inside the scroll area.
+        .modifier(PullToRefreshModifier(
+            enabled: SettingsBehaviour.pullToRefresh
+                && SettingsBehaviour.experimentalSwipeRefresh,
+            weatherService: weatherService
+        ))
     }
     
     private var backgroundLayer: some View {
@@ -709,7 +718,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                     #endif
                     
-                    let unitSymbol = unitSystem == "Metric" ? "°C" : "°F"
+                    let unitSymbol = UnitSystem.from(rawValue: unitSystem).temperatureLabel
                     
                     // Current Temperature Display
                     if let temperature = weather.temperature {
@@ -1012,7 +1021,7 @@ struct WeatherDetailsView: View {
                         selectedMetric = WeatherMetricInfo(
                             title: metric.title,
                             value: value,
-                            description: metricDescription(for: metric.title)
+                            description: WeatherMetricDescriptions.description(for: metric.title, unitSystem: unitSystem)
                         )
                     }
                         .transition(
@@ -1058,27 +1067,6 @@ struct WeatherDetailsView: View {
         ]
     }
 
-    private func metricDescription(for title: String) -> String {
-        switch title {
-        case "Humidity":
-            return "Humidity is the amount of water vapor present in the air. High humidity can make it feel warmer than it actually is, while low humidity can make it feel cooler."
-        case "Dew Point":
-            let threshold = unitSystem == "Metric" ? "18°C" : "65°F"
-            return "Dew point is the temperature at which water vapor in the air begins to condense. A higher dew point (above \(threshold)) means the air feels more humid and uncomfortable."
-        case "Pressure":
-            return "Atmospheric pressure affects weather conditions. Falling pressure often indicates approaching storms, while rising pressure typically means clearer weather."
-        case "Wind Speed":
-            return "Wind speed measures how fast the air is moving. Higher wind speeds can make it feel colder and may affect outdoor activities."
-        case "Wind Gust":
-            return "Wind gusts are sudden increases in wind speed. They're typically stronger than the average wind speed and can be particularly important for outdoor safety."
-        case "UV Index":
-            return "The UV Index measures the intensity of ultraviolet radiation from the sun. Higher values (6+) mean greater risk of sun damage and need for protection."
-        case "Solar Radiation":
-            return "Solar radiation measures the sun's energy reaching Earth's surface. It affects temperature and can impact solar panel efficiency."
-        default:
-            return "Weather measurement data"
-        }
-    }
 }
 
 // MARK: - Extended Weather Section
