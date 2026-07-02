@@ -84,7 +84,7 @@ struct KnobSearchView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    Text(group.rawValue)
+                    Text(group.localizedName)
                 }
             }
         }

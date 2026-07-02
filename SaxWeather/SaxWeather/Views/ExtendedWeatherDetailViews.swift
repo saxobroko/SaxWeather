@@ -23,7 +23,7 @@ struct AirQualityDetailView: View {
                             .font(.system(size: 72, weight: .bold))
                             .foregroundColor(data.category.color)
                         
-                        Text(data.category.rawValue)
+                        Text(data.category.localizedName)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(.primary)
                         
@@ -127,34 +127,34 @@ struct AirQualityDetailView: View {
     private func getGeneralRecommendation(for aqi: Int) -> String {
         switch aqi {
         case 0...50:
-            return "Air quality is satisfactory. Enjoy outdoor activities."
+            return String(localized: "Air quality is satisfactory. Enjoy outdoor activities.")
         case 51...100:
-            return "Air quality is acceptable. Unusually sensitive people should consider limiting prolonged outdoor exertion."
+            return String(localized: "Air quality is acceptable. Unusually sensitive people should consider limiting prolonged outdoor exertion.")
         case 101...150:
-            return "Members of sensitive groups may experience health effects. The general public is less likely to be affected."
+            return String(localized: "Members of sensitive groups may experience health effects. The general public is less likely to be affected.")
         case 151...200:
-            return "Some members of the general public may experience health effects. Sensitive groups should avoid prolonged outdoor exertion."
+            return String(localized: "Some members of the general public may experience health effects. Sensitive groups should avoid prolonged outdoor exertion.")
         case 201...300:
-            return "Health alert: The risk of health effects is increased for everyone. Avoid prolonged outdoor exertion."
+            return String(localized: "Health alert: The risk of health effects is increased for everyone. Avoid prolonged outdoor exertion.")
         default:
-            return "Health warning: Everyone should avoid all outdoor exertion. Stay indoors with windows closed."
+            return String(localized: "Health warning: Everyone should avoid all outdoor exertion. Stay indoors with windows closed.")
         }
     }
     
     private func getSensitiveRecommendation(for aqi: Int) -> String {
         switch aqi {
         case 0...50:
-            return "No precautions needed. Safe for all activities."
+            return String(localized: "No precautions needed. Safe for all activities.")
         case 51...100:
-            return "Consider reducing prolonged or heavy outdoor exertion if you experience symptoms."
+            return String(localized: "Consider reducing prolonged or heavy outdoor exertion if you experience symptoms.")
         case 101...150:
-            return "Reduce prolonged or heavy outdoor exertion. Take more breaks and do less intense activities."
+            return String(localized: "Reduce prolonged or heavy outdoor exertion. Take more breaks and do less intense activities.")
         case 151...200:
-            return "Avoid prolonged or heavy outdoor exertion. Move activities indoors or reschedule."
+            return String(localized: "Avoid prolonged or heavy outdoor exertion. Move activities indoors or reschedule.")
         case 201...300:
-            return "Avoid all outdoor exertion. Stay indoors and keep activity levels low."
+            return String(localized: "Avoid all outdoor exertion. Stay indoors and keep activity levels low.")
         default:
-            return "Remain indoors with windows closed. Use air purifiers if available."
+            return String(localized: "Remain indoors with windows closed. Use air purifiers if available.")
         }
     }
 }
@@ -175,7 +175,7 @@ struct UVIndexDetailView: View {
                             .font(.system(size: 72, weight: .bold))
                             .foregroundColor(data.category.color)
                         
-                        Text(data.category.rawValue)
+                        Text(data.category.localizedName)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(.primary)
                         
@@ -199,12 +199,12 @@ struct UVIndexDetailView: View {
                             .padding(.horizontal)
                         
                         VStack(spacing: 12) {
-                            TimeToBurnRow(skinType: "I (Very Fair)", time: calculateBurnTime(uvIndex: data.index, skinType: 1), description: "Always burns, never tans")
-                            TimeToBurnRow(skinType: "II (Fair)", time: calculateBurnTime(uvIndex: data.index, skinType: 2), description: "Usually burns, tans minimally")
-                            TimeToBurnRow(skinType: "III (Medium)", time: calculateBurnTime(uvIndex: data.index, skinType: 3), description: "Sometimes burns, gradually tans")
-                            TimeToBurnRow(skinType: "IV (Olive)", time: calculateBurnTime(uvIndex: data.index, skinType: 4), description: "Rarely burns, tans easily")
-                            TimeToBurnRow(skinType: "V (Brown)", time: calculateBurnTime(uvIndex: data.index, skinType: 5), description: "Very rarely burns, tans darkly")
-                            TimeToBurnRow(skinType: "VI (Dark Brown/Black)", time: calculateBurnTime(uvIndex: data.index, skinType: 6), description: "Never burns, deeply pigmented")
+                            TimeToBurnRow(skinType: String(localized: "I (Very Fair)"), time: calculateBurnTime(uvIndex: data.index, skinType: 1), description: "Always burns, never tans")
+                            TimeToBurnRow(skinType: String(localized: "II (Fair)"), time: calculateBurnTime(uvIndex: data.index, skinType: 2), description: "Usually burns, tans minimally")
+                            TimeToBurnRow(skinType: String(localized: "III (Medium)"), time: calculateBurnTime(uvIndex: data.index, skinType: 3), description: "Sometimes burns, gradually tans")
+                            TimeToBurnRow(skinType: String(localized: "IV (Olive)"), time: calculateBurnTime(uvIndex: data.index, skinType: 4), description: "Rarely burns, tans easily")
+                            TimeToBurnRow(skinType: String(localized: "V (Brown)"), time: calculateBurnTime(uvIndex: data.index, skinType: 5), description: "Very rarely burns, tans darkly")
+                            TimeToBurnRow(skinType: String(localized: "VI (Dark Brown/Black)"), time: calculateBurnTime(uvIndex: data.index, skinType: 6), description: "Never burns, deeply pigmented")
                         }
                         .padding(.horizontal)
                     }
@@ -240,7 +240,7 @@ struct UVIndexDetailView: View {
                             ProtectionCard(
                                 icon: "clock.fill",
                                 title: "Timing",
-                                recommendation: "Peak UV hours: \(data.peakHours). Seek shade during these times.",
+                                recommendation: String(localized: "Peak UV hours: \(data.peakHours). Seek shade during these times."),
                                 color: data.category.color
                             )
                         }
@@ -286,15 +286,15 @@ struct UVIndexDetailView: View {
         let baseMinutes: [Int] = [67, 100, 150, 200, 300, 400] // Minutes for UV index 1
         
         guard skinType >= 1 && skinType <= 6, uvIndex > 0 else {
-            return "N/A"
+            return String(localized: "N/A")
         }
         
         let minutes = baseMinutes[skinType - 1] / uvIndex
         
         if minutes < 10 {
-            return "< 10 min"
+            return String(localized: "< 10 min")
         } else if minutes < 60 {
-            return "\(minutes) min"
+            return String(localized: "\(minutes) min")
         } else {
             let hours = minutes / 60
             let remainingMinutes = minutes % 60
@@ -309,41 +309,41 @@ struct UVIndexDetailView: View {
     private func getSunscreenRecommendation(for uvIndex: Int) -> String {
         switch uvIndex {
         case 0...2:
-            return "SPF 15+ recommended for extended outdoor exposure."
+            return String(localized: "SPF 15+ recommended for extended outdoor exposure.")
         case 3...5:
-            return "SPF 30+ recommended. Reapply every 2 hours."
+            return String(localized: "SPF 30+ recommended. Reapply every 2 hours.")
         case 6...7:
-            return "SPF 50+ essential. Reapply every 1.5 hours and after swimming."
+            return String(localized: "SPF 50+ essential. Reapply every 1.5 hours and after swimming.")
         case 8...10:
-            return "SPF 50+ water-resistant sunscreen required. Reapply every hour."
+            return String(localized: "SPF 50+ water-resistant sunscreen required. Reapply every hour.")
         default:
-            return "SPF 50+ broad-spectrum, water-resistant. Reapply every 30 minutes."
+            return String(localized: "SPF 50+ broad-spectrum, water-resistant. Reapply every 30 minutes.")
         }
     }
     
     private func getEyeProtectionRecommendation(for uvIndex: Int) -> String {
         switch uvIndex {
         case 0...2:
-            return "Sunglasses optional for comfort."
+            return String(localized: "Sunglasses optional for comfort.")
         case 3...5:
-            return "UV-blocking sunglasses recommended."
+            return String(localized: "UV-blocking sunglasses recommended.")
         case 6...7:
-            return "UV-blocking sunglasses essential. Consider a wide-brimmed hat."
+            return String(localized: "UV-blocking sunglasses essential. Consider a wide-brimmed hat.")
         default:
-            return "UV-blocking sunglasses and wide-brimmed hat mandatory."
+            return String(localized: "UV-blocking sunglasses and wide-brimmed hat mandatory.")
         }
     }
     
     private func getClothingRecommendation(for uvIndex: Int) -> String {
         switch uvIndex {
         case 0...2:
-            return "Normal clothing is adequate."
+            return String(localized: "Normal clothing is adequate.")
         case 3...5:
-            return "Wear light-colored, loose-fitting clothing."
+            return String(localized: "Wear light-colored, loose-fitting clothing.")
         case 6...7:
-            return "Wear protective clothing. Consider UPF-rated fabrics."
+            return String(localized: "Wear protective clothing. Consider UPF-rated fabrics.")
         default:
-            return "Wear UPF 50+ clothing, long sleeves, and pants. Minimize exposed skin."
+            return String(localized: "Wear UPF 50+ clothing, long sleeves, and pants. Minimize exposed skin.")
         }
     }
 }
@@ -659,7 +659,7 @@ struct PollutantRow: View {
     let name: String
     let value: Double
     let unit: String
-    let info: String
+    let info: LocalizedStringKey
     
     var body: some View {
         HStack {
@@ -687,7 +687,7 @@ struct PollutantRow: View {
 }
 
 struct HealthRecommendationCard: View {
-    let category: String
+    let category: LocalizedStringKey
     let recommendation: String
     let color: Color
     
@@ -714,7 +714,7 @@ struct HealthRecommendationCard: View {
 
 struct AQIScaleReferenceRow: View {
     let range: String
-    let category: String
+    let category: LocalizedStringKey
     let color: Color
     
     var body: some View {
@@ -740,7 +740,7 @@ struct AQIScaleReferenceRow: View {
 struct TimeToBurnRow: View {
     let skinType: String
     let time: String
-    let description: String
+    let description: LocalizedStringKey
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -767,7 +767,7 @@ struct TimeToBurnRow: View {
 
 struct ProtectionCard: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let recommendation: String
     let color: Color
     
@@ -797,9 +797,9 @@ struct ProtectionCard: View {
 
 struct UVScaleReferenceRow: View {
     let range: String
-    let category: String
+    let category: LocalizedStringKey
     let color: Color
-    let description: String
+    let description: LocalizedStringKey
     
     var body: some View {
         HStack {
@@ -827,7 +827,7 @@ struct UVScaleReferenceRow: View {
 
 struct SunTimeCard: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let time: Date
     let countdown: String?
     let color: Color
@@ -863,7 +863,7 @@ struct SunTimeCard: View {
 
 struct InfoCard: View {
     let icon: String
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     let color: Color
     
@@ -889,8 +889,8 @@ struct InfoCard: View {
 }
 
 struct PhotoTimeCard: View {
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let startTime: Date
     let endTime: Date
     let color: Color
@@ -943,7 +943,7 @@ struct MoonPhaseCard: View {
                 .foregroundColor(.yellow)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(moonPhase.rawValue)
+                Text(moonPhase.localizedName)
                     .font(.system(size: 18, weight: .semibold))
                 
                 Text(moonPhase.description)

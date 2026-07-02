@@ -1028,7 +1028,7 @@ struct DayCustomiseSheet: View {
 // Original WeatherDataColumn from your code
 struct WeatherDataColumn: View {
     let icon: String
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     
     var body: some View {

@@ -339,8 +339,8 @@ private struct OnboardingProgressIndicator: View {
 private struct OnboardingStepContainer<Content: View>: View {
     let icon: String
     let iconColors: [Color]
-    let title: String
-    let subtitle: String?
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey?
     let cardBackground: Color
     @ViewBuilder let content: () -> Content
 
@@ -457,7 +457,7 @@ private struct WelcomeStep: View {
 
 private struct FeaturePill: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
     let accent: Color
 
     var body: some View {
@@ -644,8 +644,8 @@ private struct MultipleLocationsStep: View {
 
 private struct MockLocationRow: View {
     let icon: String
-    let name: String
-    let subtitle: String
+    let name: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let isPrimary: Bool
     let cardBackground: Color
 
@@ -698,12 +698,12 @@ private struct AnimationsStep: View {
     /// All available Lottie animations in the bundle. Kept
     /// in sync with the `Lottie Animations` folder.
     private let animations: [(name: String, label: String)] = [
-        ("clear-day", "Clear"),
-        ("cloudy", "Cloudy"),
-        ("rainy", "Rain"),
-        ("thunderstorm", "Storm"),
-        ("snowy", "Snow"),
-        ("foggy", "Fog")
+        ("clear-day", String(localized: "Clear")),
+        ("cloudy", String(localized: "Cloudy")),
+        ("rainy", String(localized: "Rain")),
+        ("thunderstorm", String(localized: "Storm")),
+        ("snowy", String(localized: "Snow")),
+        ("foggy", String(localized: "Fog"))
     ]
 
     var body: some View {
@@ -1027,8 +1027,8 @@ private struct CustomizationStep: View {
 
 private struct CustomizationTile: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let tint: Color
     let cardBackground: Color
 

@@ -352,7 +352,7 @@ struct AlertsView: View {
         }
     }
 
-    private func legendItem(color: Color, text: String) -> some View {
+    private func legendItem(color: Color, text: LocalizedStringKey) -> some View {
         HStack(spacing: 4) {
             Rectangle()
                 .fill(color)
@@ -845,7 +845,7 @@ private struct WeatherAlertDetailsView: View {
         .padding(.top, 4)
     }
 
-    private func detailSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func detailSection<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption)

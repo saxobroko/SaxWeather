@@ -83,9 +83,9 @@ struct BackgroundRefreshStatusView: View {
                     )
                     InfoRow(
                         title: "Low Power Mode",
-                        value: BackgroundRefreshCoordinator.shared.isLowPowerModeEnabled ? "On (2× backoff)" : "Off"
+                        value: BackgroundRefreshCoordinator.shared.isLowPowerModeEnabled ? String(localized: "On (2× backoff)") : String(localized: "Off")
                     )
-                    InfoRow(title: "Policy", value: "Exponential backoff on failure")
+                    InfoRow(title: "Policy", value: String(localized: "Exponential backoff on failure"))
                 }
             } header: {
                 Text("Configuration")
@@ -196,7 +196,7 @@ struct BackgroundRefreshStatusView: View {
 }
 
 struct InfoRow: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     
     var body: some View {

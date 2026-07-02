@@ -546,7 +546,7 @@ enum PerConditionBackgroundEditor {}
 // MARK: - Color picker row
 
 struct ColorPickerRow: View {
-    let label: String
+    let label: LocalizedStringKey
     @Binding var token: ColourToken
     @State private var preset: NamedColourPreset = .blue
     @State private var customHex: String = ""

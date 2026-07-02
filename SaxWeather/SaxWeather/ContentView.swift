@@ -1459,7 +1459,7 @@ struct WeatherMetricInfoContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text(title)
+                Text(WeatherMetricDescriptions.localizedTitle(for: title))
                     .font(.system(size: 17, weight: .semibold))
                 Spacer()
                 Text(value)
@@ -1541,7 +1541,7 @@ struct WeatherRowView<Accessory: View>: View {
                         )
                         .frame(width: 24)
 
-                    Text(title)
+                    Text(WeatherMetricDescriptions.localizedTitle(for: title))
                         .accessibleFont(size: 16, weight: .medium)
                         .accessibleContrast()
                         .foregroundStyle(colorScheme == .dark ?
@@ -1576,7 +1576,7 @@ struct WeatherRowView<Accessory: View>: View {
             .padding(.horizontal, 4)
         } else {
             HStack {
-                Text(title)
+                Text(WeatherMetricDescriptions.localizedTitle(for: title))
                     .font(.headline)
                     .foregroundColor(.blue)
                 Spacer()
@@ -1687,8 +1687,8 @@ struct HamburgerLocationMenuView: View {
                     locationRow(
                         systemImage: "location.fill",
                         tint: .blue,
-                        title: "Current Location (GPS)",
-                        subtitle: "Use your device's GPS",
+                        title: String(localized: "Current Location (GPS)"),
+                        subtitle: String(localized: "Use your device's GPS"),
                         isSelected: isGPSSelected,
                         isDisabled: false
                     ) {
@@ -1707,7 +1707,7 @@ struct HamburgerLocationMenuView: View {
                                 tint: .accentColor,
                                 title: location.name,
                                 subtitle: String(
-                                    format: "Lat: %.4f, Lon: %.4f",
+                                    format: String(localized: "Lat: %.4f, Lon: %.4f"),
                                     location.latitude,
                                     location.longitude
                                 ),

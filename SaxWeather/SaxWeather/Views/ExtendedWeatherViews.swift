@@ -32,7 +32,7 @@ struct AirQualityCardView: View {
                     
                     Spacer()
                     
-                    Text(data.category.rawValue)
+                    Text(data.category.localizedName)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
@@ -155,7 +155,7 @@ struct UVIndexCardView: View {
                     
                     Spacer()
                     
-                    Text(data.category.rawValue)
+                    Text(data.category.localizedName)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
@@ -186,7 +186,7 @@ struct UVIndexCardView: View {
                 // Recommendations
                 VStack(alignment: .leading, spacing: 8) {
                     RecommendationRow(icon: "figure.walk", text: data.sunscreenRecommendation)
-                    RecommendationRow(icon: "clock.fill", text: "Peak hours: \(data.peakHours)")
+                    RecommendationRow(icon: "clock.fill", text: String(localized: "Peak hours: \(data.peakHours)"))
                 }
                 
                 // Tap hint
@@ -255,7 +255,7 @@ struct PollenCardView: View {
 }
 
 struct PollenLevelRow: View {
-    let type: String
+    let type: LocalizedStringKey
     let level: PollenData.PollenLevel
     
     var body: some View {
@@ -367,7 +367,7 @@ struct SunMoonCardView: View {
                             .foregroundColor(.yellow)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(data.moonPhase.rawValue)
+                            Text(data.moonPhase.localizedName)
                                 .font(.system(size: 16, weight: .semibold))
                             Text(data.moonPhase.description)
                                 .font(.system(size: 13))
@@ -750,7 +750,7 @@ struct RecommendationRow: View {
 
 struct LegendItem: View {
     let color: Color
-    let text: String
+    let text: LocalizedStringKey
     
     var body: some View {
         HStack(spacing: 4) {

@@ -88,7 +88,7 @@ struct ThemeEditorCard: View {
                 ) {
                     customisation.reloadFromDisk()
                     refresh()
-                    actionMessage = "Reloaded from disk."
+                    actionMessage = String(localized: "Reloaded from disk.")
                 }
             }
             actionButton(
@@ -98,13 +98,13 @@ struct ThemeEditorCard: View {
             ) {
                 customisation.resetTo(.default)
                 refresh()
-                actionMessage = "Reset to Default profile."
+                actionMessage = String(localized: "Reset to Default profile.")
             }
         }
     }
 
     private func actionButton(
-        title: String,
+        title: LocalizedStringKey,
         systemImage: String,
         color: Color,
         action: @escaping () -> Void
@@ -133,7 +133,7 @@ struct ThemeEditorCard: View {
     private func revealInFinder() {
         #if canImport(AppKit)
         guard let url = customisation.profileFileURL else {
-            actionMessage = "Profile file isn't available outside a signed app context."
+            actionMessage = String(localized: "Profile file isn't available outside a signed app context.")
             return
         }
         // Ensure the file exists so Finder can reveal it.
@@ -146,9 +146,9 @@ struct ThemeEditorCard: View {
             customisation.setKnobs(customisation.profile.knobs)
         }
         NSWorkspace.shared.activateFileViewerSelecting([url])
-        actionMessage = "Revealed \(url.lastPathComponent) in Finder."
+        actionMessage = String(localized: "Revealed \(url.lastPathComponent) in Finder.")
         #else
-        actionMessage = "Reveal in Finder is only available on macOS."
+        actionMessage = String(localized: "Reveal in Finder is only available on macOS.")
         #endif
     }
 }

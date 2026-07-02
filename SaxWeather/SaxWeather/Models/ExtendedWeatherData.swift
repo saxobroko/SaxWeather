@@ -33,20 +33,33 @@ struct AirQualityData: Codable {
             }
         }
         
+        /// Localized display name for the category. `rawValue` is
+        /// kept stable (English) for Codable; UI should use this.
+        var localizedName: String {
+            switch self {
+            case .good: return String(localized: "Good")
+            case .moderate: return String(localized: "Moderate")
+            case .unhealthyForSensitive: return String(localized: "Unhealthy for Sensitive Groups")
+            case .unhealthy: return String(localized: "Unhealthy")
+            case .veryUnhealthy: return String(localized: "Very Unhealthy")
+            case .hazardous: return String(localized: "Hazardous")
+            }
+        }
+
         var healthAdvice: String {
             switch self {
             case .good:
-                return "Air quality is good. Ideal for outdoor activities."
+                return String(localized: "Air quality is good. Ideal for outdoor activities.")
             case .moderate:
-                return "Air quality is acceptable. Unusually sensitive people should limit prolonged outdoor exertion."
+                return String(localized: "Air quality is acceptable. Unusually sensitive people should limit prolonged outdoor exertion.")
             case .unhealthyForSensitive:
-                return "Sensitive groups should reduce prolonged or heavy outdoor exertion."
+                return String(localized: "Sensitive groups should reduce prolonged or heavy outdoor exertion.")
             case .unhealthy:
-                return "Everyone should reduce prolonged or heavy outdoor exertion."
+                return String(localized: "Everyone should reduce prolonged or heavy outdoor exertion.")
             case .veryUnhealthy:
-                return "Health warnings. Everyone should avoid prolonged outdoor exertion."
+                return String(localized: "Health warnings. Everyone should avoid prolonged outdoor exertion.")
             case .hazardous:
-                return "Health alert. Everyone should avoid all outdoor exertion."
+                return String(localized: "Health alert. Everyone should avoid all outdoor exertion.")
             }
         }
         
@@ -96,6 +109,17 @@ struct UVIndexData {
             case .extreme: return .purple
             }
         }
+
+        /// Localized display name. `rawValue` stays English for stability.
+        var localizedName: String {
+            switch self {
+            case .low: return String(localized: "Low")
+            case .moderate: return String(localized: "Moderate")
+            case .high: return String(localized: "High")
+            case .veryHigh: return String(localized: "Very High")
+            case .extreme: return String(localized: "Extreme")
+            }
+        }
         
         static func from(uvIndex: Int) -> UVCategory {
             switch uvIndex {
@@ -115,23 +139,23 @@ struct UVIndexData {
         // Calculate time to burn (assumes fair skin)
         switch uvIndex {
         case 0...2:
-            self.timeToBurn = "60+ minutes"
-            self.sunscreenRecommendation = "Minimal sun protection required"
+            self.timeToBurn = String(localized: "60+ minutes")
+            self.sunscreenRecommendation = String(localized: "Minimal sun protection required")
         case 3...5:
-            self.timeToBurn = "30-45 minutes"
-            self.sunscreenRecommendation = "SPF 15+ recommended"
+            self.timeToBurn = String(localized: "30-45 minutes")
+            self.sunscreenRecommendation = String(localized: "SPF 15+ recommended")
         case 6...7:
-            self.timeToBurn = "15-25 minutes"
-            self.sunscreenRecommendation = "SPF 30+ required"
+            self.timeToBurn = String(localized: "15-25 minutes")
+            self.sunscreenRecommendation = String(localized: "SPF 30+ required")
         case 8...10:
-            self.timeToBurn = "10-15 minutes"
-            self.sunscreenRecommendation = "SPF 50+ required, seek shade"
+            self.timeToBurn = String(localized: "10-15 minutes")
+            self.sunscreenRecommendation = String(localized: "SPF 50+ required, seek shade")
         default:
-            self.timeToBurn = "< 10 minutes"
-            self.sunscreenRecommendation = "SPF 50+ required, avoid sun 10am-4pm"
+            self.timeToBurn = String(localized: "< 10 minutes")
+            self.sunscreenRecommendation = String(localized: "SPF 50+ required, avoid sun 10am-4pm")
         }
         
-        self.peakHours = "10:00 AM - 4:00 PM"
+        self.peakHours = String(localized: "10:00 AM - 4:00 PM")
     }
 }
 
@@ -150,11 +174,11 @@ struct PollenData: Codable {
         
         var description: String {
             switch self {
-            case .none: return "None"
-            case .low: return "Low"
-            case .moderate: return "Moderate"
-            case .high: return "High"
-            case .veryHigh: return "Very High"
+            case .none: return String(localized: "None")
+            case .low: return String(localized: "Low")
+            case .moderate: return String(localized: "Moderate")
+            case .high: return String(localized: "High")
+            case .veryHigh: return String(localized: "Very High")
             }
         }
         
@@ -174,9 +198,9 @@ struct PollenData: Codable {
         let highLevels = levels.filter { $0.rawValue >= PollenLevel.high.rawValue }
         
         if !highLevels.isEmpty {
-            return "High pollen alert! Allergy sufferers should take precautions."
+            return String(localized: "High pollen alert! Allergy sufferers should take precautions.")
         } else if levels.contains(where: { $0 == .moderate }) {
-            return "Moderate pollen levels. Monitor symptoms if sensitive."
+            return String(localized: "Moderate pollen levels. Monitor symptoms if sensitive.")
         }
         return nil
     }
@@ -213,13 +237,27 @@ struct SunMoonData: Codable {
             }
         }
         
+        /// Localized display name. `rawValue` stays English for stability.
+        var localizedName: String {
+            switch self {
+            case .newMoon: return String(localized: "New Moon")
+            case .waxingCrescent: return String(localized: "Waxing Crescent")
+            case .firstQuarter: return String(localized: "First Quarter")
+            case .waxingGibbous: return String(localized: "Waxing Gibbous")
+            case .fullMoon: return String(localized: "Full Moon")
+            case .waningGibbous: return String(localized: "Waning Gibbous")
+            case .lastQuarter: return String(localized: "Last Quarter")
+            case .waningCrescent: return String(localized: "Waning Crescent")
+            }
+        }
+
         var description: String {
             switch self {
-            case .newMoon: return "Best for stargazing"
-            case .waxingCrescent, .waningCrescent: return "Good for evening/morning observation"
-            case .firstQuarter, .lastQuarter: return "Half moon visible"
-            case .waxingGibbous, .waningGibbous: return "Nearly full illumination"
-            case .fullMoon: return "Peak brightness, ideal for night activities"
+            case .newMoon: return String(localized: "Best for stargazing")
+            case .waxingCrescent, .waningCrescent: return String(localized: "Good for evening/morning observation")
+            case .firstQuarter, .lastQuarter: return String(localized: "Half moon visible")
+            case .waxingGibbous, .waningGibbous: return String(localized: "Nearly full illumination")
+            case .fullMoon: return String(localized: "Peak brightness, ideal for night activities")
             }
         }
         
@@ -263,11 +301,11 @@ struct HourlyPrecipitation: Codable {
     
     var intensityDescription: String {
         switch amount {
-        case 0: return "None"
-        case 0..<0.5: return "Light"
-        case 0.5..<2.5: return "Moderate"
-        case 2.5..<10: return "Heavy"
-        default: return "Very Heavy"
+        case 0: return String(localized: "None")
+        case 0..<0.5: return String(localized: "Light")
+        case 0.5..<2.5: return String(localized: "Moderate")
+        case 2.5..<10: return String(localized: "Heavy")
+        default: return String(localized: "Very Heavy")
         }
     }
 }
@@ -326,7 +364,7 @@ struct WhatToWearData {
         let feelsLikeSummary: String?
         if let feelsLike = weather.feelsLike {
             let label = unitSystem.temperatureLabel
-            feelsLikeSummary = String(format: "Feels like %.0f%@", feelsLike, label)
+            feelsLikeSummary = String(format: String(localized: "Feels like %.0f%@"), feelsLike, label)
         } else {
             feelsLikeSummary = nil
         }
@@ -353,25 +391,25 @@ struct WhatToWearData {
         let icon: String
         switch celsius {
         case ..<(-5):
-            text = "Heavy coat, hat & gloves"
+            text = String(localized: "Heavy coat, hat & gloves")
             icon = "snowflake"
         case (-5)..<5:
-            text = "Warm jacket & layers"
+            text = String(localized: "Warm jacket & layers")
             icon = "coat.fill"
         case 5..<12:
-            text = "Jacket recommended"
+            text = String(localized: "Jacket recommended")
             icon = "coat.fill"
         case 12..<18:
-            text = "Light jacket or sweater"
+            text = String(localized: "Light jacket or sweater")
             icon = "wind"
         case 18..<24:
-            text = "Comfortable — light layers optional"
+            text = String(localized: "Comfortable — light layers optional")
             icon = "tshirt"
         case 24..<30:
-            text = "Short sleeves, breathable fabrics"
+            text = String(localized: "Short sleeves, breathable fabrics")
             icon = "tshirt.fill"
         default:
-            text = "Stay cool — light clothing & hydrate"
+            text = String(localized: "Stay cool — light clothing & hydrate")
             icon = "sun.max.fill"
         }
 
@@ -415,10 +453,10 @@ struct WhatToWearData {
         let text: String
         if isCurrentHour {
             text = rainHour.probability >= 70
-                ? "Umbrella recommended now"
-                : "Umbrella recommended"
+                ? String(localized: "Umbrella recommended now")
+                : String(localized: "Umbrella recommended")
         } else {
-            text = "Umbrella after \(timeLabel)"
+            text = String(localized: "Umbrella after \(timeLabel)")
         }
 
         return WhatToWearSuggestion(icon: "umbrella.fill", text: text)
@@ -436,12 +474,12 @@ struct WhatToWearData {
         case 60...:
             return WhatToWearSuggestion(
                 icon: "wind",
-                text: "Strong winds — windbreaker & secure loose items"
+                text: String(localized: "Strong winds — windbreaker & secure loose items")
             )
         case 40..<60:
             return WhatToWearSuggestion(
                 icon: "wind",
-                text: "Windbreaker recommended"
+                text: String(localized: "Windbreaker recommended")
             )
         default:
             return nil
@@ -455,17 +493,17 @@ struct WhatToWearData {
         case 8...:
             return WhatToWearSuggestion(
                 icon: "sun.max.fill",
-                text: "SPF 50+ & hat — high UV"
+                text: String(localized: "SPF 50+ & hat — high UV")
             )
         case 6...7:
             return WhatToWearSuggestion(
                 icon: "sun.max.fill",
-                text: "SPF 30+ & hat recommended"
+                text: String(localized: "SPF 30+ & hat recommended")
             )
         case 3...5:
             return WhatToWearSuggestion(
                 icon: "sun.max.fill",
-                text: "Sunscreen recommended"
+                text: String(localized: "Sunscreen recommended")
             )
         default:
             return nil

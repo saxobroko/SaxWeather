@@ -79,15 +79,15 @@ struct HeroLastUpdatedButton: View {
 
     private func labelText(relative: String, isStale: Bool, isTapDebounced: Bool) -> String {
         if weatherService.isLoading {
-            return "Updating…"
+            return String(localized: "Updating…")
         }
         if isTapDebounced {
-            return "Refresh already requested"
+            return String(localized: "Refresh already requested")
         }
         if isStale {
-            return "Last updated \(relative) · Tap to refresh"
+            return String(localized: "Last updated \(relative) · Tap to refresh")
         }
-        return "Updated \(relative)"
+        return String(localized: "Updated \(relative)")
     }
 
     private func foregroundColor(isStale: Bool) -> Color {
@@ -99,22 +99,22 @@ struct HeroLastUpdatedButton: View {
 
     private func accessibilityLabel(relative: String, isStale: Bool, isTapDebounced: Bool) -> String {
         if weatherService.isLoading {
-            return "Updating weather"
+            return String(localized: "Updating weather")
         }
         if isTapDebounced {
-            return "Refresh already requested"
+            return String(localized: "Refresh already requested")
         }
         if isStale {
-            return "Last updated \(relative). Weather may be outdated. Tap to refresh."
+            return String(localized: "Last updated \(relative). Weather may be outdated. Tap to refresh.")
         }
-        return "Last updated \(relative)"
+        return String(localized: "Last updated \(relative)")
     }
 
     private func accessibilityHint(isTapDebounced: Bool) -> String {
         if isTapDebounced {
-            return "A refresh is already in progress or was recently requested"
+            return String(localized: "A refresh is already in progress or was recently requested")
         }
-        return "Refreshes weather data"
+        return String(localized: "Refreshes weather data")
     }
 
     private func isWithinTapDebounce(isStale: Bool) -> Bool {

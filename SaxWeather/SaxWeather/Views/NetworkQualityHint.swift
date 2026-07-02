@@ -74,26 +74,26 @@ struct NetworkQualityHint: View {
 
     private var title: String {
         switch monitor.quality {
-        case .offline: return "You're offline"
-        case .unmetered: return "Connected via WiFi"
-        case .cellular: return "Connected via cellular"
-        case .expensive: return "Personal hotspot detected"
-        case .constrained: return "Low Data Mode is on"
+        case .offline: return String(localized: "You're offline")
+        case .unmetered: return String(localized: "Connected via WiFi")
+        case .cellular: return String(localized: "Connected via cellular")
+        case .expensive: return String(localized: "Personal hotspot detected")
+        case .constrained: return String(localized: "Low Data Mode is on")
         }
     }
 
     private var message: String {
         switch monitor.quality {
         case .offline:
-            return "Weather updates will resume when you're back online."
+            return String(localized: "Weather updates will resume when you're back online.")
         case .unmetered:
-            return "Full forecast data is being fetched."
+            return String(localized: "Full forecast data is being fetched.")
         case .cellular:
-            return "Basic weather is fetched; extended data (AQI, pollen) is skipped to save data."
+            return String(localized: "Basic weather is fetched; extended data (AQI, pollen) is skipped to save data.")
         case .expensive:
-            return "Extended forecast data is skipped to keep data usage low."
+            return String(localized: "Extended forecast data is skipped to keep data usage low.")
         case .constrained:
-            return "Extended forecast data is skipped and background refresh runs less often."
+            return String(localized: "Extended forecast data is skipped and background refresh runs less often.")
         }
     }
 }

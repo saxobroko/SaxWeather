@@ -147,7 +147,7 @@ struct TipJarView: View {
 struct TipOption: Identifiable {
     let id: String
     let emoji: String
-    let title: String
+    let title: LocalizedStringKey
     let amount: String
 }
 
@@ -186,7 +186,7 @@ struct TipButton: View {
 
 struct BenefitRow: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
     
     var body: some View {
         HStack(spacing: 12) {
@@ -220,7 +220,7 @@ class TipStoreManager: ObservableObject {
                 #if DEBUG
                 print("⚠️ Product not found: \(productID)")
                 #endif
-                purchaseError = "Product not found. Please try again later."
+                purchaseError = String(localized: "Product not found. Please try again later.")
                 return false
             }
             
@@ -243,7 +243,7 @@ class TipStoreManager: ObservableObject {
                     #if DEBUG
                     print("⚠️ Transaction verification failed")
                     #endif
-                    purchaseError = "Transaction verification failed"
+                    purchaseError = String(localized: "Transaction verification failed")
                     return false
                 }
             case .userCancelled:
@@ -255,17 +255,17 @@ class TipStoreManager: ObservableObject {
                 #if DEBUG
                 print("⏳ Purchase pending")
                 #endif
-                purchaseError = "Purchase pending approval"
+                purchaseError = String(localized: "Purchase pending approval")
                 return false
             @unknown default:
-                purchaseError = "Unknown purchase result"
+                purchaseError = String(localized: "Unknown purchase result")
                 return false
             }
         } catch {
             #if DEBUG
             print("❌ Purchase error: \(error)")
             #endif
-            purchaseError = "Purchase failed: \(error.localizedDescription)"
+            purchaseError = String(localized: "Purchase failed: \(error.localizedDescription)")
             return false
         }
     }

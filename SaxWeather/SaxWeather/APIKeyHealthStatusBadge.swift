@@ -57,10 +57,10 @@ struct APIKeyHealthStatusBadge: View {
 
     private var label: String {
         switch entry.status {
-        case .unknown:       return "Untested"
-        case .valid:         return "Verified"
-        case .invalid:       return "Invalid"
-        case .quotaExceeded: return "Quota exceeded"
+        case .unknown:       return String(localized: "Untested")
+        case .valid:         return String(localized: "Verified")
+        case .invalid:       return String(localized: "Invalid")
+        case .quotaExceeded: return String(localized: "Quota exceeded")
         }
     }
 }

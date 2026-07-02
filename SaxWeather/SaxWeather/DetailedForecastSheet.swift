@@ -171,22 +171,22 @@ struct DetailedForecastSheet: View {
     // Weather description based on weather code
     private func weatherDescription(_ code: Int) -> String {
         switch code {
-        case 0: return "Clear skies"
-        case 1: return "Mainly clear"
-        case 2: return "Partly cloudy"
-        case 3: return "Overcast"
-        case 45, 48: return "Foggy conditions"
-        case 51, 53, 55: return "Light drizzle"
-        case 56, 57: return "Freezing drizzle"
-        case 61, 63, 65: return "Rainy conditions"
-        case 66, 67: return "Freezing rain"
-        case 71, 73, 75: return "Snowfall"
-        case 77: return "Snow grains"
-        case 80, 81, 82: return "Rain showers"
-        case 85, 86: return "Snow showers"
-        case 95: return "Thunderstorm"
-        case 96, 99: return "Thunderstorm with hail"
-        default: return "Changing conditions"
+        case 0: return String(localized: "Clear skies")
+        case 1: return String(localized: "Mainly clear")
+        case 2: return String(localized: "Partly cloudy")
+        case 3: return String(localized: "Overcast")
+        case 45, 48: return String(localized: "Foggy conditions")
+        case 51, 53, 55: return String(localized: "Light drizzle")
+        case 56, 57: return String(localized: "Freezing drizzle")
+        case 61, 63, 65: return String(localized: "Rainy conditions")
+        case 66, 67: return String(localized: "Freezing rain")
+        case 71, 73, 75: return String(localized: "Snowfall")
+        case 77: return String(localized: "Snow grains")
+        case 80, 81, 82: return String(localized: "Rain showers")
+        case 85, 86: return String(localized: "Snow showers")
+        case 95: return String(localized: "Thunderstorm")
+        case 96, 99: return String(localized: "Thunderstorm with hail")
+        default: return String(localized: "Changing conditions")
         }
     }
 }
@@ -194,7 +194,7 @@ struct DetailedForecastSheet: View {
 // Detailed Weather Card
 struct WeatherDetailCard: View {
     let icon: String
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     let color: Color
     @Environment(\.colorScheme) var colorScheme

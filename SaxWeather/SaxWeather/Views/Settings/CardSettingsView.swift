@@ -787,7 +787,7 @@ private struct LivePreviewCard: View {
         .themedCard(visual)
     }
 
-    private func weatherDataColumn(icon: String, label: String, value: String) -> some View {
+    private func weatherDataColumn(icon: String, label: LocalizedStringKey, value: String) -> some View {
         VStack(spacing: 4) {
             Text(icon).font(.system(size: 18))
             Text(label)

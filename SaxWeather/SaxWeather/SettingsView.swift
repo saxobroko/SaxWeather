@@ -560,6 +560,28 @@ struct SettingsView: View {
                     tint: .green
                 )
             }
+
+            #if os(iOS)
+            // Language deep-links to the app's iOS Settings page, where
+            // the system per-app language picker appears once the app
+            // ships more than one localization. Keeps discovery easy
+            // without a fragile in-app language override.
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                settingsRow(
+                    title: "Language",
+                    subtitle: "Choose the app's language in iOS Settings",
+                    systemImage: "globe",
+                    tint: .blue,
+                    showsChevron: true
+                )
+            }
+            .accessibilityLabel("Language")
+            .accessibilityHint("Opens iOS Settings to change the app's language")
+            #endif
         } header: {
             Text("Personalisation")
         } footer: {
@@ -706,8 +728,8 @@ struct SettingsView: View {
     /// scan than a bare `Label`.
     @ViewBuilder
     private func settingsRow(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         systemImage: String,
         tint: Color,
         showsChevron: Bool = false
@@ -1755,7 +1777,7 @@ struct SettingsSearchResults: View {
                             }
                         }
                     } header: {
-                        Text(group.rawValue)
+                        Text(group.localizedName)
                     }
                 }
             }
@@ -1906,52 +1928,52 @@ struct SettingsSearchItem: Identifiable {
 
     /// Every top-level row that the search bar can match against.
     static let all: [SettingsSearchItem] = [
-        .init(id: "backupAndRestore", title: "Backup & Restore",
-              subtitle: "Back up, restore, or sync via iCloud",
+        .init(id: "backupAndRestore", title: String(localized: "Backup & Restore"),
+              subtitle: String(localized: "Back up, restore, or sync via iCloud"),
               symbolName: "arrow.triangle.2.circlepath.circle.fill",
               action: .navigate(.backupAndRestore)),
-        .init(id: "locations", title: "Locations",
-              subtitle: "Saved locations & GPS",
+        .init(id: "locations", title: String(localized: "Locations"),
+              subtitle: String(localized: "Saved locations & GPS"),
               symbolName: "location.fill",
               action: .navigate(.locations)),
-        .init(id: "weatherData", title: "Weather Data",
-              subtitle: "API keys & data sources",
+        .init(id: "weatherData", title: String(localized: "Weather Data"),
+              subtitle: String(localized: "API keys & data sources"),
               symbolName: "cloud.sun.fill",
               action: .navigate(.weatherData)),
-        .init(id: "preferences", title: "Preferences",
-              subtitle: "Units, forecast window, layout",
+        .init(id: "preferences", title: String(localized: "Preferences"),
+              subtitle: String(localized: "Units, forecast window, layout"),
               symbolName: "slider.horizontal.3",
               action: .navigate(.preferences)),
-        .init(id: "appearance", title: "Appearance",
-              subtitle: "Backgrounds, accent, animations",
+        .init(id: "appearance", title: String(localized: "Appearance"),
+              subtitle: String(localized: "Backgrounds, accent, animations"),
               symbolName: "paintbrush.fill",
               action: .navigate(.appearance)),
-        .init(id: "cardStyle", title: "Card Style",
-              subtitle: "Colour, border, shadow, glass, tint",
+        .init(id: "cardStyle", title: String(localized: "Card Style"),
+              subtitle: String(localized: "Colour, border, shadow, glass, tint"),
               symbolName: "rectangle.stack.fill",
               action: .navigate(.cardStyle)),
-        .init(id: "accessibility", title: "Accessibility",
-              subtitle: "Text size, motion, contrast, VoiceOver",
+        .init(id: "accessibility", title: String(localized: "Accessibility"),
+              subtitle: String(localized: "Text size, motion, contrast, VoiceOver"),
               symbolName: "accessibility",
               action: .navigate(.accessibility)),
-        .init(id: "support", title: "Support Development",
-              subtitle: "Leave a tip",
+        .init(id: "support", title: String(localized: "Support Development"),
+              subtitle: String(localized: "Leave a tip"),
               symbolName: "heart.fill",
               action: .sheet(.tipJar)),
-        .init(id: "sendFeedback", title: "Send Feedback",
-              subtitle: "Report a bug to the developer",
+        .init(id: "sendFeedback", title: String(localized: "Send Feedback"),
+              subtitle: String(localized: "Report a bug to the developer"),
               symbolName: "envelope.fill",
               action: .navigate(.feedback(.bug))),
-        .init(id: "requestFeature", title: "Request a Feature",
-              subtitle: "Suggest an improvement",
+        .init(id: "requestFeature", title: String(localized: "Request a Feature"),
+              subtitle: String(localized: "Suggest an improvement"),
               symbolName: "lightbulb.fill",
               action: .navigate(.feedback(.idea))),
-        .init(id: "about", title: "About",
-              subtitle: "Version & developer",
+        .init(id: "about", title: String(localized: "About"),
+              subtitle: String(localized: "Version & developer"),
               symbolName: "info.circle.fill",
               action: .navigate(.about)),
-        .init(id: "attribution", title: "Attribution",
-              subtitle: "Open-Meteo, Apple Weather, WU, OWM",
+        .init(id: "attribution", title: String(localized: "Attribution"),
+              subtitle: String(localized: "Open-Meteo, Apple Weather, WU, OWM"),
               symbolName: "network",
               action: .navigate(.attribution))
     ]
