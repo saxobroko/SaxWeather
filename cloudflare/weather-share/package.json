@@ -9,6 +9,6 @@
     "check": "wrangler check"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.114.0"
   }
 }
